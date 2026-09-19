@@ -1,19 +1,19 @@
 """Regras das tarefas.
 
 - A tarefa tem um dia planejado (`date`). Ela conta no percentual desse dia.
-- Concluir registra `completed_at` agora. Se o dia planejado for hoje ou ontem (janela de
-  registro), a tarefa fica onde está; se for mais antigo ou futuro, ela passa para hoje:
-  o crédito vai para o dia em que o trabalho aconteceu.
+- Concluir registra `completed_at` agora. Se o dia planejado ainda está aberto (hoje, ou
+  ontem antes do corte das 03:00), a tarefa fica onde está; se já fechou ou é futuro, ela
+  passa para hoje: o crédito vai para o dia em que o trabalho aconteceu.
 - Cancelada sai do planejado sem apagar o registro.
 """
 
-from datetime import date, timedelta
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dates import now_utc, user_today
+from app.core.dates import is_day_open, now_utc, user_today
 from app.core.errors import NotFoundError
 from app.modules.tasks.models import Task, TaskCategory, TaskPriority, TaskStatus
 from app.modules.tasks.schemas import CategoryIn, CategoryUpdate, TaskIn, TasksDayOut, TaskUpdate
@@ -124,10 +124,8 @@ async def create_task(db: AsyncSession, user_id: UUID, timezone: str, data: Task
 
 
 def _completion_date(planned: date, timezone: str) -> date:
-    today = user_today(timezone)
-    if today - timedelta(days=1) <= planned <= today:
-        return planned
-    return today
+    """Dia que recebe o crédito: o planejado, se ainda está aberto; senão, hoje."""
+    return planned if is_day_open(planned, timezone) else user_today(timezone)
 
 
 async def update_task(

@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from httpx import AsyncClient
 
-from app.core.dates import now_utc
+from app.core.dates import is_day_open, now_utc
 from tests.conftest import bearer, register
 
 TZ = "America/Sao_Paulo"
@@ -163,12 +163,14 @@ async def test_day_overview_and_checklist(client: AsyncClient) -> None:
     assert r.status_code == 204
     assert (await client.get("/api/v1/routines/day", headers=h)).json()["completed"] == 0
 
-    # Ontem pode; futuro e anteontem não
-    yesterday = (today() - timedelta(days=1)).isoformat()
+    # Ontem só antes do corte das 03:00; futuro e anteontem nunca
+    yesterday_d = today() - timedelta(days=1)
     r = await client.put(
-        f"/api/v1/routines/items/{b['id']}/check", json={"date": yesterday, "done": True}, headers=h
+        f"/api/v1/routines/items/{b['id']}/check",
+        json={"date": yesterday_d.isoformat(), "done": True},
+        headers=h,
     )
-    assert r.status_code == 204
+    assert r.status_code == (204 if is_day_open(yesterday_d, TZ) else 400)
     tomorrow = (today() + timedelta(days=1)).isoformat()
     r = await client.put(
         f"/api/v1/routines/items/{b['id']}/check", json={"date": tomorrow, "done": True}, headers=h

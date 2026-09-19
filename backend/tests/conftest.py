@@ -13,6 +13,7 @@ os.environ.setdefault(
     "DATABASE_URL", "postgresql+asyncpg://disciplina:disciplina@127.0.0.1:5432/disciplina_test"
 )
 os.environ.setdefault("AUTH_RATE_LIMIT_PER_MINUTE", "1000")
+os.environ.setdefault("SCHEDULER_ENABLED", "false")
 
 import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
@@ -21,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker  # noqa: E40
 
 import app.modules.alarms.models  # noqa: F401,E402
 import app.modules.auth.models  # noqa: F401,E402
+import app.modules.progress.models  # noqa: F401,E402
 import app.modules.routines.models  # noqa: F401,E402
 import app.modules.tasks.models  # noqa: F401,E402
 import app.modules.users.models  # noqa: F401,E402

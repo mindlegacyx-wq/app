@@ -2,8 +2,9 @@ from datetime import timedelta
 
 from httpx import AsyncClient
 
+from app.core.dates import is_day_open
 from tests.conftest import bearer
-from tests.test_routines import onboard, today
+from tests.test_routines import TZ, onboard, today
 
 
 async def test_categories_crud(client: AsyncClient) -> None:
@@ -100,15 +101,17 @@ async def test_overdue_and_completion_moves_old_task_to_today(client: AsyncClien
     r = await client.patch(f"/api/v1/tasks/{old['id']}", json={"status": "done"}, headers=h)
     assert r.json()["date"] == today().isoformat()
 
-    # Concluir a de ontem: fica em ontem (janela de registro)
+    # Concluir a de ontem: fica em ontem só se ontem ainda está aberto (antes das 03:00)
+    yesterday_open = is_day_open(today() - timedelta(days=1), TZ)
     r = await client.patch(f"/api/v1/tasks/{ydy['id']}", json={"status": "done"}, headers=h)
-    assert r.json()["date"] == yesterday
+    assert r.json()["date"] == (yesterday if yesterday_open else today().isoformat())
 
     day = (await client.get("/api/v1/tasks/day", headers=h)).json()
     assert day["overdue"] == []
-    assert day["planned"] == 1 and day["completed"] == 1
+    credited_today = 1 + (0 if yesterday_open else 1)
+    assert day["planned"] == credited_today and day["completed"] == credited_today
     ydy_day = (await client.get(f"/api/v1/tasks/day?date={yesterday}", headers=h)).json()
-    assert ydy_day["completed"] == 1
+    assert ydy_day["completed"] == (1 if yesterday_open else 0)
 
 
 async def test_future_task_completed_early_counts_today(client: AsyncClient) -> None:

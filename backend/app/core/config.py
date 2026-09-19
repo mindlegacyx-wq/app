@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     default_timezone: str = "America/Sao_Paulo"
     default_discipline_target: int = 80
 
+    # Fechamento do dia: um dia fica aberto até esta hora do dia seguinte (fuso do usuário)
+    day_close_hour: int = Field(default=3, ge=0, le=6)
+    # Job em processo que finaliza dias vencidos (desligado em testes)
+    scheduler_enabled: bool = True
+    scheduler_interval_minutes: int = 5
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
