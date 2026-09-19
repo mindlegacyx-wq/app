@@ -20,6 +20,11 @@ const RoutineEditorPage = lazy(() =>
 )
 const AgendaPage = lazy(() => import('@/features/schedule/AgendaPage').then((m) => ({ default: m.AgendaPage })))
 const SubjectsPage = lazy(() => import('@/features/schedule/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
+const StudiesPage = lazy(() => import('@/features/studies/StudiesPage').then((m) => ({ default: m.StudiesPage })))
+const ExamDetailPage = lazy(() => import('@/features/studies/ExamDetailPage').then((m) => ({ default: m.ExamDetailPage })))
+const StudySessionPage = lazy(() =>
+  import('@/features/studies/StudySessionPage').then((m) => ({ default: m.StudySessionPage })),
+)
 const GoalsPage = lazy(() => import('@/features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })))
 const GoalDetailPage = lazy(() => import('@/features/goals/GoalDetailPage').then((m) => ({ default: m.GoalDetailPage })))
 const WorkoutsPage = lazy(() => import('@/features/workouts/WorkoutsPage').then((m) => ({ default: m.WorkoutsPage })))
@@ -81,6 +86,8 @@ export const router = createBrowserRouter([
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
           { path: '/agenda', element: <Lazy><AgendaPage /></Lazy> },
           { path: '/agenda/materias', element: <Lazy><SubjectsPage /></Lazy> },
+          { path: '/estudos/:id', element: <Lazy><ExamDetailPage /></Lazy> },
+          { path: '/estudos/:id/sessao/:date', element: <Lazy><StudySessionPage /></Lazy> },
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },
           { path: '/despertador/historico', element: <Lazy><WakeHistoryPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },
@@ -96,6 +103,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/hoje', element: <TodayPage /> },
           { path: '/rotina', element: <Lazy><RoutinesPage /></Lazy> },
+          { path: '/estudos', element: <Lazy><StudiesPage /></Lazy> },
           { path: '/metas', element: <Lazy><GoalsPage /></Lazy> },
           { path: '/treinos', element: <Lazy><WorkoutsPage /></Lazy> },
           { path: '/evolucao', element: <Lazy><EvolutionPage /></Lazy> },

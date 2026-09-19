@@ -8,14 +8,8 @@ import { cn, longDate, timeIn, todayIn } from '@/lib/format'
 import type { DayScore, ScoreComponent } from '@/lib/types'
 
 import { useCloseDay, useDayScore, useReopenDay } from './api'
+import { kindLabel } from './shared'
 
-const kindLabel: Record<ScoreComponent, string> = {
-  wake: 'Acordar',
-  routines: 'Rotinas',
-  tasks: 'Tarefas',
-  workout: 'Treino',
-  goals: 'Metas',
-}
 
 /** Tela 8: resumo do dia, o que ficou de fora, sequência; confirma o fechamento. */
 export function CloseDayPage() {

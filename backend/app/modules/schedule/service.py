@@ -8,7 +8,7 @@ Regras:
 """
 
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, time
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -342,26 +342,6 @@ async def copy_day(
             if b.kind == BlockKind.workout and b.workout_id is not None and b.is_active:
                 await workouts_service.ensure_days(db, user_id, b.workout_id, [wd])
     return CopyDayOut(created=created, skipped=skipped)
-
-
-# --- Integração com outros módulos -------------------------------------------------------
-
-
-async def workout_times_for_day(db: AsyncSession, user_id: UUID, on: date) -> dict[UUID, time]:
-    """Horário de início dos blocos de treino do dia, por plano (para a tela Hoje)."""
-    wd = weekday_index(on)
-    out: dict[UUID, time] = {}
-    for b in await list_blocks(db, user_id):
-        if b.weekday == wd and b.kind == BlockKind.workout and b.workout_id and b.is_active:
-            out.setdefault(b.workout_id, b.start_time)
-    return out
-
-
-def next_block_at(blocks: list[BlockOut], now_local: datetime) -> BlockOut | None:
-    """Próximo bloco ativo do dia a partir de um instante local (utilitário para a UI)."""
-    t = now_local.time()
-    upcoming = [b for b in blocks if b.is_active and b.start_time > t]
-    return min(upcoming, key=lambda b: b.start_time) if upcoming else None
 
 
 # --- Lixeira -----------------------------------------------------------------------------

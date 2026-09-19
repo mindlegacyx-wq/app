@@ -357,6 +357,49 @@ Regras de cálculo:
 
 `INDEX (user_id, weekday, start_time)`. Criar em vários dias gera **um registro por dia** (cada dia pode ter horário diferente depois). Não há tabela de "ocorrências": o dia é calculado a partir de `weekday`.
 
+## Módulo 8 · Provas e estudos (Fase 10)
+
+### `exams` (provas e trabalhos)
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| subject_id | uuid FK NULL | `SET NULL` |
+| title | varchar(80) | |
+| kind | enum | `exam` · `assignment` |
+| date | date | dia da prova / entrega |
+| lead_days | smallint | 1–60; começa a cobrar X dias antes (padrão 7) |
+| minutes_per_day | smallint | 10–240 (padrão 30) |
+| notes | text NULL | |
+| status | enum | `open` · `done` (feita/entregue: para de cobrar) |
+| done_at | timestamptz NULL | |
+| created_at · updated_at · deleted_at | timestamptz | soft delete (lixeira; com sessões nunca é apagada em definitivo) |
+
+`INDEX (user_id, date)`.
+
+### `exam_topics` (conteúdos)
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| exam_id | uuid FK | `CASCADE` |
+| title | varchar(120) | |
+| is_done | bool | |
+| sort_order | int | |
+
+### `study_sessions` (registro de uma sessão num dia)
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| exam_id | uuid FK | `CASCADE` |
+| date | date | |
+| status | enum | `in_progress` · `completed` · `skipped` (pendente = sem linha) |
+| planned_minutes | smallint | copiado da prova ao criar (histórico fiel) |
+| focused_seconds | int | tempo do cronômetro de foco |
+| started_at · completed_at | timestamptz NULL | |
+
+`UNIQUE (exam_id, date)` · `INDEX (user_id, date)`. O planejado do dia vem da definição das provas (janela), não desta tabela — por isso mudar a data da prova não "apaga" sessões: só muda quais dias cobram dali em diante.
+
 ## Índices e integridade (resumo)
 
 - Toda tabela de domínio: `INDEX (user_id)`; tabelas de registro: `INDEX (user_id, date)`.

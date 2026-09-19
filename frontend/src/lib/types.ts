@@ -233,7 +233,7 @@ export interface TasksDay {
 
 // --- Evolução ----------------------------------------------------------------------------
 
-export type ScoreComponent = 'wake' | 'routines' | 'tasks' | 'workout' | 'goals'
+export type ScoreComponent = 'wake' | 'routines' | 'tasks' | 'workout' | 'goals' | 'study'
 
 export interface DayScore {
   date: string
@@ -473,4 +473,72 @@ export interface ScheduleDay {
   weekday: number
   blocks: ScheduleBlock[]
   free: { start: string; end: string; minutes: number }[]
+}
+
+// --- Provas, trabalhos e sessões de estudo (Fase 10) ------------------------------------
+
+export type ExamKind = 'exam' | 'assignment'
+export type ExamStatus = 'open' | 'done'
+export type StudySessionStatus = 'in_progress' | 'completed' | 'skipped'
+
+export interface ExamTopic {
+  id: string
+  exam_id: string
+  title: string
+  is_done: boolean
+  sort_order: number
+}
+
+export interface Exam {
+  id: string
+  title: string
+  kind: ExamKind
+  subject_id: string | null
+  subject_name: string | null
+  subject_color: string | null
+  date: string
+  lead_days: number
+  minutes_per_day: number
+  notes: string | null
+  status: ExamStatus
+  done_at: string | null
+  days_until: number
+  study_from: string
+  sessions_total: number
+  sessions_done: number
+  topics_total: number
+  topics_done: number
+  topics: ExamTopic[]
+}
+
+export interface StudySession {
+  id: string | null // null = planejada, ainda sem registro
+  exam_id: string
+  exam_title: string
+  exam_kind: ExamKind
+  exam_date: string
+  subject_name: string | null
+  subject_color: string | null
+  date: string
+  status: StudySessionStatus | null
+  planned_minutes: number
+  focused_seconds: number
+  started_at: string | null
+  completed_at: string | null
+  suggested_start: string | null
+  suggested_end: string | null
+  topics_total: number
+  topics_done: number
+}
+
+export interface ExamDetail extends Exam {
+  sessions: StudySession[]
+}
+
+export interface StudyDay {
+  date: string
+  sessions: StudySession[]
+  planned: number
+  completed: number
+  total_minutes: number
 }

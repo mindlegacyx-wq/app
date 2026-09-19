@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.modules.progress.models import ClosedBy
 
-Component = Literal["wake", "routines", "tasks", "workout", "goals"]
+Component = Literal["wake", "routines", "tasks", "workout", "goals", "study"]
 
 
 class ComponentOut(BaseModel):

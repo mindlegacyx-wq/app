@@ -6,6 +6,7 @@ import { Button, Card, Fab, Ring } from '@/components/ui'
 import { GoalsBlock } from '@/features/goals/GoalsBlock'
 import { useDayScore, useReopenDay } from '@/features/progress/api'
 import { AgendaBlock } from '@/features/schedule/AgendaBlock'
+import { StudyBlock } from '@/features/studies/StudyBlock'
 import { WorkoutBlock } from '@/features/workouts/WorkoutBlock'
 import { useRoutines, useRoutinesDay } from '@/features/routines/api'
 import { TasksBlock } from '@/features/tasks/TasksBlock'
@@ -23,7 +24,7 @@ const CategoriesSheet = lazy(() =>
 )
 
 /**
- * Tela Hoje. Blocos na ordem do dia: acordar, manhã, agenda, blocos, tarefas, treino, metas, noite.
+ * Tela Hoje. Blocos na ordem do dia: acordar, manhã, agenda, blocos, tarefas, estudos, treino, metas, noite.
  */
 export function TodayPage() {
   const user = useAuth((s) => s.user)!
@@ -119,6 +120,8 @@ export function TodayPage() {
           onAdd={() => setTaskSheet({ open: true })}
           onEdit={(task) => setTaskSheet({ open: true, task })}
         />
+
+        <StudyBlock date={date} />
 
         <WorkoutBlock date={date} />
 

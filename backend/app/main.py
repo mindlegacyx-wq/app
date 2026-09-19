@@ -15,6 +15,7 @@ from app.modules.goals.router import router as goals_router
 from app.modules.progress.router import router as progress_router
 from app.modules.routines.router import router as routines_router
 from app.modules.schedule.router import schedule_router, subjects_router
+from app.modules.studies.router import exams_router, study_router
 from app.modules.tasks.router import router as tasks_router
 from app.modules.trash.router import router as trash_router
 from app.modules.users.router import router as users_router
@@ -85,3 +86,5 @@ app.include_router(workouts_router, prefix="/api/v1")
 app.include_router(trash_router, prefix="/api/v1")
 app.include_router(subjects_router, prefix="/api/v1")
 app.include_router(schedule_router, prefix="/api/v1")
+app.include_router(exams_router, prefix="/api/v1")
+app.include_router(study_router, prefix="/api/v1")

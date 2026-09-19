@@ -1,7 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
-import type { DayScore, ProgressHistory, ProgressSummary } from '@/lib/types'
+import type { DayScore, ProgressHistory, ProgressSummary, ScoreComponent } from '@/lib/types'
+
+import { KINDS } from './shared'
+
+/** Dias fechados antes de uma área existir não têm a chave no breakdown: completa com zero. */
+export function normalizeScore(d: DayScore): DayScore {
+  const breakdown = { ...d.breakdown } as DayScore['breakdown']
+  for (const k of KINDS as ScoreComponent[]) breakdown[k] ??= { planned: 0, completed: 0 }
+  return { ...d, breakdown }
+}
 
 export const progressKeys = {
   all: ['progress'] as const,
@@ -13,7 +22,7 @@ export const progressKeys = {
 export function useDayScore(date: string) {
   return useQuery({
     queryKey: progressKeys.day(date),
-    queryFn: () => api<DayScore>(`/progress/day?date=${date}`),
+    queryFn: async () => normalizeScore(await api<DayScore>(`/progress/day?date=${date}`)),
     staleTime: 5_000,
   })
 }
@@ -21,7 +30,7 @@ export function useDayScore(date: string) {
 export function useCloseDay(date: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api<DayScore>('/progress/close', { method: 'POST', body: { date } }),
+    mutationFn: async () => normalizeScore(await api<DayScore>('/progress/close', { method: 'POST', body: { date } })),
     onSuccess: (data) => qc.setQueryData(progressKeys.day(date), data),
   })
 }
@@ -29,7 +38,7 @@ export function useCloseDay(date: string) {
 export function useReopenDay(date: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api<DayScore>('/progress/reopen', { method: 'POST', body: { date } }),
+    mutationFn: async () => normalizeScore(await api<DayScore>('/progress/reopen', { method: 'POST', body: { date } })),
     onSuccess: (data) => qc.setQueryData(progressKeys.day(date), data),
   })
 }

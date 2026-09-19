@@ -23,7 +23,7 @@ Cada fase termina com: migração aplicada, testes passando, tela usável no cel
 | Fase | Entrega | Decisões |
 |---|---|---|
 | **9** ✅ 19/09 | **Agenda semanal** (telas 29 a 31): matérias, blocos por dia da semana com início/fim (aula, treino, estudo, outro), conflito de horário, copiar dia, linha do tempo em Hoje, horário do treino no bloco de treino | Aulas **não contam no percentual**. Vive dentro da aba Rotina (`/agenda`). Bloco de treino ligado a um plano acrescenta o dia ao plano. |
-| **10** | **Provas e trabalhos**: data, "começar a cobrar X dias antes", minutos por dia → sessões de estudo diárias encaixadas nos buracos da agenda, **contando no percentual**, com cronômetro de foco; conteúdos por prova | Nova aba **Estudos** (6ª). |
+| **10** ✅ 19/09 | **Provas e trabalhos** (telas 32 a 35): data, "começar a cobrar X dias antes", minutos por dia → uma sessão de estudo por dia, sugerida no maior buraco da agenda, **contando no percentual** (área `study`), cronômetro de foco, conteúdos por prova | Nova aba **Estudos** (6ª). Janela começa no dia do cadastro. Pular conta como não feita. |
 | **11** | **Notas**: períodos (bimestre/trimestre/semestre), média mínima configurável (padrão 6), fechamento do ano, "quanto preciso tirar" | Média simples por padrão. |
 | **12** | **Estudos com IA a partir de fotos**: fotos dos exercícios → transcrição editável (só o texto é guardado), teoria focada nos exercícios, resoluções passo a passo, mapa mental, quiz; geração em segundo plano | Provedor compatível com OpenAI configurado por `.env` (Groq/Gemini/Mistral gratuitos ou pago). |
 

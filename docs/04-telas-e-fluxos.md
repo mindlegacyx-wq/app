@@ -2,16 +2,16 @@
 
 ## Navegação
 
-Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
+Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o mais é alcançado a partir delas.
 
 ```
-┌──────────┬──────────┬──────────┬──────────┬──────────┐
-│   Hoje   │  Rotina  │  Metas   │  Treinos │ Evolução │
-└──────────┴──────────┴──────────┴──────────┴──────────┘
+┌────────┬────────┬─────────┬────────┬─────────┬──────────┐
+│  Hoje  │ Rotina │ Estudos │ Metas  │ Treinos │ Evolução │
+└────────┴────────┴─────────┴────────┴─────────┴──────────┘
 ```
 
 - **Tarefas** vivem dentro de **Hoje** (é onde são executadas) e têm um botão "+" flutuante.
-- **Despertador** vive dentro de **Rotina** (acordar é o primeiro passo da rotina da manhã).
+- **Despertador** e **Agenda da semana** vivem dentro de **Rotina** (acordar é o primeiro passo da rotina da manhã; a agenda é a estrutura fixa da semana).
 - **Perfil/Configurações** abre pelo avatar no topo de qualquer aba.
 
 ## Lista de telas (MVP)
@@ -27,7 +27,7 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 ### Hoje (home)
 | # | Tela | Conteúdo |
 |---|---|---|
-| 5 | **Hoje** | Saudação + data · anel de disciplina do dia · sequência atual · blocos na ordem do dia: **Acordar** (status ou botão "Levantei") → **Rotina da manhã** (checklist) → **Agenda de hoje** (linha do tempo: agora / próximo / encerrado; só aparece para quem tem agenda) → **Tarefas** (por prioridade) → **Treino de hoje** (com o horário vindo da agenda) → **Ações das metas** → **Rotina da noite** → botão **Fechar o dia** |
+| 5 | **Hoje** | Saudação + data · anel de disciplina do dia · sequência atual · blocos na ordem do dia: **Acordar** (status ou botão "Levantei") → **Rotina da manhã** (checklist) → **Agenda de hoje** (linha do tempo: agora / próximo / encerrado; só aparece para quem tem agenda) → **Tarefas** (por prioridade) → **Estudos** (sessões que as provas cobram hoje, com sugestão de horário; some quando não há nenhuma) → **Treino de hoje** (com o horário vindo da agenda) → **Ações das metas** → **Rotina da noite** → botão **Fechar o dia** |
 | 6 | Nova tarefa / Editar tarefa (bottom sheet) | Título, dia, prioridade, categoria, notas |
 | 7 | Categorias de tarefas | Criar, renomear, cor |
 | 8 | **Fechar o dia** | Resumo: % do dia, o que ficou de fora, sequência atualizada. Animação sóbria do anel. |
@@ -44,6 +44,14 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 | 29 | **Agenda** (`/agenda`, Fase 9) | Abas seg–dom (ponto nos dias com blocos, hoje destacado) · lista do dia com faixa na cor da matéria, início/fim, tipo, local, duração · total do dia · "Copiar este dia para…" (pula horários ocupados) |
 | 30 | Novo/Editar bloco (bottom sheet) | Tipo (Aula/Treino/Estudo/Outro) · matéria com criação inline · plano de treino (opcional) · título (segue a matéria/treino) · dias da semana (criação em vários) · início/fim com atalhos 45/50/60/90 min · local · pausar · excluir. Conflito de horário volta como erro nomeando o bloco. |
 | 31 | Matérias (`/agenda/materias`) | Nome, cor, professor(a), ativa; carga semanal calculada pela agenda |
+
+### Estudos (6ª aba, Fase 10)
+| # | Tela | Conteúdo |
+|---|---|---|
+| 32 | **Estudos** (`/estudos`) | Sessões de hoje (estado + atalho para o cronômetro) · próximas provas/trabalhos com data, "em N dias", barra de sessões feitas/total, conteúdos · passadas e feitas sob demanda · FAB |
+| 33 | Nova/Editar prova (bottom sheet) | Prova/Trabalho · matéria · título (segue a matéria) · data · começar a cobrar (3/5/7/10/14 dias antes) · estudo por dia (20–90 min) com prévia "N sessões · total" · conteúdos (um por linha) · notas · marcar como feita/entregue · excluir |
+| 34 | Detalhe da prova (`/estudos/:id`) | Cabeçalho com barra de progresso e plano · botão "Estudar agora" · conteúdos (checklist com adicionar/excluir) · lista das sessões da janela (feita · não feita · pendente) |
+| 35 | **Sessão de estudo** (`/estudos/:id/sessao/:date`) | Cronômetro de foco com anel até os minutos planejados (sino + vibração ao bater), começar/pausar/retomar (sobrevive a recarregar), concluir, pular hoje (com confirmação), conteúdos à mão; Wake Lock enquanto roda; dia fechado = só leitura |
 
 ### Metas
 | # | Tela | Conteúdo |

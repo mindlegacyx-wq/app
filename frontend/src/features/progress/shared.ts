@@ -6,9 +6,10 @@ export const kindLabel: Record<ScoreComponent, string> = {
   tasks: 'Tarefas',
   workout: 'Treino',
   goals: 'Metas',
+  study: 'Estudos',
 }
 
-export const KINDS: ScoreComponent[] = ['wake', 'routines', 'tasks', 'workout', 'goals']
+export const KINDS: ScoreComponent[] = ['wake', 'routines', 'tasks', 'workout', 'goals', 'study']
 
 /** Tom do mapa de calor pela faixa do percentual (0 = sem registro). */
 export function heatClass(pct: number | null, hit: boolean): string {

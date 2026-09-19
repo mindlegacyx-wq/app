@@ -6,6 +6,7 @@ import { Button, HoldButton, Spinner } from '@/components/ui'
 import { useConfirmWake, useRingWake, useSnoozeWake, useWakeDay } from '@/features/wake/api'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
+import { useWakeLock } from '@/lib/wake-lock'
 import { cn, longDate, timeIn, todayIn } from '@/lib/format'
 import type { AlarmSound, WakeDay } from '@/lib/types'
 
@@ -258,30 +259,4 @@ function useAlarmSound(active: boolean, sound: AlarmSound) {
     player.start()
     return () => player.stop()
   }, [active, sound])
-}
-
-/** Mantém a tela acesa enquanto o alarme está pendente (API Wake Lock; sem ela, só ignora). */
-function useWakeLock(active: boolean) {
-  useEffect(() => {
-    if (!active || !('wakeLock' in navigator)) return
-    let lock: WakeLockSentinel | null = null
-    let cancelled = false
-    const request = async () => {
-      try {
-        lock = await navigator.wakeLock.request('screen')
-      } catch {
-        lock = null
-      }
-    }
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && !cancelled) void request()
-    }
-    void request()
-    document.addEventListener('visibilitychange', onVisible)
-    return () => {
-      cancelled = true
-      document.removeEventListener('visibilitychange', onVisible)
-      void lock?.release()
-    }
-  }, [active])
 }

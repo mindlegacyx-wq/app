@@ -19,12 +19,14 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress · trash · schedule
+auth · users · routines · alarms · goals · workouts · tasks · progress · trash · schedule · studies
 ```
 
 `trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
 
 `schedule` (Fase 9) é a **agenda semanal**: matérias e blocos fixos por dia da semana (aula, treino, estudo, outro) com início e fim. É referência de horário, **não entra no percentual** — aula não é algo que se "marca como feito". Ele oferece a outros módulos: as janelas livres do dia (para a Fase 10 encaixar sessões de estudo) e o horário do treino (tela Hoje). Um bloco de treino ligado a um plano **acrescenta o dia ao plano** via `workouts.service.ensure_days` — o plano continua sendo a única fonte de "em que dias eu treino"; a agenda só diz a hora.
+
+`studies` (Fase 10) são as **provas e trabalhos** com sessões de estudo automáticas. A prova tem data, `lead_days` ("começar a cobrar X dias antes") e `minutes_per_day`; em cada dia da janela `[data − lead_days, véspera]` ela pede **uma sessão**, que entra no percentual como qualquer item planejado (componente `study` em `progress`). A sessão planejada nasce da definição, como um item de rotina: a linha em `study_sessions` só existe quando o usuário começa, conclui ou pula. A janela só começa no dia do cadastro (prova criada 2 dias antes com `lead_days = 7` cobra 2 sessões). O horário é uma **sugestão** calculada a cada leitura: a sessão é encaixada no maior buraco da agenda do dia (`schedule.free_windows`), preferindo o que ainda está pela frente quando o dia é hoje. Pular conta como planejada e não feita (regra do treino). Prova `done` para de cobrar.
 
 Regras:
 

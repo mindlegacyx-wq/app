@@ -47,6 +47,8 @@ from app.modules.progress.schemas import (
     WindowOut,
 )
 from app.modules.routines import service as routines_service
+from app.modules.studies import service as studies_service
+from app.modules.studies.models import StudySessionStatus
 from app.modules.tasks import service as tasks_service
 from app.modules.tasks.models import TaskStatus
 from app.modules.users.models import User
@@ -55,7 +57,7 @@ from app.modules.workouts.models import SessionStatus
 
 MAX_BACKFILL_DAYS = 400
 MAX_HISTORY_DAYS = 366
-AREA_KINDS = ("wake", "routines", "tasks", "workout", "goals")
+AREA_KINDS = ("wake", "routines", "tasks", "workout", "goals", "study")
 
 
 class DayNotClosableError(AppError):
@@ -83,6 +85,7 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
     tasks = await tasks_service.day_overview(db, user.id, day)
     goals = await goals_service.day_overview(db, user.id, day)
     workouts = await workouts_service.day_overview(db, user.id, day)
+    study = await studies_service.day_overview(db, user.id, user.timezone, day)
 
     breakdown = {
         "wake": {
@@ -93,6 +96,7 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
         "tasks": {"planned": tasks.planned, "completed": tasks.completed},
         "workout": {"planned": workouts.planned, "completed": workouts.completed},
         "goals": {"planned": goals.planned, "completed": goals.completed},
+        "study": {"planned": study.planned, "completed": study.completed},
     }
     planned = sum(c["planned"] for c in breakdown.values())
     completed = sum(c["completed"] for c in breakdown.values())
@@ -117,6 +121,15 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
             skipped = w.session is not None and w.session.status == SessionStatus.skipped
             missing.append(
                 {"kind": "workout", "title": f"{w.name}{' (pulado)' if skipped else ''}"}
+            )
+    for s in study.sessions:
+        if s.status != StudySessionStatus.completed:
+            skipped = s.status == StudySessionStatus.skipped
+            missing.append(
+                {
+                    "kind": "study",
+                    "title": f"Estudar: {s.exam_title}{' (pulado)' if skipped else ''}",
+                }
             )
 
     return Snapshot(
