@@ -115,6 +115,8 @@ docker-compose.yml
 ```
 
 - HTTPS é **obrigatório** para service worker, push e Wake Lock; por isso o Caddy entra já no MVP.
+- **Deploy em um container só** (`Dockerfile` na raiz): o mesmo backend, com `STATIC_DIR` apontando para o build do PWA, serve os estáticos (`/assets` imutável por 1 ano; `index.html`/`sw.js`/manifest sem cache; fallback SPA fora de `/api`). É o caminho para plataformas que entregam HTTPS e só rodam um container por serviço (Render, Fly, Koyeb). `render.yaml` publica no plano gratuito do Render com Postgres externo (Aiven Free); `DATABASE_URL` aceita o formato libpq dos provedores (`postgres://…?sslmode=require` → asyncpg com `ssl=require`, ver `app/core/dburl.py`) e o pool é pequeno por padrão (bancos gratuitos limitam conexões). Guia: `PUBLICAR-DE-GRACA.md`.
+- **Cadastro fechado** (`SIGNUP_INVITE_CODE`): com o código definido, `POST /auth/register` exige `invite_code` (403 `invalid_invite_code` se faltar/errar; comparação em tempo constante) e a tela de criar conta mostra o campo quando `GET /auth/signup-policy` devolve `invite_required: true`. Vazio = cadastro aberto (SaaS). Login nunca pede código.
 - Configuração via variáveis de ambiente (`.env`), lida com pydantic-settings. Nunca há segredo no código.
 - Logs estruturados em JSON com `request_id`. Sentry opcional depois.
 - CI no GitHub Actions: ruff + mypy + pytest no backend; typecheck + build no frontend.

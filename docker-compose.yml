@@ -32,6 +32,7 @@ services:
       COOKIE_SECURE: "true"
       CORS_ORIGINS: https://${DOMAIN}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      SIGNUP_INVITE_CODE: ${SIGNUP_INVITE_CODE:-}
       # Web Push do despertador (gere com: docker compose run --rm api python -m app.core.push)
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}

@@ -20,7 +20,7 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 | # | Tela | Ação primária |
 |---|---|---|
 | 1 | Boas-vindas (3 cards: rotina · confirmação de acordar · número honesto) | Começar |
-| 2 | Criar conta / Entrar | Entrar |
+| 2 | Criar conta / Entrar (em servidor fechado, Criar conta pede o **código de convite**) | Entrar |
 | 3 | Setup inicial: nome, fuso (detectado), horário de acordar, meta de disciplina | Continuar |
 | 4 | Instalar o app (guia por plataforma; explica por que o push precisa disso) | Instalar / Depois |
 

@@ -40,6 +40,7 @@ services:
       COOKIE_SECURE: "false"
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       WEB_CONCURRENCY: 1
+      SIGNUP_INVITE_CODE: ${SIGNUP_INVITE_CODE:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:teste@localhost}

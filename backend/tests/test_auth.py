@@ -1,3 +1,4 @@
+import pytest
 from httpx import AsyncClient
 
 from app.core.config import get_settings
@@ -170,3 +171,46 @@ async def test_validation_messages_are_in_portuguese(client: AsyncClient) -> Non
     assert by_field["email"] == "E-mail inválido."
     assert by_field["password"] == "Use pelo menos 8 caracteres."
     assert by_field["name"] == "Campo obrigatório."
+
+
+async def test_signup_open_by_default(client: AsyncClient) -> None:
+    r = await client.get("/api/v1/auth/signup-policy")
+    assert r.status_code == 200 and r.json() == {"invite_required": False}
+    # Sem código configurado, o campo é ignorado mesmo se vier preenchido
+    data = await register(client, invite_code="qualquer-coisa")
+    assert data["access_token"]
+
+
+async def test_signup_with_invite_code(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, credentials: dict[str, str]
+) -> None:
+    monkeypatch.setattr(get_settings(), "signup_invite_code", "familia-2026")
+    r = await client.get("/api/v1/auth/signup-policy")
+    assert r.json() == {"invite_required": True}
+
+    # Sem código ou com código errado: 403 com código de erro próprio (a tela destaca o campo)
+    r = await client.post("/api/v1/auth/register", json=credentials)
+    assert r.status_code == 403 and r.json()["error"]["code"] == "invalid_invite_code"
+    r = await client.post("/api/v1/auth/register", json={**credentials, "invite_code": "errado"})
+    assert r.status_code == 403
+    assert COOKIE not in client.cookies
+
+    # Com o código (espaços em volta não atrapalham): cria normalmente
+    r = await client.post(
+        "/api/v1/auth/register", json={**credentials, "invite_code": "  familia-2026 "}
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["user"]["email"] == credentials["email"]
+
+    # Entrar continua sem exigir código
+    client.cookies.clear()
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": credentials["email"], "password": credentials["password"]},
+    )
+    assert r.status_code == 200
+
+
+async def test_health_accepts_head_for_keepalive_pings(client: AsyncClient) -> None:
+    r = await client.head("/api/v1/health")
+    assert r.status_code == 200

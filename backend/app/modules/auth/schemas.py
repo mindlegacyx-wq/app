@@ -10,6 +10,12 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     name: str = Field(min_length=1, max_length=80)
+    # Só é exigido quando o servidor tem SIGNUP_INVITE_CODE (cadastro fechado).
+    invite_code: str | None = Field(default=None, max_length=64)
+
+
+class SignupPolicyOut(BaseModel):
+    invite_required: bool
 
 
 class LoginIn(BaseModel):

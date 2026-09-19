@@ -1,5 +1,6 @@
 """Ponto de entrada da API."""
 
+import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
@@ -70,7 +71,8 @@ async def add_version_header(
     return response
 
 
-@app.get("/api/v1/health", tags=["meta"])
+# HEAD também: serviços de keep-alive/monitoramento costumam usar HEAD (ver PUBLICAR-DE-GRACA.md).
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"], tags=["meta"])
 async def health() -> dict[str, str]:
     return {"status": "ok", "name": APP_NAME, "version": APP_VERSION}
 
@@ -91,3 +93,13 @@ app.include_router(exams_router, prefix="/api/v1")
 app.include_router(study_router, prefix="/api/v1")
 app.include_router(grades_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
+
+# Deploy em um container só (Render etc.): a API também entrega o PWA compilado.
+# Fica por último para a rota coringa não engolir as rotas da API.
+if settings.static_dir:
+    from app.core.static import mount_static
+
+    if not mount_static(app, settings.static_dir):
+        logging.getLogger(__name__).warning(
+            "STATIC_DIR=%s não tem index.html; servindo só a API.", settings.static_dir
+        )

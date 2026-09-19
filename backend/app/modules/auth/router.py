@@ -7,7 +7,7 @@ from app.core.deps import DB, CurrentUser
 from app.core.ratelimit import client_ip, limit_auth
 from app.core.security import decode_access_token
 from app.modules.auth import service
-from app.modules.auth.schemas import LoginIn, RegisterIn, SessionOut, TokenOut
+from app.modules.auth.schemas import LoginIn, RegisterIn, SessionOut, SignupPolicyOut, TokenOut
 from app.modules.auth.service import IssuedTokens
 from app.modules.users.schemas import UserOut
 
@@ -42,6 +42,12 @@ def _token_out(issued: IssuedTokens) -> TokenOut:
     )
 
 
+@router.get("/signup-policy", response_model=SignupPolicyOut)
+async def signup_policy() -> SignupPolicyOut:
+    """A tela de criar conta pergunta aqui se precisa mostrar o campo de código de convite."""
+    return SignupPolicyOut(invite_required=get_settings().invite_required)
+
+
 @router.post(
     "/register",
     response_model=TokenOut,
@@ -54,6 +60,7 @@ async def register(data: RegisterIn, request: Request, response: Response, db: D
         email=data.email,
         password=data.password,
         name=data.name,
+        invite_code=data.invite_code,
         user_agent=request.headers.get("user-agent"),
         ip=client_ip(request),
     )

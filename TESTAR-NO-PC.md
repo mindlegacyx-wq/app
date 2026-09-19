@@ -63,7 +63,7 @@ O celular só instala o app por um endereço `https://`. Sem publicar num servid
    - **iPhone (Safari)**: botão Compartilhar → **Adicionar à Tela de Início**.
 4. Entre com a mesma conta que criou no PC. Notificações do despertador funcionam se as chaves VAPID estiverem no `.env` (ver acima).
 
-Limites: o link só funciona com o PC ligado e essa janela do túnel aberta; **o endereço muda** toda vez que você fecha e abre o túnel (o app instalado continua abrindo, mas precisa do túnel de pé). Para um endereço fixo e sempre no ar, o caminho é publicar num servidor (Oracle/VPS) — aí não depende do PC.
+Limites: o link só funciona com o PC ligado e essa janela do túnel aberta; **o endereço muda** toda vez que você fecha e abre o túnel (o app instalado continua abrindo, mas precisa do túnel de pé). Para um endereço fixo, sempre no ar e sem depender do PC — de graça e sem cartão — siga o [PUBLICAR-DE-GRACA.md](PUBLICAR-DE-GRACA.md).
 
 ## O que funciona no PC
 
@@ -72,7 +72,7 @@ Limites: o link só funciona com o PC ligado e essa janela do túnel aberta; **o
 
 ## O que só funciona publicado com HTTPS
 
-- Abrir **no celular**: o app precisa de um endereço `https://` (é assim que o navegador libera service worker, notificações, câmera e tela acesa). É o deploy na Oracle/VPS.
+- Abrir **no celular**: o app precisa de um endereço `https://` (é assim que o navegador libera service worker, notificações, câmera e tela acesa). É o deploy gratuito do [PUBLICAR-DE-GRACA.md](PUBLICAR-DE-GRACA.md) (ou uma VPS).
 - **Notificação com o app fechado** (Web Push): precisa das chaves VAPID no `.env` (`docker compose -f docker-compose.dev.yml run --rm api python -m app.core.push` gera; cole as duas linhas num arquivo `.env` ao lado do compose e suba de novo).
 
 ## IA para estudos (opcional)

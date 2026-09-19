@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 
 import { Button, Field } from '@/components/ui'
-import { ApiError, errorMessage } from '@/lib/api'
+import { api, ApiError, errorMessage } from '@/lib/api'
 import { isOnboarded, useAuth } from '@/lib/auth-store'
+import type { SignupPolicy } from '@/lib/types'
 
 interface Props {
   mode: 'login' | 'register'
@@ -14,9 +16,18 @@ export function AuthPage({ mode }: Props) {
   const navigate = useNavigate()
   const { login, register } = useAuth()
 
+  // Servidor com cadastro fechado (SIGNUP_INVITE_CODE) pede um código de convite.
+  const policy = useQuery({
+    queryKey: ['signup-policy'],
+    queryFn: () => api<SignupPolicy>('/auth/signup-policy', { auth: false }),
+    enabled: isRegister,
+    staleTime: 0,
+  })
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,10 +39,12 @@ export function AuthPage({ mode }: Props) {
     setFieldErrors({})
     setLoading(true)
     try {
-      const user = isRegister ? await register(name.trim(), email.trim(), password) : await login(email.trim(), password)
+      const user = isRegister ? await register(name.trim(), email.trim(), password, inviteCode.trim()) : await login(email.trim(), password)
       navigate(isOnboarded(user) ? '/hoje' : '/setup', { replace: true })
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'validation_error') {
+      if (err instanceof ApiError && err.code === 'invalid_invite_code') {
+        setFieldErrors({ invite_code: err.message })
+      } else if (err instanceof ApiError && err.code === 'validation_error') {
         const fe: Record<string, string> = {}
         for (const f of err.details.fields ?? []) fe[f.field] = f.message
         setFieldErrors(fe)
@@ -51,12 +64,8 @@ export function AuthPage({ mode }: Props) {
       </Link>
 
       <div className="mt-10">
-        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.03em]">
-          {isRegister ? 'Criar conta' : 'Entrar'}
-        </h1>
-        <p className="mt-2 text-[15px] text-ink-muted">
-          {isRegister ? 'Leva menos de um minuto.' : 'Bom te ver de novo.'}
-        </p>
+        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.03em]">{isRegister ? 'Criar conta' : 'Entrar'}</h1>
+        <p className="mt-2 text-[15px] text-ink-muted">{isRegister ? 'Leva menos de um minuto.' : 'Bom te ver de novo.'}</p>
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4" noValidate>
@@ -103,6 +112,19 @@ export function AuthPage({ mode }: Props) {
             </button>
           }
         />
+
+        {isRegister && (policy.data?.invite_required || fieldErrors.invite_code) && (
+          <Field
+            label="Código de convite"
+            autoComplete="off"
+            autoCapitalize="none"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            hint="Este servidor é fechado: peça o código a quem o publicou."
+            error={fieldErrors.invite_code}
+            required
+          />
+        )}
 
         {error && (
           <p role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2.5 text-[14px] text-danger">

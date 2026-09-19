@@ -1,0 +1,40 @@
+# Blueprint do Render (render.com) — publica o app de graça, sem cartão, em um clique.
+# Guia passo a passo: PUBLICAR-DE-GRACA.md
+#
+# No painel do Render: New → Blueprint → escolha este repositório. Ele lê este arquivo, cria o
+# serviço "disciplina" no plano gratuito e pergunta só o que não pode ficar no código:
+#   DATABASE_URL        → a "Service URI" do Postgres gratuito da Aiven (ou outro provedor)
+#   SIGNUP_INVITE_CODE  → o código que você vai digitar para criar a sua conta (cadastro fechado)
+services:
+  - type: web
+    name: disciplina
+    runtime: docker
+    plan: free
+    region: virginia          # mais perto do Brasil entre as opções do Render
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: commit # cada push no GitHub publica a versão nova sozinho
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SIGNUP_INVITE_CODE
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true   # o Render gera um segredo forte; nunca precisa ver
+      - key: ENV
+        value: prod
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"            # 512 MB de RAM: um worker basta para poucos usuários
+      - key: DB_POOL_SIZE
+        value: "3"            # Aiven Free aceita 20 conexões; sobra folga
+      - key: DB_MAX_OVERFLOW
+        value: "3"
+      - key: STATIC_DIR
+        value: /srv/static
+      # Opcionais — adicione depois em Environment, no painel do serviço:
+      #   AI_API_KEY (Groq, grátis)                 → "Estudar com IA"
+      #   VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY      → despertador com o app fechado
+      #   VAPID_SUBJECT=mailto:seu@email

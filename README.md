@@ -20,6 +20,12 @@ Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação,
 - **Frontend:** PWA · React 19 · TypeScript · Vite · Tailwind 4 · TanStack Query · Motion
 - **Infra:** Docker Compose · Caddy (HTTPS automático) · GitHub Actions
 
+## Publicar de graça (sem cartão) — Render + Aiven
+
+Um container só (`Dockerfile` na raiz: API + PWA compilado) no plano gratuito do Render, Postgres gratuito da Aiven e um
+keep-alive. O `render.yaml` cria tudo em um clique; cadastro fechado por código de convite (`SIGNUP_INVITE_CODE`).
+Passo a passo em linguagem simples: [PUBLICAR-DE-GRACA.md](PUBLICAR-DE-GRACA.md).
+
 ## Testar no seu computador (sem instalar nada além do Docker)
 
 ```bash

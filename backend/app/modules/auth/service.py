@@ -1,3 +1,4 @@
+import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -5,7 +6,8 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import ConflictError, NotFoundError, UnauthorizedError
+from app.core.config import get_settings
+from app.core.errors import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError
 from app.core.security import (
     create_access_token,
     generate_refresh_token,
@@ -51,15 +53,31 @@ async def _open_session(
     )
 
 
+class InviteCodeError(ForbiddenError):
+    code = "invalid_invite_code"
+
+
+def check_invite_code(given: str | None) -> None:
+    """Cadastro fechado (SIGNUP_INVITE_CODE): só passa quem informa o código certo."""
+    s = get_settings()
+    if not s.invite_required:
+        return
+    expected = s.signup_invite_code.strip()
+    if not secrets.compare_digest((given or "").strip(), expected):
+        raise InviteCodeError("Código de convite inválido.")
+
+
 async def register(
     db: AsyncSession,
     *,
     email: str,
     password: str,
     name: str,
+    invite_code: str | None = None,
     user_agent: str | None,
     ip: str | None,
 ) -> IssuedTokens:
+    check_invite_code(invite_code)
     if await users_service.get_by_email(db, email) is not None:
         raise ConflictError("Já existe uma conta com esse e-mail.")
     user = await users_service.create(db, email=email, password=password, name=name)

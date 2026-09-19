@@ -20,6 +20,10 @@ export interface User {
   settings: UserSettings
 }
 
+export interface SignupPolicy {
+  invite_required: boolean
+}
+
 export interface TokenResponse {
   access_token: string
   token_type: 'bearer'

@@ -46,7 +46,14 @@ class SoftDeleteMixin:
 
 
 _settings = get_settings()
-engine = create_async_engine(_settings.database_url, pool_pre_ping=True, echo=_settings.debug)
+engine = create_async_engine(
+    _settings.sqlalchemy_url,
+    connect_args=_settings.db_connect_args,
+    pool_size=_settings.db_pool_size,
+    max_overflow=_settings.db_max_overflow,
+    pool_pre_ping=True,
+    echo=_settings.debug,
+)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 

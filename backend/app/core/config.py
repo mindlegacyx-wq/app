@@ -6,6 +6,8 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+from app.core.dburl import normalize_database_url
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -13,9 +15,19 @@ class Settings(BaseSettings):
     env: Literal["dev", "test", "prod"] = "dev"
     debug: bool = False
 
+    # Aceita o formato dos provedores (postgres://…?sslmode=require); ver app/core/dburl.py.
     database_url: str = "postgresql+asyncpg://disciplina:disciplina@127.0.0.1:5432/disciplina"
+    # Pool pequeno: bancos gratuitos limitam conexões (Aiven Free: 20). Por worker.
+    db_pool_size: int = Field(default=5, ge=1, le=50)
+    db_max_overflow: int = Field(default=5, ge=0, le=50)
+
+    # Deploy em um container só: se definido, a API também serve o PWA compilado (dist/).
+    static_dir: str = ""
 
     # Auth
+    # Cadastro fechado: com um código definido, só cria conta quem informar o código
+    # (uso pessoal / poucos usuários). Vazio = cadastro aberto.
+    signup_invite_code: str = ""
     jwt_secret: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
@@ -66,6 +78,18 @@ class Settings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.env == "prod"
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        return normalize_database_url(self.database_url)[0]
+
+    @property
+    def db_connect_args(self) -> dict[str, object]:
+        return normalize_database_url(self.database_url)[1]
+
+    @property
+    def invite_required(self) -> bool:
+        return bool(self.signup_invite_code.strip())
 
     @property
     def push_enabled(self) -> bool:

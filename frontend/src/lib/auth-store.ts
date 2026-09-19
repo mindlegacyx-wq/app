@@ -10,7 +10,7 @@ interface AuthState {
   user: User | null
   bootstrap: () => Promise<void>
   login: (email: string, password: string) => Promise<User>
-  register: (name: string, email: string, password: string) => Promise<User>
+  register: (name: string, email: string, password: string, inviteCode?: string) => Promise<User>
   logout: () => Promise<void>
   setUser: (user: User) => void
 }
@@ -40,10 +40,10 @@ export const useAuth = create<AuthState>((set) => {
       return data.user
     },
 
-    async register(name, email, password) {
+    async register(name, email, password, inviteCode) {
       const data = await api<TokenResponse>('/auth/register', {
         method: 'POST',
-        body: { name, email, password },
+        body: { name, email, password, invite_code: inviteCode || undefined },
         auth: false,
       })
       setSession(data)
