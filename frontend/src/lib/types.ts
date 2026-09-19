@@ -433,3 +433,44 @@ export interface WorkoutHistory {
   end: string
   items: WorkoutHistoryItem[]
 }
+
+// --- Agenda semanal (Fase 9) -------------------------------------------------------------
+
+export type BlockKind = 'class' | 'workout' | 'study' | 'other'
+
+export interface Subject {
+  id: string
+  name: string
+  color: string
+  teacher: string | null
+  is_active: boolean
+  sort_order: number
+}
+
+export interface ScheduleBlock {
+  id: string
+  title: string
+  kind: BlockKind
+  subject_id: string | null
+  subject_name: string | null
+  subject_color: string | null
+  workout_id: string | null
+  weekday: number
+  start_time: string // "HH:MM:SS"
+  end_time: string
+  duration_minutes: number
+  location: string | null
+  is_active: boolean
+}
+
+export interface ScheduleWeek {
+  days: { weekday: number; blocks: ScheduleBlock[]; total_minutes: number }[]
+  subjects: Subject[]
+}
+
+export interface ScheduleDay {
+  date: string
+  weekday: number
+  blocks: ScheduleBlock[]
+  free: { start: string; end: string; minutes: number }[]
+}

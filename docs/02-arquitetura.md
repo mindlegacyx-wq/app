@@ -19,10 +19,12 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress · trash
+auth · users · routines · alarms · goals · workouts · tasks · progress · trash · schedule
 ```
 
 `trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
+
+`schedule` (Fase 9) é a **agenda semanal**: matérias e blocos fixos por dia da semana (aula, treino, estudo, outro) com início e fim. É referência de horário, **não entra no percentual** — aula não é algo que se "marca como feito". Ele oferece a outros módulos: as janelas livres do dia (para a Fase 10 encaixar sessões de estudo) e o horário do treino (tela Hoje). Um bloco de treino ligado a um plano **acrescenta o dia ao plano** via `workouts.service.ensure_days` — o plano continua sendo a única fonte de "em que dias eu treino"; a agenda só diz a hora.
 
 Regras:
 

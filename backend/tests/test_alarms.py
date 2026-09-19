@@ -168,7 +168,16 @@ async def test_dispatch_rings_snoozes_and_marks_missed(
     assert r.status_code == 201, r.text
     user = await user_of(db_session)
 
-    ring_at = local_to_utc(today(), time(6, 0), TZ) + timedelta(seconds=30)
+    # O alarme toca "agora": a soneca usa o relógio real (now_utc), então o alarme precisa estar
+    # perto do horário real para o teste valer em qualquer hora do dia.
+    alarm = (await client.get("/api/v1/alarms", headers=h)).json()["alarms"][0]
+    now_local = now_utc().astimezone(ZoneInfo(TZ))
+    alarm_hm = now_local.strftime("%H:%M")
+    r = await client.patch(f"/api/v1/alarms/{alarm['id']}", json={"time": alarm_hm}, headers=h)
+    assert r.status_code == 200, r.text
+    ring_at = local_to_utc(today(), time(now_local.hour, now_local.minute), TZ) + timedelta(
+        seconds=30
+    )
 
     # 1) Toca no minuto do alarme: cria o registro pendente e envia o push.
     assert await alarms_service.dispatch_for_user(db_session, user, ring_at) == 1
@@ -180,7 +189,7 @@ async def test_dispatch_rings_snoozes_and_marks_missed(
     assert day["can_snooze"] is True
     assert day["can_confirm"] is True
     assert len(sent) == 1
-    assert sent[0]["type"] == "alarm" and sent[0]["time"] == "06:00"
+    assert sent[0]["type"] == "alarm" and sent[0]["time"] == alarm_hm
     assert sent[0]["endpoint"] == SUB["endpoint"]
 
     # 2) Rodar de novo no minuto seguinte não toca duas vezes.

@@ -4,6 +4,8 @@ import { Link } from 'react-router'
 import { TopBar } from '@/app/shell/TopBar'
 import { Button, Card, EmptyState, Spinner } from '@/components/ui'
 import { useAlarms } from '@/features/alarms/api'
+import { useScheduleWeek } from '@/features/schedule/api'
+import { fmtDuration } from '@/features/schedule/shared'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
 import { cn, describeDays, describeNextRing, pluralize, shortTime } from '@/lib/format'
@@ -68,6 +70,11 @@ export function RoutinesPage() {
           )}
 
           <div className="mt-4 px-0.5">
+            <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Agenda da semana</h2>
+          </div>
+          <AgendaCard />
+
+          <div className="mt-4 px-0.5">
             <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Despertador</h2>
           </div>
           <AlarmsCard />
@@ -130,6 +137,31 @@ function MissingCard({ kind, onCreate }: { kind: 'morning' | 'evening'; onCreate
         </Button>
       }
     />
+  )
+}
+
+/** Atalho para a agenda (tela 29): quantos blocos fixos e horas por semana. */
+function AgendaCard() {
+  const week = useScheduleWeek()
+  const blocks = week.data?.days.flatMap((d) => d.blocks.filter((b) => b.is_active)) ?? []
+  const minutes = blocks.reduce((n, b) => n + b.duration_minutes, 0)
+  const classes = blocks.filter((b) => b.kind === 'class').length
+  return (
+    <Link to="/agenda" className="block">
+      <Card className="flex items-center justify-between gap-3 transition-colors hover:bg-elevated">
+        <div className="min-w-0">
+          <p className="text-[15px]">
+            {week.isPending ? 'Agenda' : blocks.length === 0 ? 'Agenda vazia' : pluralize(blocks.length, 'bloco fixo', 'blocos fixos')}
+          </p>
+          <p className="mt-0.5 truncate text-[13px] text-ink-faint">
+            {blocks.length === 0
+              ? 'Aulas, curso, treino e outros horários fixos.'
+              : `${pluralize(classes, 'aula', 'aulas')} · ${fmtDuration(minutes)} por semana`}
+          </p>
+        </div>
+        <svg className="size-4 shrink-0 text-ink-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+      </Card>
+    </Link>
   )
 }
 

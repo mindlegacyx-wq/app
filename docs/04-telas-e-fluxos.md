@@ -27,7 +27,7 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 ### Hoje (home)
 | # | Tela | Conteúdo |
 |---|---|---|
-| 5 | **Hoje** | Saudação + data · anel de disciplina do dia · sequência atual · blocos na ordem do dia: **Acordar** (status ou botão "Levantei") → **Rotina da manhã** (checklist) → **Tarefas** (por prioridade) → **Treino de hoje** → **Ações das metas** → **Rotina da noite** → botão **Fechar o dia** |
+| 5 | **Hoje** | Saudação + data · anel de disciplina do dia · sequência atual · blocos na ordem do dia: **Acordar** (status ou botão "Levantei") → **Rotina da manhã** (checklist) → **Agenda de hoje** (linha do tempo: agora / próximo / encerrado; só aparece para quem tem agenda) → **Tarefas** (por prioridade) → **Treino de hoje** (com o horário vindo da agenda) → **Ações das metas** → **Rotina da noite** → botão **Fechar o dia** |
 | 6 | Nova tarefa / Editar tarefa (bottom sheet) | Título, dia, prioridade, categoria, notas |
 | 7 | Categorias de tarefas | Criar, renomear, cor |
 | 8 | **Fechar o dia** | Resumo: % do dia, o que ficou de fora, sequência atualizada. Animação sóbria do anel. |
@@ -35,12 +35,15 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 ### Rotina
 | # | Tela | Conteúdo |
 |---|---|---|
-| 9 | Rotinas | Cards Manhã, Noite e personalizadas · atalho para Despertador |
+| 9 | Rotinas | Cards Manhã, Noite e personalizadas · atalho para a Agenda da semana · atalho para Despertador |
 | 10 | Editar rotina | Nome, tipo, horário, dias da semana, lista ordenável de itens |
 | 11 | Despertador | Lista de alarmes com toggle · próximo toque · notificações neste aparelho · atalho para o histórico |
 | 12 | Editar alarme (bottom sheet) | Horário, nome, dias, som com prévia (3 sons sintetizados), segurar 3 s obrigatório, sonecas (quantidade e duração), excluir |
 | 13 | **Alarme tocando** (tela cheia, rota `/alarme`) | Horário grande, som em loop com volume crescente, Wake Lock, silenciar, **segurar 3 s para "Levantei"**, soneca com contagem regressiva; estados: tocando · soneca · perdido · confirmado · ocioso |
 | 14 | Histórico de acordar | 30 dias: levantou × perdidos × atraso médio; lista por dia com planejado → levantou, sonecas e status |
+| 29 | **Agenda** (`/agenda`, Fase 9) | Abas seg–dom (ponto nos dias com blocos, hoje destacado) · lista do dia com faixa na cor da matéria, início/fim, tipo, local, duração · total do dia · "Copiar este dia para…" (pula horários ocupados) |
+| 30 | Novo/Editar bloco (bottom sheet) | Tipo (Aula/Treino/Estudo/Outro) · matéria com criação inline · plano de treino (opcional) · título (segue a matéria/treino) · dias da semana (criação em vários) · início/fim com atalhos 45/50/60/90 min · local · pausar · excluir. Conflito de horário volta como erro nomeando o bloco. |
+| 31 | Matérias (`/agenda/materias`) | Nome, cor, professor(a), ativa; carga semanal calculada pela agenda |
 
 ### Metas
 | # | Tela | Conteúdo |

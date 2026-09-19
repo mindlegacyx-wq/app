@@ -326,6 +326,37 @@ Regras de cálculo:
 
 ---
 
+## Módulo 7 · Agenda semanal (Fase 9)
+
+### `subjects` (matérias)
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| name | varchar(60) | |
+| color | varchar(7) | `#RRGGBB`, paleta fixa de 8 cores |
+| teacher | varchar(60) NULL | |
+| is_active | bool | arquivada some das opções, mantém aulas e notas |
+| sort_order | smallint | |
+| created_at · updated_at · deleted_at | timestamptz | soft delete (lixeira) |
+
+### `schedule_blocks` (blocos fixos por dia da semana)
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| title | varchar(60) | |
+| kind | enum | `class` · `workout` · `study` · `other` |
+| subject_id | uuid FK NULL | `SET NULL`; só para `class` |
+| workout_id | uuid FK NULL | `SET NULL` (outro módulo); só para `workout` |
+| weekday | smallint | 0 = segunda … 6 = domingo |
+| start_time · end_time | time | fim > início; sem sobreposição no mesmo dia (encostado é permitido) |
+| location | varchar(60) NULL | |
+| is_active | bool | pausado não ocupa horário |
+| created_at · updated_at · deleted_at | timestamptz | soft delete (lixeira) |
+
+`INDEX (user_id, weekday, start_time)`. Criar em vários dias gera **um registro por dia** (cada dia pode ter horário diferente depois). Não há tabela de "ocorrências": o dia é calculado a partir de `weekday`.
+
 ## Índices e integridade (resumo)
 
 - Toda tabela de domínio: `INDEX (user_id)`; tabelas de registro: `INDEX (user_id, date)`.

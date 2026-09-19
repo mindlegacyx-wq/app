@@ -5,6 +5,7 @@ import { TopBar } from '@/app/shell/TopBar'
 import { Button, Card, Fab, Ring } from '@/components/ui'
 import { GoalsBlock } from '@/features/goals/GoalsBlock'
 import { useDayScore, useReopenDay } from '@/features/progress/api'
+import { AgendaBlock } from '@/features/schedule/AgendaBlock'
 import { WorkoutBlock } from '@/features/workouts/WorkoutBlock'
 import { useRoutines, useRoutinesDay } from '@/features/routines/api'
 import { TasksBlock } from '@/features/tasks/TasksBlock'
@@ -22,7 +23,7 @@ const CategoriesSheet = lazy(() =>
 )
 
 /**
- * Tela Hoje. Blocos na ordem do dia: acordar, manhã, blocos, tarefas, treino, metas, noite.
+ * Tela Hoje. Blocos na ordem do dia: acordar, manhã, agenda, blocos, tarefas, treino, metas, noite.
  */
 export function TodayPage() {
   const user = useAuth((s) => s.user)!
@@ -104,6 +105,8 @@ export function TodayPage() {
             to="/rotina"
           />
         )}
+
+        <AgendaBlock date={date} timezone={tz} />
 
         {custom.map((r) => (
           <RoutineBlock key={r.id} date={date} routine={r} editable={editable} />

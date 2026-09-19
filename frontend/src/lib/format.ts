@@ -95,6 +95,11 @@ export function timeIn(iso: string, timezone: string): string {
 export const WEEKDAYS_SHORT = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] as const
 export const WEEKDAYS_LONG = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'] as const
 
+/** "na segunda" · "no sábado" (concordância do artigo). */
+export function onWeekday(d: number): string {
+  return `${d >= 5 ? 'no' : 'na'} ${WEEKDAYS_LONG[d]}`
+}
+
 /** "todos os dias" · "seg a sex" · "seg, qua e sex" */
 export function describeDays(days: number[]): string {
   const d = [...days].sort((a, b) => a - b)

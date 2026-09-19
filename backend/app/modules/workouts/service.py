@@ -124,6 +124,23 @@ async def update_workout(
     return w
 
 
+async def ensure_days(
+    db: AsyncSession, user_id: UUID, workout_id: UUID, weekdays: list[int]
+) -> Workout:
+    """Garante que o plano acontece nesses dias (usado quando a agenda marca um treino).
+
+    O plano continua sendo a fonte de verdade de "em que dias eu treino" (é o que entra no
+    percentual e na tela Hoje); a agenda só acrescenta o horário. Marcar um treino num dia em
+    que o plano não existia é o usuário dizendo que passou a treinar nesse dia.
+    """
+    w = await get_workout(db, user_id, workout_id)
+    missing = [d for d in weekdays if d not in w.days_of_week]
+    if missing:
+        w.days_of_week = sorted({*w.days_of_week, *missing})
+        await db.flush()
+    return w
+
+
 async def delete_workout(db: AsyncSession, user_id: UUID, workout_id: UUID) -> None:
     w = await get_workout(db, user_id, workout_id)
     w.deleted_at = now_utc()

@@ -1,8 +1,9 @@
 import { Link } from 'react-router'
 
 import { Card, Section, Spinner } from '@/components/ui'
+import { useScheduleDay } from '@/features/schedule/api'
 import { errorMessage } from '@/lib/api'
-import { cn, pluralize } from '@/lib/format'
+import { cn, pluralize, shortTime } from '@/lib/format'
 
 import { useWorkouts, useWorkoutsDay } from './api'
 
@@ -10,7 +11,11 @@ import { useWorkouts, useWorkoutsDay } from './api'
 export function WorkoutBlock({ date }: { date: string }) {
   const day = useWorkoutsDay(date)
   const plans = useWorkouts()
+  const agenda = useScheduleDay(date)
   const items = day.data?.workouts ?? []
+  // Horário do treino vem da agenda (bloco do tipo treino ligado ao plano).
+  const startOf = (workoutId: string) =>
+    agenda.data?.blocks.find((b) => b.is_active && b.kind === 'workout' && b.workout_id === workoutId)?.start_time
   const hasPlans = (plans.data?.length ?? 0) > 0
 
   const aside = day.data && day.data.planned > 0 && (
@@ -39,6 +44,7 @@ export function WorkoutBlock({ date }: { date: string }) {
           {items.map((w) => {
             const status = w.session?.status
             const total = w.exercises.length
+            const at = startOf(w.workout_id)
             return (
               <Link key={w.workout_id} to={`/treinos/${w.workout_id}/sessao`} className="block">
                 <Card className={cn('flex items-center gap-3 transition-colors hover:bg-elevated', status === 'completed' && 'border-accent/30')}>
@@ -58,6 +64,7 @@ export function WorkoutBlock({ date }: { date: string }) {
                   <span className="min-w-0 flex-1">
                     <span className={cn('block truncate text-[15px]', status === 'completed' && 'text-ink-faint line-through')}>{w.name}</span>
                     <span className="block text-[12px] text-ink-faint">
+                      {at && status !== 'completed' && status !== 'skipped' && `${shortTime(at)} · `}
                       {status === 'completed'
                         ? `Concluído · ${w.exercises_done}/${total}`
                         : status === 'skipped'

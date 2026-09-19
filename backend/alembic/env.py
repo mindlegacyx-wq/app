@@ -12,6 +12,7 @@ import app.modules.auth.models  # noqa: F401
 import app.modules.goals.models  # noqa: F401
 import app.modules.progress.models  # noqa: F401
 import app.modules.routines.models  # noqa: F401
+import app.modules.schedule.models  # noqa: F401
 import app.modules.tasks.models  # noqa: F401
 import app.modules.users.models  # noqa: F401
 import app.modules.workouts.models  # noqa: F401

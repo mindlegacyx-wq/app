@@ -18,6 +18,8 @@ const RoutinesPage = lazy(() => import('@/features/routines/RoutinesPage').then(
 const RoutineEditorPage = lazy(() =>
   import('@/features/routines/RoutineEditorPage').then((m) => ({ default: m.RoutineEditorPage })),
 )
+const AgendaPage = lazy(() => import('@/features/schedule/AgendaPage').then((m) => ({ default: m.AgendaPage })))
+const SubjectsPage = lazy(() => import('@/features/schedule/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
 const GoalsPage = lazy(() => import('@/features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })))
 const GoalDetailPage = lazy(() => import('@/features/goals/GoalDetailPage').then((m) => ({ default: m.GoalDetailPage })))
 const WorkoutsPage = lazy(() => import('@/features/workouts/WorkoutsPage').then((m) => ({ default: m.WorkoutsPage })))
@@ -77,6 +79,8 @@ export const router = createBrowserRouter([
           { path: '/configuracoes', element: <Lazy><SettingsPage /></Lazy> },
           { path: '/configuracoes/lixeira', element: <Lazy><TrashPage /></Lazy> },
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
+          { path: '/agenda', element: <Lazy><AgendaPage /></Lazy> },
+          { path: '/agenda/materias', element: <Lazy><SubjectsPage /></Lazy> },
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },
           { path: '/despertador/historico', element: <Lazy><WakeHistoryPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },

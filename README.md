@@ -1,8 +1,8 @@
 # Disciplina (nome provisório)
 
-Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas e percentual de disciplina. PWA mobile-first com backend em Python.
+Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas, agenda semanal e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** MVP completo (Fases 0 a 8). Rotina, despertador com Web Push, metas, treinos, tarefas, evolução com histórico, lixeira e uso offline. Próximo passo: testar no aparelho real com HTTPS e abrir para os primeiros usuários.
+**Status:** MVP completo (Fases 0 a 8) + trilha do estudante em andamento. Fase 9 (agenda semanal com matérias) entregue; próximas: provas e sessões de estudo, notas, estudos com IA a partir de fotos.
 
 ## Documentação
 
@@ -11,7 +11,7 @@ Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação,
 | [01 · Produto](docs/01-produto.md) | Problema, proposta de valor, persona, core loop, métricas, riscos |
 | [02 · Arquitetura](docs/02-arquitetura.md) | Stack, decisões técnicas, despertador no PWA, infra, escala, estrutura de pastas |
 | [03 · Banco de dados](docs/03-banco-de-dados.md) | Tabelas, índices e regras de cálculo do score e da sequência |
-| [04 · Telas e fluxos](docs/04-telas-e-fluxos.md) | 26 telas, navegação, fluxo de primeiro uso, fluxo diário, diretrizes de design |
+| [04 · Telas e fluxos](docs/04-telas-e-fluxos.md) | Telas, navegação, fluxo de primeiro uso, fluxo diário, diretrizes de design |
 | [05 · Roadmap](docs/05-roadmap-mvp.md) | Ordem de desenvolvimento, MoSCoW, decisões do fundador, definição de pronto |
 
 ## Stack

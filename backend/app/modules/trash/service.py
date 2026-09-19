@@ -14,6 +14,7 @@ from app.core.dates import now_utc
 from app.modules.alarms import service as alarms_service
 from app.modules.goals import service as goals_service
 from app.modules.routines import service as routines_service
+from app.modules.schedule import service as schedule_service
 from app.modules.tasks import service as tasks_service
 from app.modules.trash.schemas import RestoreOut, TrashItemOut, TrashOut
 from app.modules.workouts import service as workouts_service
@@ -24,6 +25,7 @@ KINDS = [
     *goals_service.TRASH_KINDS,
     *workouts_service.TRASH_KINDS,
     *alarms_service.TRASH_KINDS,
+    *schedule_service.TRASH_KINDS,
 ]
 
 
