@@ -20,6 +20,14 @@ Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação,
 - **Frontend:** PWA · React 19 · TypeScript · Vite · Tailwind 4 · TanStack Query · Motion
 - **Infra:** Docker Compose · Caddy (HTTPS automático) · GitHub Actions
 
+## Testar no seu computador (sem instalar nada além do Docker)
+
+```bash
+docker compose -f docker-compose.dev.yml up     # depois abra http://localhost:5173
+```
+
+Passo a passo em linguagem simples, requisitos e o que fazer se der errado: [TESTAR-NO-PC.md](TESTAR-NO-PC.md).
+
 ## Desenvolvimento local
 
 Pré-requisitos: Python 3.11+, Node 22+, PostgreSQL 16 rodando em `127.0.0.1:5432`.

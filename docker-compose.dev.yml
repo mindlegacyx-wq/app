@@ -1,0 +1,65 @@
+# Para TESTAR NO SEU COMPUTADOR, sem instalar Python, Node nem Postgres — só o Docker Desktop.
+#
+#   docker compose -f docker-compose.dev.yml up
+#
+# Depois abra http://localhost:5173 no navegador. Ctrl+C para parar; os dados ficam guardados
+# (volume "pgdata_dev"). Guia passo a passo em TESTAR-NO-PC.md.
+#
+# Opcional: IA para estudos — crie um arquivo .env ao lado deste com AI_API_KEY=... (ver
+# .env.example). Sem chave, o app mostra "IA não configurada" e o resto funciona.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: disciplina
+      POSTGRES_USER: disciplina
+      POSTGRES_PASSWORD: disciplina
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U disciplina -d disciplina"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENV: dev
+      DATABASE_URL: postgresql+asyncpg://disciplina:disciplina@db:5432/disciplina
+      # Só para teste local. Em produção use um segredo próprio (ver .env.example).
+      JWT_SECRET: segredo-de-teste-local-nao-usar-em-producao-1234567890
+      COOKIE_SECURE: "false"
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      WEB_CONCURRENCY: 1
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:teste@localhost}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.groq.com/openai/v1}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-llama-3.3-70b-versatile}
+      AI_VISION_MODEL: ${AI_VISION_MODEL:-meta-llama/llama-4-scout-17b-16e-instruct}
+    ports:
+      - "8000:8000"
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    depends_on:
+      - api
+    environment:
+      VITE_API_PROXY: http://api:8000
+    volumes:
+      - ./frontend:/app
+      - web_node_modules:/app/node_modules
+    # Na 1ª vez o npm install demora 1–2 min; depois é rápido.
+    command: sh -c "npm install --no-audit --no-fund && npx vite --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+
+volumes:
+  pgdata_dev:
+  web_node_modules:

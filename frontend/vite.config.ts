@@ -18,7 +18,8 @@ export default defineConfig({
     port: 5173,
     // Em dev o PWA e a API ficam na mesma origem (como em produção atrás do Caddy),
     // então o cookie de refresh funciona sem configuração de CORS/SameSite.
-    proxy: { '/api': { target: 'http://127.0.0.1:8000', changeOrigin: false } },
+    // VITE_API_PROXY aponta para a API quando ela roda em outro container (docker-compose.dev.yml).
+    proxy: { '/api': { target: process.env.VITE_API_PROXY ?? 'http://127.0.0.1:8000', changeOrigin: false } },
   },
   plugins: [
     react(),
