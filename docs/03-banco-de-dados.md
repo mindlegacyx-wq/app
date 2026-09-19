@@ -322,6 +322,7 @@ Regras de cálculo:
 - **Disciplina** = concluído ÷ planejado × 100. Peso igual para todos no MVP; a coluna `breakdown` permite ponderar depois sem migrar dados.
 - **Sequência** = dias consecutivos com `hit_target = true`. **Dia sem nada planejado conta como 0% e quebra a sequência** (decisão do fundador: sem plano, sem disciplina).
 - **Janela de registro**: um dia D aceita checks, tarefas e "Levantei" até as **03:00 de D+1** no fuso do usuário (quem fecha a rotina da noite depois da meia-noite). Nunca para o futuro. O corte é configurável (`DAY_CLOSE_HOUR`).
+- **Evolução (Fase 7)** é leitura sobre esta tabela: `/progress/history?start&end` devolve um item por dia (dias finalizados vêm daqui; hoje, e ontem antes do corte, são calculados ao vivo e marcados `live`); `/progress/summary` calcula sequência atual, recorde (`MAX(streak_day)`), médias de 7 e 30 dias e barras por área somando `breakdown` dos dias fechados — **sem o dia de hoje** e só a partir do dia em que a conta foi criada.
 
 ---
 

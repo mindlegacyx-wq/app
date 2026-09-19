@@ -36,7 +36,16 @@ from app.core.errors import AppError, ConflictError
 from app.modules.alarms import service as alarms_service
 from app.modules.goals import service as goals_service
 from app.modules.progress.models import ClosedBy, DailyScore
-from app.modules.progress.schemas import ComponentOut, DayScoreOut, MissingItemOut
+from app.modules.progress.schemas import (
+    AreaOut,
+    ComponentOut,
+    DayScoreOut,
+    HistoryDayOut,
+    HistoryOut,
+    MissingItemOut,
+    SummaryOut,
+    WindowOut,
+)
 from app.modules.routines import service as routines_service
 from app.modules.tasks import service as tasks_service
 from app.modules.tasks.models import TaskStatus
@@ -45,6 +54,8 @@ from app.modules.workouts import service as workouts_service
 from app.modules.workouts.models import SessionStatus
 
 MAX_BACKFILL_DAYS = 400
+MAX_HISTORY_DAYS = 366
+AREA_KINDS = ("wake", "routines", "tasks", "workout", "goals")
 
 
 class DayNotClosableError(AppError):
@@ -285,6 +296,141 @@ async def day_score(db: AsyncSession, user: User, day: date) -> DayScoreOut:
     snap = await compute_snapshot(db, user, day)
     streak = (await _streak_before(db, user, day)) + 1 if snap.hit_target else 0
     return _to_out(day, snap, streak, best, None, user.timezone)
+
+
+# --- Evolução (Fase 7) -------------------------------------------------------------------
+
+
+class HistoryRangeError(AppError):
+    code = "history_range"
+
+
+def _history_item(day: date, snap: Snapshot, streak: int, row: DailyScore | None) -> HistoryDayOut:
+    finalized = row is not None and (
+        row.finalized_at is not None or row.closed_by == ClosedBy.system
+    )
+    return HistoryDayOut(
+        date=day,
+        planned=snap.planned,
+        completed=snap.completed,
+        pct=snap.pct,
+        target=snap.target,
+        hit_target=snap.hit_target,
+        streak=streak,
+        closed_by=row.closed_by if row else None,
+        finalized=finalized,
+        live=row is None,
+    )
+
+
+async def history(db: AsyncSession, user: User, start: date, end: date) -> HistoryOut:
+    """Um item por dia entre start e end (inclusive), do primeiro dia da conta até hoje.
+
+    Dias finalizados vêm de daily_scores; dias abertos (hoje, ou ontem antes do corte) são
+    calculados ao vivo. Dias futuros e anteriores à conta não aparecem.
+    """
+    if start > end:
+        raise HistoryRangeError("A data inicial precisa vir antes da final.")
+    if (end - start).days >= MAX_HISTORY_DAYS:
+        raise HistoryRangeError("Período máximo de um ano.")
+    today = user_today(user.timezone)
+    first = _first_day(user)
+    lo, hi = max(start, first), min(end, today)
+    days: list[HistoryDayOut] = []
+    if lo > hi:
+        return HistoryOut(start=start, end=end, first_day=first, days=days)
+
+    await ensure_finalized_through(db, user, min(hi, last_finalizable_day(user.timezone)))
+    rows = {
+        r.date: r
+        for r in await db.scalars(
+            select(DailyScore).where(
+                DailyScore.user_id == user.id, DailyScore.date >= lo, DailyScore.date <= hi
+            )
+        )
+    }
+    cursor = lo
+    while cursor <= hi:
+        row = rows.get(cursor)
+        if row is not None:
+            days.append(_history_item(cursor, _snapshot_from_row(row), row.streak_day, row))
+        elif is_day_open(cursor, user.timezone):
+            snap = await compute_snapshot(db, user, cursor)
+            streak = (await _streak_before(db, user, cursor)) + 1 if snap.hit_target else 0
+            days.append(_history_item(cursor, snap, streak, None))
+        cursor += timedelta(days=1)
+    return HistoryOut(start=start, end=end, first_day=first, days=days)
+
+
+def _window(rows: list[DailyScore], size: int) -> WindowOut:
+    tracked = len(rows)
+    avg = round(sum(r.discipline_pct for r in rows) / tracked) if tracked else None
+    return WindowOut(
+        days=size,
+        tracked=tracked,
+        average_pct=avg,
+        hit_days=sum(1 for r in rows if r.hit_target),
+    )
+
+
+def _areas(rows: list[DailyScore]) -> list[AreaOut]:
+    totals = {k: {"planned": 0, "completed": 0} for k in AREA_KINDS}
+    for r in rows:
+        for k in AREA_KINDS:
+            comp = r.breakdown.get(k) or {}
+            totals[k]["planned"] += int(comp.get("planned", 0))
+            totals[k]["completed"] += int(comp.get("completed", 0))
+    out: list[AreaOut] = []
+    for k in AREA_KINDS:
+        planned, completed = totals[k]["planned"], totals[k]["completed"]
+        out.append(
+            AreaOut(
+                kind=k,  # type: ignore[arg-type]
+                planned=planned,
+                completed=completed,
+                pct=round(completed * 100 / planned) if planned else None,
+            )
+        )
+    return out
+
+
+async def summary(db: AsyncSession, user: User) -> SummaryOut:
+    """Números da aba Evolução. Médias e áreas olham só dias fechados, sem o dia de hoje."""
+    today = user_today(user.timezone)
+    first = _first_day(user)
+    yesterday = today - timedelta(days=1)
+    await ensure_finalized_through(db, user, min(yesterday, last_finalizable_day(user.timezone)))
+
+    since = today - timedelta(days=30)
+    rows = list(
+        await db.scalars(
+            select(DailyScore)
+            .where(
+                DailyScore.user_id == user.id,
+                DailyScore.date >= since,
+                DailyScore.date <= yesterday,
+            )
+            .order_by(DailyScore.date)
+        )
+    )
+    week_rows = [r for r in rows if r.date >= today - timedelta(days=7)]
+
+    today_score = await day_score(db, user, today)
+    closed_days = await db.scalar(
+        select(func.count()).select_from(DailyScore).where(DailyScore.user_id == user.id)
+    )
+    return SummaryOut(
+        today=today,
+        first_day=first,
+        streak=today_score.streak,
+        streak_before_today=await _streak_before(db, user, today),
+        best_streak=today_score.best_streak,
+        today_hit=today_score.hit_target,
+        week=_window(week_rows, 7),
+        month=_window(rows, 30),
+        areas=_areas(rows),
+        closed_days=int(closed_days or 0),
+    )
 
 
 # --- Fechar / reabrir --------------------------------------------------------------------

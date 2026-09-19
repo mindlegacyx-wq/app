@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dates import last_finalizable_day, user_today
+from app.core.dates import is_day_open, last_finalizable_day, user_today
 from app.core.scheduler import finalize_due_days
 from app.modules.progress.models import ClosedBy, DailyScore
 from app.modules.users.models import User
@@ -229,3 +229,159 @@ async def test_progress_is_isolated_between_users(client: AsyncClient) -> None:
     # B não reabre o dia de A
     r = await client.post("/api/v1/progress/reopen", json={"date": tday}, headers=bearer(b))
     assert r.status_code == 409
+
+
+# --- Evolução (Fase 7) -------------------------------------------------------------------
+
+
+async def test_history_mixes_finalized_and_live_days(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    token = await onboard(client)
+    h = bearer(token)
+    uid = await _user_id(db_session, "ana@exemplo.com")
+    await _backdate_user(db_session, uid, 5)
+    t = today()
+    # Dois dias cumpridos no passado, com breakdown por área
+    for offset, streak in ((3, 1), (2, 2)):
+        row_day = t - timedelta(days=offset)
+        db_session.add(
+            DailyScore(
+                user_id=uid,
+                date=row_day,
+                planned_count=4,
+                completed_count=4,
+                discipline_pct=100,
+                target_pct=80,
+                hit_target=True,
+                streak_day=streak,
+                breakdown={
+                    "wake": {"planned": 1, "completed": 1},
+                    "routines": {"planned": 2, "completed": 2},
+                    "tasks": {"planned": 1, "completed": 1},
+                    "workout": {"planned": 0, "completed": 0},
+                    "goals": {"planned": 0, "completed": 0},
+                    "missing": [],
+                },
+                closed_at=datetime.now(UTC),
+                closed_by=ClosedBy.system,
+                finalized_at=datetime.now(UTC),
+            )
+        )
+    await db_session.flush()
+
+    start, end = (t - timedelta(days=10)).isoformat(), (t + timedelta(days=3)).isoformat()
+    r = await client.get("/api/v1/progress/history", params={"start": start, "end": end}, headers=h)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    days = body["days"]
+    # Nada no futuro; a autocura retoma a partir da última linha finalizada (t-2) e
+    # preenche t-1; hoje entra ao vivo.
+    assert days[0]["date"] == (t - timedelta(days=3)).isoformat()
+    assert days[-1]["date"] == t.isoformat()
+    assert len(days) == 4
+    by_date = {d["date"]: d for d in days}
+    assert by_date[(t - timedelta(days=2)).isoformat()]["pct"] == 100
+    assert by_date[(t - timedelta(days=2)).isoformat()]["streak"] == 2
+    assert by_date[(t - timedelta(days=2)).isoformat()]["live"] is False
+    # Dia sem linha: antes do corte das 03:00 ontem ainda está aberto (ao vivo); depois,
+    # a autocura já o finalizou como sistema.
+    filled = by_date[(t - timedelta(days=1)).isoformat()]
+    if is_day_open(t - timedelta(days=1), TZ):
+        assert filled["live"] is True and filled["closed_by"] is None
+    else:
+        assert filled["closed_by"] == "system" and filled["finalized"] is True
+    # Hoje é ao vivo
+    assert by_date[t.isoformat()]["live"] is True and by_date[t.isoformat()]["closed_by"] is None
+
+    # Validação do intervalo
+    r = await client.get("/api/v1/progress/history", params={"start": end, "end": start}, headers=h)
+    assert r.status_code == 400 and r.json()["error"]["code"] == "history_range"
+    r = await client.get(
+        "/api/v1/progress/history",
+        params={"start": (t - timedelta(days=400)).isoformat(), "end": t.isoformat()},
+        headers=h,
+    )
+    assert r.status_code == 400
+
+
+async def test_summary_averages_exclude_today_and_aggregate_areas(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    token = await onboard(client)
+    h = bearer(token)
+    uid = await _user_id(db_session, "ana@exemplo.com")
+    await _backdate_user(db_session, uid, 3)
+    t = today()
+    # ontem-2: 100% (cumprido) · ontem-1: 50% (não) · ontem: 100% (cumprido, sequência 1)
+    seeds = [(3, 100, True, 1, 2, 2), (2, 50, False, 0, 2, 1), (1, 100, True, 1, 2, 2)]
+    for offset, pct, hit, streak, planned, completed in seeds:
+        db_session.add(
+            DailyScore(
+                user_id=uid,
+                date=t - timedelta(days=offset),
+                planned_count=planned,
+                completed_count=completed,
+                discipline_pct=pct,
+                target_pct=80,
+                hit_target=hit,
+                streak_day=streak,
+                breakdown={
+                    "wake": {"planned": 1, "completed": 1},
+                    "routines": {"planned": 1, "completed": 1 if hit else 0},
+                    "tasks": {"planned": 0, "completed": 0},
+                    "workout": {"planned": 0, "completed": 0},
+                    "goals": {"planned": 0, "completed": 0},
+                    "missing": [],
+                },
+                closed_at=datetime.now(UTC),
+                closed_by=ClosedBy.system,
+                finalized_at=datetime.now(UTC),
+            )
+        )
+    await db_session.flush()
+
+    s = (await client.get("/api/v1/progress/summary", headers=h)).json()
+    assert s["today"] == t.isoformat()
+    assert s["streak"] == 0  # hoje ainda não cumprido
+    assert s["streak_before_today"] == 1
+    assert s["best_streak"] == 1
+    assert s["today_hit"] is False
+    assert s["month"]["tracked"] == 3 and s["week"]["tracked"] == 3
+    assert s["month"]["average_pct"] == round((100 + 50 + 100) / 3)
+    assert s["month"]["hit_days"] == 2
+    areas = {a["kind"]: a for a in s["areas"]}
+    assert areas["wake"] == {"kind": "wake", "planned": 3, "completed": 3, "pct": 100}
+    assert areas["routines"]["planned"] == 3 and areas["routines"]["completed"] == 2
+    assert areas["routines"]["pct"] == 67
+    assert areas["tasks"]["pct"] is None  # nada planejado no período
+    assert s["closed_days"] == 3
+
+    # Cumprir hoje: sequência vira 2 (1 até ontem + hoje) sem mexer nas médias
+    await wake_up(client, token)
+    s = (await client.get("/api/v1/progress/summary", headers=h)).json()
+    assert s["today_hit"] is True and s["streak"] == 2 and s["best_streak"] == 2
+    assert s["month"]["average_pct"] == 83
+
+
+async def test_summary_for_brand_new_account(client: AsyncClient) -> None:
+    token = await onboard(client)
+    s = (await client.get("/api/v1/progress/summary", headers=bearer(token))).json()
+    assert s["first_day"] == today().isoformat()
+    assert s["month"] == {"days": 30, "tracked": 0, "average_pct": None, "hit_days": 0}
+    assert all(a["pct"] is None for a in s["areas"])
+    assert s["closed_days"] == 0 and s["streak"] == 0
+
+
+async def test_history_is_isolated_between_users(client: AsyncClient) -> None:
+    a = await onboard(client, email="a@exemplo.com")
+    client.cookies.clear()
+    b = await onboard(client, email="b@exemplo.com")
+    await wake_up(client, a)
+    t = today().isoformat()
+    hist_b = (
+        await client.get(
+            "/api/v1/progress/history", params={"start": t, "end": t}, headers=bearer(b)
+        )
+    ).json()
+    assert hist_b["days"][0]["completed"] == 0

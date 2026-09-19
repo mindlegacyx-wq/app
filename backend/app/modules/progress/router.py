@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 from app.core.dates import user_today
 from app.core.deps import DB, CurrentUser
 from app.modules.progress import service
-from app.modules.progress.schemas import DayRef, DayScoreOut
+from app.modules.progress.schemas import DayRef, DayScoreOut, HistoryOut, SummaryOut
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 
@@ -32,5 +32,24 @@ async def close(data: DayRef, user: CurrentUser, db: DB) -> DayScoreOut:
 @router.post("/reopen", response_model=DayScoreOut)
 async def reopen(data: DayRef, user: CurrentUser, db: DB) -> DayScoreOut:
     out = await service.reopen_day(db, user, data.date)
+    await db.commit()
+    return out
+
+
+@router.get("/history", response_model=HistoryOut)
+async def history(
+    user: CurrentUser,
+    db: DB,
+    start: Annotated[date, Query()],
+    end: Annotated[date, Query()],
+) -> HistoryOut:
+    out = await service.history(db, user, start, end)
+    await db.commit()
+    return out
+
+
+@router.get("/summary", response_model=SummaryOut)
+async def summary(user: CurrentUser, db: DB) -> SummaryOut:
+    out = await service.summary(db, user)
     await db.commit()
     return out

@@ -61,8 +61,8 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 ### Evolução
 | # | Tela | Conteúdo |
 |---|---|---|
-| 23 | **Evolução** | Sequência atual e recorde · disciplina média 7/30 dias · mapa de calor do mês · barras por área (rotina, tarefas, treino, metas, acordar) |
-| 24 | Detalhe do dia (a partir do mapa) | Fotografia daquele dia: o que foi planejado e cumprido |
+| 23 | **Evolução** | Sequência atual (e acumulada até ontem) e recorde · disciplina média 7/30 dias com dias na meta · mapa de calor do mês com navegação · barras por área (acordar, rotinas, tarefas, treino, metas) nos últimos 30 dias fechados |
+| 24 | Detalhe do dia (a partir do mapa, rota `/evolucao/:data`) | Fotografia daquele dia: anel, estado (em andamento, fechado, finalizado), sequência naquele dia e, por área, cada item planejado com o que foi cumprido; se os itens já não existem, mostra o consolidado gravado |
 
 ### Perfil
 | # | Tela | Conteúdo |

@@ -254,6 +254,53 @@ export interface DayScore {
   can_reopen: boolean
 }
 
+export interface HistoryDay {
+  date: string
+  planned: number
+  completed: number
+  pct: number
+  target: number
+  hit_target: boolean
+  streak: number
+  closed_by: 'user' | 'system' | null
+  finalized: boolean
+  live: boolean
+}
+
+export interface ProgressHistory {
+  start: string
+  end: string
+  first_day: string
+  days: HistoryDay[]
+}
+
+export interface AreaStat {
+  kind: ScoreComponent
+  planned: number
+  completed: number
+  pct: number | null
+}
+
+export interface WindowStat {
+  days: number
+  tracked: number
+  average_pct: number | null
+  hit_days: number
+}
+
+export interface ProgressSummary {
+  today: string
+  first_day: string
+  streak: number
+  streak_before_today: number
+  best_streak: number
+  today_hit: boolean
+  week: WindowStat
+  month: WindowStat
+  areas: AreaStat[]
+  closed_days: number
+}
+
 // --- Metas -------------------------------------------------------------------------------
 
 export type GoalArea = 'health' | 'career' | 'finance' | 'study' | 'personal' | 'other'

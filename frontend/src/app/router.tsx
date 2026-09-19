@@ -31,9 +31,8 @@ const WakeHistoryPage = lazy(() =>
 )
 const AlarmScreen = lazy(() => import('@/features/alarms/AlarmScreen').then((m) => ({ default: m.AlarmScreen })))
 const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
-const ComingSoonPage = lazy(() =>
-  import('@/features/placeholders/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })),
-)
+const EvolutionPage = lazy(() => import('@/features/progress/EvolutionPage').then((m) => ({ default: m.EvolutionPage })))
+const DayDetailPage = lazy(() => import('@/features/progress/DayDetailPage').then((m) => ({ default: m.DayDetailPage })))
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
@@ -79,6 +78,7 @@ export const router = createBrowserRouter([
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },
           { path: '/despertador/historico', element: <Lazy><WakeHistoryPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },
+          { path: '/evolucao/:date', element: <Lazy><DayDetailPage /></Lazy> },
           { path: '/metas/:id', element: <Lazy><GoalDetailPage /></Lazy> },
           { path: '/treinos/historico', element: <Lazy><HistoryPage /></Lazy> },
           { path: '/treinos/:id', element: <Lazy><WorkoutEditorPage /></Lazy> },
@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
           { path: '/rotina', element: <Lazy><RoutinesPage /></Lazy> },
           { path: '/metas', element: <Lazy><GoalsPage /></Lazy> },
           { path: '/treinos', element: <Lazy><WorkoutsPage /></Lazy> },
-          { path: '/evolucao', element: <Lazy><ComingSoonPage title="Evolução" phase={3} /></Lazy> },
+          { path: '/evolucao', element: <Lazy><EvolutionPage /></Lazy> },
         ],
       },
     ],

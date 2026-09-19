@@ -13,7 +13,7 @@ Princípio: **uma funcionalidade por vez, de ponta a ponta** (banco → API → 
 | **4** ✅ 19/09 | **Metas + ações** (telas 15 a 18, bloco em Hoje) | Entra no score via ações com data. |
 | **5** ✅ 19/09 | **Treinos** (telas 19 a 22, bloco em Hoje) | Sessão com check por exercício e cronômetro de descanso. |
 | **6** ✅ 19/09 | **Despertador inteligente** (telas 11 a 14): alarmes, Web Push + VAPID, job por minuto, tela de alarme com som sintetizado e Wake Lock, hold de 3 s, sonecas, histórico de acordar | É o módulo de maior risco técnico (HTTPS, permissões, iOS). Vem por último para ser testado no dispositivo real com todo o resto estável. |
-| **7** | **Evolução v2** (telas 23, 24): médias 7/30 dias, mapa de calor, barras por área, recorde de sequência, detalhe do dia | Precisa de dados de todos os módulos. |
+| **7** ✅ 19/09 | **Evolução v2** (telas 23, 24): sequência e recorde, médias 7/30 dias, mapa de calor por mês, barras por área, detalhe do dia | Precisa de dados de todos os módulos. Leitura sobre `daily_scores` (`/progress/history`, `/progress/summary`), sem tabela nova. |
 | **8** | **Polimento**: lixeira (tela 26), offline com fila local, estados vazios revisados, `prefers-reduced-motion`, revisão de performance | Deixa pronto para o segundo usuário. |
 
 Cada fase termina com: migração aplicada, testes passando, tela usável no celular, commit.
