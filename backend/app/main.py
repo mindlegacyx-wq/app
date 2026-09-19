@@ -11,6 +11,7 @@ from app.core.errors import register_error_handlers
 from app.modules.alarms.router import router as wake_router
 from app.modules.auth.router import router as auth_router
 from app.modules.routines.router import router as routines_router
+from app.modules.tasks.router import router as tasks_router
 from app.modules.users.router import router as users_router
 
 settings = get_settings()
@@ -53,3 +54,4 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(routines_router, prefix="/api/v1")
 app.include_router(wake_router, prefix="/api/v1")
+app.include_router(tasks_router, prefix="/api/v1")

@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker  # noqa: E40
 import app.modules.alarms.models  # noqa: F401,E402
 import app.modules.auth.models  # noqa: F401,E402
 import app.modules.routines.models  # noqa: F401,E402
+import app.modules.tasks.models  # noqa: F401,E402
 import app.modules.users.models  # noqa: F401,E402
 from app.core.db import Base, engine, get_db  # noqa: E402
 from app.core.ratelimit import auth_limiter  # noqa: E402
