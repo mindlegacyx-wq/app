@@ -1,9 +1,17 @@
 import datetime as dt
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.modules.studies.models import ExamKind, ExamStatus, StudySessionStatus
+from app.modules.studies.models import (
+    ArtifactKind,
+    ArtifactStatus,
+    ExamKind,
+    ExamStatus,
+    MaterialSource,
+    StudySessionStatus,
+)
 
 # --- Conteúdos ---------------------------------------------------------------------------
 
@@ -120,3 +128,63 @@ class StudyDayOut(BaseModel):
 
 class ExamDetailOut(ExamOut):
     sessions: list[StudySessionOut]  # janela inteira, do primeiro dia ao dia anterior à prova
+
+
+# --- Estudos com IA (Fase 12) -------------------------------------------------------------
+
+
+class AIStatusOut(BaseModel):
+    configured: bool
+    model: str | None
+    vision_model: str | None
+
+
+class TranscriptionOut(BaseModel):
+    content: str  # markdown editável; nada foi salvo ainda
+    images: int
+
+
+class MaterialIn(BaseModel):
+    title: str | None = Field(default=None, max_length=80)
+    source: MaterialSource = MaterialSource.text
+    content: str = Field(min_length=1, max_length=40_000)
+
+
+class MaterialUpdate(BaseModel):
+    title: str | None = Field(default=None, max_length=80)
+    clear_title: bool = False
+    content: str | None = Field(default=None, min_length=1, max_length=40_000)
+
+
+class MaterialOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    exam_id: UUID
+    title: str | None
+    source: MaterialSource
+    content: str
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class ArtifactOut(BaseModel):
+    kind: ArtifactKind
+    status: ArtifactStatus
+    content_md: str | None
+    content_json: dict[str, Any] | None
+    error: str | None
+    model: str | None
+    stale: bool  # os materiais mudaram depois da geração
+    updated_at: dt.datetime | None
+
+
+class GenerateIn(BaseModel):
+    kinds: list[ArtifactKind] = Field(default_factory=lambda: list(ArtifactKind))
+
+
+class ExamAIOut(BaseModel):
+    configured: bool
+    materials: list[MaterialOut]
+    artifacts: list[ArtifactOut]  # sempre os 4 tipos, na ordem teoria · resoluções · mapa · quiz
+    can_generate: bool  # configurado e com pelo menos um material

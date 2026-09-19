@@ -36,6 +36,11 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:contato@${DOMAIN}}
+      # IA para estudos (opcional; provedor compatível com a API da OpenAI)
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.groq.com/openai/v1}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-llama-3.3-70b-versatile}
+      AI_VISION_MODEL: ${AI_VISION_MODEL:-meta-llama/llama-4-scout-17b-16e-instruct}
     expose:
       - "8000"
 

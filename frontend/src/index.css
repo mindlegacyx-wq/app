@@ -106,3 +106,111 @@
     display: none;
   }
 }
+
+/* Markdown gerado pela IA (teoria, resoluções): legível no celular, sem plugin de tipografia. */
+@layer components {
+  .prose-ai {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+  .prose-ai > :first-child {
+    margin-top: 0;
+  }
+  .prose-ai h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+  .prose-ai h2 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 22px 0 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line);
+  }
+  .prose-ai h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 18px 0 6px;
+    color: var(--color-accent);
+  }
+  .prose-ai h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 14px 0 4px;
+  }
+  .prose-ai p {
+    margin: 8px 0;
+  }
+  .prose-ai ul,
+  .prose-ai ol {
+    margin: 8px 0;
+    padding-left: 22px;
+  }
+  .prose-ai ul {
+    list-style: disc;
+  }
+  .prose-ai ol {
+    list-style: decimal;
+  }
+  .prose-ai li {
+    margin: 4px 0;
+  }
+  .prose-ai li::marker {
+    color: var(--color-ink-faint);
+  }
+  .prose-ai strong {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .prose-ai code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    background: var(--color-elevated);
+    border-radius: 6px;
+    padding: 1px 6px;
+  }
+  .prose-ai pre {
+    background: var(--color-elevated);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .prose-ai pre code {
+    background: none;
+    padding: 0;
+  }
+  .prose-ai blockquote {
+    border-left: 3px solid var(--color-accent);
+    padding-left: 12px;
+    color: var(--color-ink-muted);
+    margin: 10px 0;
+  }
+  .prose-ai hr {
+    border: 0;
+    border-top: 1px solid var(--color-line);
+    margin: 16px 0;
+  }
+  .prose-ai table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+  .prose-ai th,
+  .prose-ai td {
+    border: 1px solid var(--color-line);
+    padding: 6px 8px;
+    text-align: left;
+  }
+  .prose-ai a {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+}

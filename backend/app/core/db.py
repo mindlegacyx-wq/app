@@ -1,6 +1,6 @@
 """Engine e sessão assíncrona do SQLAlchemy + base declarativa com colunas padrão."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import datetime
 from uuid import UUID
 
@@ -53,3 +53,8 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSe
 async def get_db() -> AsyncIterator[AsyncSession]:
     async with SessionLocal() as session:
         yield session
+
+
+def get_session_factory() -> Callable[[], AsyncSession]:
+    """Fábrica de sessões para tarefas em segundo plano (substituível nos testes)."""
+    return SessionLocal

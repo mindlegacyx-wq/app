@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:contato@disciplina.app"
 
+    # IA (Fase 12): qualquer provedor compatível com a API da OpenAI (Groq, Gemini, Mistral,
+    # OpenAI, Ollama…). Sem AI_API_KEY a funcionalidade aparece como "não configurada".
+    ai_base_url: str = "https://api.groq.com/openai/v1"
+    ai_api_key: str = ""
+    ai_model: str = "llama-3.3-70b-versatile"
+    ai_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    ai_timeout_seconds: int = Field(default=90, ge=10, le=600)
+    ai_max_images: int = Field(default=6, ge=1, le=12)
+    ai_max_image_mb: int = Field(default=8, ge=1, le=25)
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:

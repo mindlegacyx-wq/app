@@ -420,6 +420,34 @@ Regras de cálculo:
 
 `INDEX (user_id, year, subject_id)`. Médias e "quanto preciso tirar" são calculados na leitura (`/grades?year=`), nunca gravados.
 
+## Módulo 10 · Estudos com IA (Fase 12)
+
+### `study_materials`
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id · exam_id | uuid FK | `CASCADE` |
+| title | varchar(80) NULL | |
+| source | enum | `photo` (transcrito) · `text` (colado) |
+| content | text | até 40 mil caracteres; **só texto — fotos não são guardadas** |
+| created_at · updated_at | timestamptz | |
+
+### `study_artifacts`
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id · exam_id | uuid FK | `CASCADE` |
+| kind | enum | `theory` · `solutions` · `mindmap` · `quiz` |
+| status | enum | `queued` · `running` · `done` · `failed` |
+| content_md | text NULL | teoria e resoluções (Markdown) |
+| content_json | jsonb NULL | mapa mental (árvore) e quiz (questões) validados |
+| error | varchar(300) NULL | mensagem amigável quando falha |
+| model | varchar(80) NULL | modelo que gerou |
+| input_hash | varchar(64) NULL | sha-256 dos materiais usados → `stale` quando muda |
+| finished_at | timestamptz NULL | |
+
+`UNIQUE (exam_id, kind)`: um artefato por tipo; regenerar substitui.
+
 ## Índices e integridade (resumo)
 
 - Toda tabela de domínio: `INDEX (user_id)`; tabelas de registro: `INDEX (user_id, date)`.

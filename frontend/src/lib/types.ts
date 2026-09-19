@@ -587,3 +587,56 @@ export interface GradesSummary {
   grade_max: number
   subjects: SubjectGrades[]
 }
+
+// --- Estudos com IA (Fase 12) ---------------------------------------------------------------
+
+export type MaterialSource = 'photo' | 'text'
+export type ArtifactKind = 'theory' | 'solutions' | 'mindmap' | 'quiz'
+export type ArtifactStatus = 'queued' | 'running' | 'done' | 'failed'
+
+export interface AIStatus {
+  configured: boolean
+  model: string | null
+  vision_model: string | null
+}
+
+export interface StudyMaterial {
+  id: string
+  exam_id: string
+  title: string | null
+  source: MaterialSource
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MindMapNode {
+  title: string
+  note?: string
+  children: MindMapNode[]
+}
+
+export interface QuizQuestion {
+  question: string
+  options: string[]
+  answer: number
+  explanation: string
+}
+
+export interface StudyArtifact {
+  kind: ArtifactKind
+  status: ArtifactStatus
+  content_md: string | null
+  content_json: MindMapNode | { questions: QuizQuestion[] } | null
+  error: string | null
+  model: string | null
+  stale: boolean
+  updated_at: string | null
+}
+
+export interface ExamAI {
+  configured: boolean
+  materials: StudyMaterial[]
+  artifacts: StudyArtifact[]
+  can_generate: boolean
+}

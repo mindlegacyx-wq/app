@@ -11,6 +11,7 @@ import { GradeSheet } from '@/features/grades/GradeSheet'
 import { useGrades } from '@/features/grades/api'
 import { fmtGrade } from '@/features/grades/shared'
 
+import { AISection } from './AISection'
 import { ExamSheet } from './ExamSheet'
 import { useAddTopic, useDeleteTopic, useExam, useUpdateTopic } from './api'
 import { describeDaysUntil, examDateLabel, examKindLabel, fmtFocus, fmtMinutes, sessionStatusLabel } from './shared'
@@ -145,7 +146,7 @@ export function ExamDetailPage() {
         </div>
         {e.topics.length === 0 ? (
           <p className="px-0.5 pb-2 text-[13px] text-ink-faint">
-            Liste o que cai. Marcar cada conteúdo mostra o que falta; na Fase de IA, cada um recebe resumo e exercícios.
+            Liste o que cai. Marcar cada conteúdo mostra o que falta e orienta a IA logo abaixo.
           </p>
         ) : (
           <Card padded={false} className="overflow-hidden">
@@ -202,6 +203,8 @@ export function ExamDetailPage() {
         </form>
         {error && <p className="mt-2 text-[13px] text-danger">{error}</p>}
       </section>
+
+      <AISection examId={e.id} />
 
       <section className="mt-6">
         <h2 className="mb-2 px-0.5 text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Sessões de estudo</h2>

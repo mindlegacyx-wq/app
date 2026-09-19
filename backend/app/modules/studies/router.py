@@ -1,18 +1,27 @@
+from collections.abc import Callable
 from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, UploadFile, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dates import user_today
+from app.core.db import get_session_factory
 from app.core.deps import DB, CurrentUser
-from app.modules.studies import service
+from app.modules.studies import ai_service, service
 from app.modules.studies.models import ExamStatus
 from app.modules.studies.schemas import (
+    AIStatusOut,
+    ExamAIOut,
     ExamDetailOut,
     ExamIn,
     ExamOut,
     ExamUpdate,
+    GenerateIn,
+    MaterialIn,
+    MaterialOut,
+    MaterialUpdate,
     SessionStartIn,
     SessionUpdate,
     StudyDayOut,
@@ -20,6 +29,7 @@ from app.modules.studies.schemas import (
     TopicIn,
     TopicOut,
     TopicUpdate,
+    TranscriptionOut,
 )
 
 # --- /exams ------------------------------------------------------------------------------
@@ -124,3 +134,70 @@ async def update_session(
     s = await service.update_session(db, user, session_id, data)
     await db.commit()
     return await service.session_for(db, user.id, user.timezone, s.exam_id, s.date)
+
+
+# --- Estudos com IA (Fase 12) -------------------------------------------------------------
+
+ai_router = APIRouter(prefix="/ai", tags=["ai"])
+
+
+@ai_router.get("/status", response_model=AIStatusOut)
+async def ai_status(user: CurrentUser) -> AIStatusOut:
+    return ai_service.status()
+
+
+@exams_router.get("/{exam_id}/ai", response_model=ExamAIOut)
+async def exam_ai(exam_id: UUID, user: CurrentUser, db: DB) -> ExamAIOut:
+    return await ai_service.exam_ai(db, user.id, exam_id)
+
+
+@exams_router.post("/{exam_id}/materials/transcribe", response_model=TranscriptionOut)
+async def transcribe_photos(
+    exam_id: UUID,
+    user: CurrentUser,
+    db: DB,
+    files: Annotated[list[UploadFile], File(description="Fotos dos exercícios")],
+) -> TranscriptionOut:
+    await service.get_exam(db, user.id, exam_id)
+    images = [await f.read() for f in files]
+    return await ai_service.transcribe(images)
+
+
+@exams_router.post(
+    "/{exam_id}/materials", response_model=MaterialOut, status_code=status.HTTP_201_CREATED
+)
+async def add_material(exam_id: UUID, data: MaterialIn, user: CurrentUser, db: DB) -> MaterialOut:
+    m = await ai_service.add_material(db, user.id, exam_id, data)
+    await db.commit()
+    return MaterialOut.model_validate(m)
+
+
+@exams_router.patch("/{exam_id}/materials/{material_id}", response_model=MaterialOut)
+async def update_material(
+    exam_id: UUID, material_id: UUID, data: MaterialUpdate, user: CurrentUser, db: DB
+) -> MaterialOut:
+    m = await ai_service.update_material(db, user.id, exam_id, material_id, data)
+    await db.commit()
+    return MaterialOut.model_validate(m)
+
+
+@exams_router.delete("/{exam_id}/materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_material(exam_id: UUID, material_id: UUID, user: CurrentUser, db: DB) -> None:
+    await ai_service.delete_material(db, user.id, exam_id, material_id)
+    await db.commit()
+
+
+@exams_router.post("/{exam_id}/ai/generate", response_model=ExamAIOut)
+async def generate(
+    exam_id: UUID,
+    data: GenerateIn,
+    user: CurrentUser,
+    db: DB,
+    background: BackgroundTasks,
+    session_factory: Annotated[Callable[[], AsyncSession], Depends(get_session_factory)],
+) -> ExamAIOut:
+    kinds = await ai_service.request_generation(db, user.id, exam_id, data.kinds)
+    await db.commit()
+    if kinds:
+        background.add_task(ai_service.run_generation, session_factory, user.id, exam_id, kinds)
+    return await ai_service.exam_ai(db, user.id, exam_id)

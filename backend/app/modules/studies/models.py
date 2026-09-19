@@ -1,5 +1,6 @@
 import enum
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
@@ -15,6 +16,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base, SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
@@ -119,3 +121,73 @@ class StudySession(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     exam: Mapped[Exam] = relationship(lazy="joined")
+
+
+# --- Estudos com IA (Fase 12) -------------------------------------------------------------
+
+
+class MaterialSource(enum.StrEnum):
+    photo = "photo"  # transcrito de fotos (as fotos não são guardadas)
+    text = "text"  # colado/digitado
+
+
+class StudyMaterial(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Texto-base de uma prova: exercícios transcritos das fotos ou colados pelo usuário."""
+
+    __tablename__ = "study_materials"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    exam_id: Mapped[UUID] = mapped_column(
+        ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    source: Mapped[MaterialSource] = mapped_column(
+        Enum(MaterialSource, name="material_source", native_enum=False, length=8),
+        nullable=False,
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class ArtifactKind(enum.StrEnum):
+    theory = "theory"  # teoria focada nos exercícios (markdown)
+    solutions = "solutions"  # resoluções passo a passo (markdown)
+    mindmap = "mindmap"  # mapa mental (json: árvore)
+    quiz = "quiz"  # quiz de múltipla escolha (json)
+
+
+class ArtifactStatus(enum.StrEnum):
+    queued = "queued"
+    running = "running"
+    done = "done"
+    failed = "failed"
+
+
+class StudyArtifact(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Um material gerado pela IA para a prova. Um por tipo; regenerar substitui."""
+
+    __tablename__ = "study_artifacts"
+    __table_args__ = (UniqueConstraint("exam_id", "kind", name="uq_study_artifacts_exam_id_kind"),)
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    exam_id: Mapped[UUID] = mapped_column(
+        ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[ArtifactKind] = mapped_column(
+        Enum(ArtifactKind, name="artifact_kind", native_enum=False, length=10), nullable=False
+    )
+    status: Mapped[ArtifactStatus] = mapped_column(
+        Enum(ArtifactStatus, name="artifact_status", native_enum=False, length=8),
+        nullable=False,
+        default=ArtifactStatus.queued,
+    )
+    content_md: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Hash dos materiais usados: se mudar, o material está desatualizado.
+    input_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

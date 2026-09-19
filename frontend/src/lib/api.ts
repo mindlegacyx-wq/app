@@ -140,6 +140,26 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   return (await res.json()) as T
 }
 
+/** Envio de arquivos (multipart). Mesmo tratamento de sessão do `api`. */
+export async function apiUpload<T>(path: string, form: FormData, signal?: AbortSignal): Promise<T> {
+  const doFetch = () =>
+    fetch(`/api/v1${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      signal,
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      body: form,
+    })
+  let res = await doFetch()
+  if (res.status === 401) {
+    const renewed = await refreshSession()
+    if (!renewed) throw await parseError(res)
+    res = await doFetch()
+  }
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as T
+}
+
 /** Mensagem legível para qualquer erro capturado na UI. */
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message

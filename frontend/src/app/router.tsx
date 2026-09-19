@@ -25,6 +25,7 @@ const ExamDetailPage = lazy(() => import('@/features/studies/ExamDetailPage').th
 const StudySessionPage = lazy(() =>
   import('@/features/studies/StudySessionPage').then((m) => ({ default: m.StudySessionPage })),
 )
+const AIStudyPage = lazy(() => import('@/features/studies/AIStudyPage').then((m) => ({ default: m.AIStudyPage })))
 const GradesPage = lazy(() => import('@/features/grades/GradesPage').then((m) => ({ default: m.GradesPage })))
 const GoalsPage = lazy(() => import('@/features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })))
 const GoalDetailPage = lazy(() => import('@/features/goals/GoalDetailPage').then((m) => ({ default: m.GoalDetailPage })))
@@ -90,6 +91,7 @@ export const router = createBrowserRouter([
           { path: '/estudos/notas', element: <Lazy><GradesPage /></Lazy> },
           { path: '/estudos/:id', element: <Lazy><ExamDetailPage /></Lazy> },
           { path: '/estudos/:id/sessao/:date', element: <Lazy><StudySessionPage /></Lazy> },
+          { path: '/estudos/:id/ia/:kind', element: <Lazy><AIStudyPage /></Lazy> },
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },
           { path: '/despertador/historico', element: <Lazy><WakeHistoryPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },

@@ -2,7 +2,7 @@
 
 Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas, agenda semanal e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** MVP completo (Fases 0 a 8) + trilha do estudante em andamento. Fase 9 (agenda semanal com matérias) entregue; próximas: provas e sessões de estudo, notas, estudos com IA a partir de fotos.
+**Status:** v1.1 — MVP completo (Fases 0 a 8) + trilha do estudante (Fases 9 a 12): agenda semanal com matérias, provas e trabalhos com sessões de estudo automáticas, notas com "quanto preciso tirar" e estudos com IA a partir de fotos dos exercícios. Próximo passo: publicar com HTTPS e abrir para os primeiros usuários.
 
 ## Documentação
 
@@ -61,6 +61,19 @@ docker compose up -d --build  # db + api (migra sozinho) + build do PWA + Caddy 
 ```
 
 O domínio precisa apontar para a VPS antes do primeiro `up`, para o Caddy emitir o certificado. HTTPS é obrigatório: service worker, push e Wake Lock não funcionam sem ele.
+
+### IA para estudos (opcional)
+
+Fotos dos exercícios viram texto (transcrição editável) e, a partir dele, teoria focada, resoluções passo a passo, mapa mental e quiz. Funciona com qualquer provedor compatível com a API da OpenAI — preencha no `.env`:
+
+```bash
+AI_BASE_URL=https://api.groq.com/openai/v1          # ou Gemini / Mistral / OpenAI / Ollama
+AI_API_KEY=...                                      # sem chave, o app mostra "IA não configurada"
+AI_MODEL=llama-3.3-70b-versatile                    # texto (teoria, resoluções, mapa, quiz)
+AI_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct   # leitura das fotos
+```
+
+Para começar de graça: Groq (console.groq.com) ou Google AI Studio (Gemini, `AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`, `AI_MODEL=AI_VISION_MODEL=gemini-2.5-flash`). As fotos não são guardadas no servidor — só o texto transcrito.
 
 ### Despertador: o que esperar
 
