@@ -1,0 +1,34 @@
+# HTTPS automático (Let's Encrypt). DOMAIN vem do .env da raiz.
+# Em dev local sem domínio, use DOMAIN=localhost e o Caddy emite certificado local.
+{$DOMAIN} {
+    encode zstd gzip
+
+    # Cabeçalhos de segurança básicos
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    # API
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+
+    # PWA: service worker e manifest nunca ficam em cache longo
+    @nocache path /sw.js /manifest.webmanifest /index.html /
+    header @nocache Cache-Control "no-cache"
+
+    # Assets com hash no nome podem ficar em cache por 1 ano
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
+    handle {
+        root * /srv/www
+        try_files {path} /index.html
+        file_server
+    }
+}

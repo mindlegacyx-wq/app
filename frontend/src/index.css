@@ -1,0 +1,108 @@
+@import '@fontsource-variable/inter/opsz.css';
+@import 'tailwindcss';
+
+/*
+  Tokens do design system. Escuro por padrão (decisão do fundador).
+  Uma única cor de destaque; vermelho só para perigo.
+*/
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-canvas: #0b0d10;
+  --color-surface: #14171c;
+  --color-elevated: #1b1f26;
+  --color-line: rgb(255 255 255 / 8%);
+  --color-line-strong: rgb(255 255 255 / 14%);
+
+  --color-ink: #f2f4f7;
+  --color-ink-muted: #9aa3af;
+  --color-ink-faint: #5f6772;
+
+  --color-accent: #c6f135;
+  --color-accent-soft: rgb(198 241 53 / 12%);
+  --color-on-accent: #0b0d10;
+
+  --color-danger: #ff5c5c;
+  --color-danger-soft: rgb(255 92 92 / 12%);
+  --color-warning: #f5b942;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-sheet: 0 -12px 40px rgb(0 0 0 / 45%);
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01', 'tnum';
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-ink);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-elevated) inset;
+    transition: background-color 9999s ease-out;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility safe-top {
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

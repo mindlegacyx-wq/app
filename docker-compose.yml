@@ -1,0 +1,67 @@
+# Produção e homologação. Para desenvolver, veja o README (Postgres local + dev servers).
+#
+#   cp .env.example .env   # e preencha
+#   docker compose up -d --build
+#
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-disciplina}
+      POSTGRES_USER: ${POSTGRES_USER:-disciplina}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-disciplina} -d ${POSTGRES_DB:-disciplina}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENV: prod
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-disciplina}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-disciplina}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      COOKIE_SECURE: "true"
+      CORS_ORIGINS: https://${DOMAIN}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    expose:
+      - "8000"
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - www:/out
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+      frontend:
+        condition: service_completed_successfully
+    environment:
+      DOMAIN: ${DOMAIN:?defina DOMAIN no .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - www:/srv/www:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  www:
+  caddy_data:
+  caddy_config:

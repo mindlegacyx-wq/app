@@ -159,3 +159,14 @@ async def test_auth_rate_limit(client: AsyncClient) -> None:
     finally:
         auth_limiter.limit = 1000
         auth_limiter.reset()
+
+
+async def test_validation_messages_are_in_portuguese(client: AsyncClient) -> None:
+    r = await client.post(
+        "/api/v1/auth/register", json={"email": "x", "password": "curta", "name": ""}
+    )
+    assert r.status_code == 422
+    by_field = {f["field"]: f["message"] for f in r.json()["error"]["details"]["fields"]}
+    assert by_field["email"] == "E-mail inválido."
+    assert by_field["password"] == "Use pelo menos 8 caracteres."
+    assert by_field["name"] == "Campo obrigatório."
