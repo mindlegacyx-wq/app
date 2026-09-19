@@ -109,3 +109,21 @@ export function describeDays(days: number[]): string {
 export function pluralize(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`
 }
+
+/** "YYYY-MM-DD" deslocado em N dias. */
+export function addDays(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number) as [number, number, number]
+  const dt = new Date(Date.UTC(y, m - 1, d + days))
+  return dt.toISOString().slice(0, 10)
+}
+
+/** "hoje" · "ontem" · "amanhã" · "ter, 23 set" */
+export function relativeDay(ymd: string, today: string): string {
+  if (ymd === today) return 'hoje'
+  if (ymd === addDays(today, -1)) return 'ontem'
+  if (ymd === addDays(today, 1)) return 'amanhã'
+  const [y, m, d] = ymd.split('-').map(Number) as [number, number, number]
+  return new Intl.DateTimeFormat(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' })
+    .format(new Date(y, m - 1, d))
+    .replace('.', '')
+}

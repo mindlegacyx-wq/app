@@ -1,8 +1,9 @@
 import { AnimatePresence, m } from 'motion/react'
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Button } from './Button'
+import { useLayer } from './layer-stack'
 
 interface DialogProps {
   open: boolean
@@ -31,15 +32,9 @@ export function Dialog({
   onConfirm,
   onCancel,
 }: DialogProps) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
-      if (e.key === 'Enter' && !loading) onConfirm()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, loading, onCancel, onConfirm])
+  useLayer(open, onCancel, () => {
+    if (!loading) onConfirm()
+  })
 
   return createPortal(
     <AnimatePresence>

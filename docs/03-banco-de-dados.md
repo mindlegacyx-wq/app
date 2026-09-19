@@ -258,6 +258,12 @@ Progresso da meta = ações concluídas ÷ total de ações (calculado, não arm
 | created_at / updated_at / deleted_at | | |
 | INDEX (user_id, date, status) | | |
 
+Regras:
+
+- **Atrasada** = pendente com `date` anterior ao dia consultado. Aparece em Hoje num grupo próprio e não conta no planejado do dia até ser movida.
+- **Crédito da conclusão**: concluir uma tarefa planejada para hoje ou ontem mantém a data; planejada para dias anteriores ou futuros, a data passa a ser hoje (o dia em que o trabalho aconteceu).
+- **Cancelada** sai do planejado sem apagar o registro; **excluída** vai para a lixeira (soft delete).
+
 ---
 
 ## Módulo 6 · Evolução

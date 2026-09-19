@@ -1,19 +1,28 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
 import { TopBar } from '@/app/shell/TopBar'
-import { Button, Card, Ring, Section } from '@/components/ui'
+import { Button, Card, Fab, Ring, Section } from '@/components/ui'
 import { useRoutines, useRoutinesDay } from '@/features/routines/api'
+import { useTasksDay } from '@/features/tasks/api'
+import { TasksBlock } from '@/features/tasks/TasksBlock'
 import { useWakeDay } from '@/features/wake/api'
 import { useAuth } from '@/lib/auth-store'
 import { firstName, greeting, longDate, todayIn } from '@/lib/format'
+import type { Task } from '@/lib/types'
 
 import { RoutineBlock, RoutinePlaceholder } from './RoutineBlock'
 import { WakeBlock } from './WakeBlock'
 
+// Os sheets só carregam quando abertos pela primeira vez.
+const TaskSheet = lazy(() => import('@/features/tasks/TaskSheet').then((m) => ({ default: m.TaskSheet })))
+const CategoriesSheet = lazy(() =>
+  import('@/features/tasks/CategoriesSheet').then((m) => ({ default: m.CategoriesSheet })),
+)
+
 /**
  * Tela Hoje. Blocos na ordem do dia. Os blocos ainda não construídos aparecem como
- * espaços reservados: Tarefas (Fase 2), Fechar o dia (3), Metas (4), Treino (5).
+ * espaços reservados: Fechar o dia (Fase 3), Metas (4), Treino (5).
  */
 export function TodayPage() {
   const user = useAuth((s) => s.user)!
@@ -29,6 +38,10 @@ export function TodayPage() {
   const day = useRoutinesDay(date)
   const wake = useWakeDay(date)
   const routines = useRoutines()
+  const tasks = useTasksDay(date)
+
+  const [taskSheet, setTaskSheet] = useState<{ open: boolean; task?: Task }>({ open: false })
+  const [catsOpen, setCatsOpen] = useState(false)
 
   const morning = day.data?.routines.find((r) => r.kind === 'morning')
   const evening = day.data?.routines.find((r) => r.kind === 'evening')
@@ -36,15 +49,15 @@ export function TodayPage() {
   const hasMorningRoutine = routines.data?.some((r) => r.kind === 'morning') ?? true
   const hasEveningRoutine = routines.data?.some((r) => r.kind === 'evening') ?? true
 
-  // Progresso do dia com o que já existe (rotinas + acordar). O percentual oficial,
-  // com tarefas, treino e metas, vem do servidor na Fase 3.
+  // Progresso do dia com o que já existe (rotinas + acordar + tarefas). O percentual
+  // oficial, com treino e metas e a sequência, vem do servidor na Fase 3.
   const progress = useMemo(() => {
     const wakePlanned = wake.data?.scheduled_time ? 1 : 0
     const wakeDone = wake.data?.confirmed_at ? 1 : 0
-    const planned = (day.data?.planned ?? 0) + wakePlanned
-    const completed = (day.data?.completed ?? 0) + wakeDone
+    const planned = (day.data?.planned ?? 0) + wakePlanned + (tasks.data?.planned ?? 0)
+    const completed = (day.data?.completed ?? 0) + wakeDone + (tasks.data?.completed ?? 0)
     return { planned, completed, pct: planned ? Math.round((completed / planned) * 100) : 0 }
-  }, [day.data, wake.data])
+  }, [day.data, wake.data, tasks.data])
 
   return (
     <>
@@ -80,9 +93,12 @@ export function TodayPage() {
           <RoutineBlock key={r.id} date={date} routine={r} editable />
         ))}
 
-        <Section title="Tarefas">
-          <Placeholder text="Sua lista do dia, por prioridade." />
-        </Section>
+        <TasksBlock
+          date={date}
+          today={date}
+          onAdd={() => setTaskSheet({ open: true })}
+          onEdit={(task) => setTaskSheet({ open: true, task })}
+        />
 
         <Section title="Treino de hoje">
           <Placeholder text="O treino do dia aparece aqui quando houver um plano." />
@@ -109,6 +125,23 @@ export function TodayPage() {
         </Button>
         <p className="mt-2 text-center text-[13px] text-ink-faint">O fechamento do dia e a sequência chegam na Fase 3.</p>
       </div>
+
+      <Fab label="Nova tarefa" onClick={() => setTaskSheet({ open: true })} />
+
+      <Suspense fallback={null}>
+        {(taskSheet.open || catsOpen) && (
+          <>
+            <TaskSheet
+              open={taskSheet.open}
+              today={date}
+              task={taskSheet.task}
+              onClose={() => setTaskSheet({ open: false })}
+              onManageCategories={() => setCatsOpen(true)}
+            />
+            <CategoriesSheet open={catsOpen} onClose={() => setCatsOpen(false)} />
+          </>
+        )}
+      </Suspense>
     </>
   )
 }

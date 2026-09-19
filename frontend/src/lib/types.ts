@@ -109,3 +109,54 @@ export interface WakeDay {
   status: WakeStatus | null
   can_undo: boolean
 }
+
+// --- Tarefas -----------------------------------------------------------------------------
+
+export type TaskPriority = 'low' | 'medium' | 'high'
+export type TaskStatus = 'pending' | 'done' | 'cancelled'
+
+export interface TaskCategory {
+  id: string
+  name: string
+  color: string
+  sort_order: number
+}
+
+export interface Task {
+  id: string
+  title: string
+  notes: string | null
+  date: string
+  priority: TaskPriority
+  status: TaskStatus
+  category_id: string | null
+  completed_at: string | null
+  sort_order: number
+}
+
+export interface TaskIn {
+  title: string
+  notes?: string | null
+  date?: string
+  priority?: TaskPriority
+  category_id?: string | null
+}
+
+export interface TaskUpdate {
+  title?: string
+  notes?: string | null
+  date?: string
+  priority?: TaskPriority
+  category_id?: string | null
+  status?: TaskStatus
+  clear_category?: boolean
+  clear_notes?: boolean
+}
+
+export interface TasksDay {
+  date: string
+  tasks: Task[]
+  overdue: Task[]
+  planned: number
+  completed: number
+}

@@ -2,6 +2,8 @@ import { AnimatePresence, m } from 'motion/react'
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
+import { useLayer } from './layer-stack'
+
 interface SheetProps {
   open: boolean
   title?: string
@@ -11,16 +13,14 @@ interface SheetProps {
 
 /** Bottom sheet para formulários de edição. Esc fecha; toque fora fecha. */
 export function Sheet({ open, title, onClose, children }: SheetProps) {
+  useLayer(open, onClose)
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
-      window.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open])
 
   return createPortal(
     <AnimatePresence>
