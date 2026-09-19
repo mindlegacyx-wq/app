@@ -248,3 +248,71 @@ export interface GoalsDay {
   planned: number
   completed: number
 }
+
+// --- Treinos -----------------------------------------------------------------------------
+
+export type SessionStatus = 'in_progress' | 'completed' | 'skipped'
+
+export interface Exercise {
+  id: string
+  name: string
+  sets: number | null
+  reps: string | null
+  load: string | null
+  rest_seconds: number | null
+  sort_order: number
+}
+
+export interface Workout {
+  id: string
+  name: string
+  days_of_week: number[]
+  notes: string | null
+  is_active: boolean
+  sort_order: number
+  exercises: Exercise[]
+}
+
+export interface WorkoutSession {
+  id: string
+  workout_id: string
+  date: string
+  status: SessionStatus
+  started_at: string | null
+  completed_at: string | null
+  notes: string | null
+}
+
+export interface DayExercise extends Omit<Exercise, 'sort_order'> {
+  completed: boolean
+}
+
+export interface DayWorkout {
+  workout_id: string
+  name: string
+  exercises: DayExercise[]
+  exercises_done: number
+  session: WorkoutSession | null
+}
+
+export interface WorkoutsDay {
+  date: string
+  workouts: DayWorkout[]
+  planned: number
+  completed: number
+}
+
+export interface WorkoutHistoryItem {
+  date: string
+  workout_id: string
+  workout_name: string
+  status: SessionStatus
+  exercises_done: number
+  exercises_total: number
+}
+
+export interface WorkoutHistory {
+  start: string
+  end: string
+  items: WorkoutHistoryItem[]
+}

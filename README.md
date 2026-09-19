@@ -2,7 +2,7 @@
 
 Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** Fases 0 a 4 concluídas (fundação; rotinas + "Levantei"; tarefas; percentual, sequência e fechamento do dia; metas com ações). Próxima: Fase 5, treinos.
+**Status:** Fases 0 a 5 concluídas. Os seis módulos do MVP estão de pé (falta o despertador com push, Fase 6, e as estatísticas completas, Fase 7).
 
 ## Documentação
 

@@ -11,7 +11,7 @@ Princípio: **uma funcionalidade por vez, de ponta a ponta** (banco → API → 
 | **2** ✅ 19/09 | **Tarefas** (telas 6, 7 e bloco em Hoje) | Segundo item do dia. Simples, valor imediato. |
 | **3** ✅ 19/09 | **Evolução v1**: cálculo do score, sequência, **Fechar o dia** (tela 8), anel em Hoje, job da meia-noite | Fecha o core loop cedo. A partir daqui o produto já "transforma": dá o número honesto todo dia. Vem antes de metas e treinos de propósito, para que eles nasçam já contando no score. |
 | **4** ✅ 19/09 | **Metas + ações** (telas 15 a 18, bloco em Hoje) | Entra no score via ações com data. |
-| **5** | **Treinos** (telas 19 a 22, bloco em Hoje) | Sessão com check por exercício e cronômetro de descanso. |
+| **5** ✅ 19/09 | **Treinos** (telas 19 a 22, bloco em Hoje) | Sessão com check por exercício e cronômetro de descanso. |
 | **6** | **Despertador inteligente** (telas 11 a 14): alarmes, Web Push + VAPID, scheduler, tela de alarme com som e Wake Lock, hold de 3 s, sonecas | É o módulo de maior risco técnico (HTTPS, permissões, iOS). Vem por último para ser testado no dispositivo real com todo o resto estável. |
 | **7** | **Evolução v2** (telas 23, 24): médias 7/30 dias, mapa de calor, barras por área, recorde de sequência, detalhe do dia | Precisa de dados de todos os módulos. |
 | **8** | **Polimento**: lixeira (tela 26), offline com fila local, estados vazios revisados, `prefers-reduced-motion`, revisão de performance | Deixa pronto para o segundo usuário. |

@@ -1,10 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 
 import { TopBar } from '@/app/shell/TopBar'
-import { Button, Card, Fab, Ring, Section } from '@/components/ui'
+import { Button, Card, Fab, Ring } from '@/components/ui'
 import { GoalsBlock } from '@/features/goals/GoalsBlock'
 import { useDayScore, useReopenDay } from '@/features/progress/api'
+import { WorkoutBlock } from '@/features/workouts/WorkoutBlock'
 import { useRoutines, useRoutinesDay } from '@/features/routines/api'
 import { TasksBlock } from '@/features/tasks/TasksBlock'
 import { useAuth } from '@/lib/auth-store'
@@ -21,8 +22,7 @@ const CategoriesSheet = lazy(() =>
 )
 
 /**
- * Tela Hoje. Blocos na ordem do dia. Os blocos ainda não construídos aparecem como
- * espaços reservados: Treino (Fase 5).
+ * Tela Hoje. Blocos na ordem do dia: acordar, manhã, blocos, tarefas, treino, metas, noite.
  */
 export function TodayPage() {
   const user = useAuth((s) => s.user)!
@@ -117,9 +117,7 @@ export function TodayPage() {
           onEdit={(task) => setTaskSheet({ open: true, task })}
         />
 
-        <Section title="Treino de hoje">
-          <Placeholder text="O treino do dia aparece aqui quando houver um plano." />
-        </Section>
+        <WorkoutBlock date={date} />
 
         <GoalsBlock date={date} editable={editable} />
 
@@ -188,19 +186,3 @@ function Stat({ label, value, unit, highlight }: { label: string; value: string;
     </div>
   )
 }
-
-function Placeholder({ text, to, cta }: { text: string; to?: string; cta?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-line-strong px-4 py-3.5">
-      <p className="text-[14px] text-ink-muted">{text}</p>
-      {to ? (
-        <Link to={to} className="shrink-0 text-[13px] font-semibold text-accent">
-          {cta ?? 'Abrir'}
-        </Link>
-      ) : (
-        <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[11px] text-ink-faint">em breve</span>
-      )}
-    </div>
-  )
-}
-

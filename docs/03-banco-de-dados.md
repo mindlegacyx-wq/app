@@ -234,6 +234,14 @@ Regras:
 | completed | bool |
 | PK (session_id, exercise_id) | |
 
+Regras:
+
+- Um plano **ativo, com pelo menos um exercício e com o dia da semana marcado** está planejado no dia. Cada plano conta como **1** no percentual (não cada exercício).
+- A sessão nasce ao iniciar o treino ou marcar o primeiro exercício; uma por plano por dia. **Concluído** = sessão `completed`.
+- **Pular** registra a decisão (Hoje deixa de cobrar) mas continua contando como planejado e não feito; aparece como "(pulado)" no que ficou de fora.
+- Marcar um exercício depois de pular/concluir reabre a sessão (`in_progress`).
+- Sessões só em dia aberto (hoje, ou ontem antes do corte). `workout_session_exercises` guarda também `completed_at`.
+
 ---
 
 ## Módulo 5 · Tarefas

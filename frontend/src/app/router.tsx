@@ -19,6 +19,12 @@ const RoutineEditorPage = lazy(() =>
 )
 const GoalsPage = lazy(() => import('@/features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })))
 const GoalDetailPage = lazy(() => import('@/features/goals/GoalDetailPage').then((m) => ({ default: m.GoalDetailPage })))
+const WorkoutsPage = lazy(() => import('@/features/workouts/WorkoutsPage').then((m) => ({ default: m.WorkoutsPage })))
+const WorkoutEditorPage = lazy(() =>
+  import('@/features/workouts/WorkoutEditorPage').then((m) => ({ default: m.WorkoutEditorPage })),
+)
+const SessionPage = lazy(() => import('@/features/workouts/SessionPage').then((m) => ({ default: m.SessionPage })))
+const HistoryPage = lazy(() => import('@/features/workouts/HistoryPage').then((m) => ({ default: m.HistoryPage })))
 const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
 const ComingSoonPage = lazy(() =>
   import('@/features/placeholders/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })),
@@ -65,6 +71,9 @@ export const router = createBrowserRouter([
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },
           { path: '/metas/:id', element: <Lazy><GoalDetailPage /></Lazy> },
+          { path: '/treinos/historico', element: <Lazy><HistoryPage /></Lazy> },
+          { path: '/treinos/:id', element: <Lazy><WorkoutEditorPage /></Lazy> },
+          { path: '/treinos/:id/sessao', element: <Lazy><SessionPage /></Lazy> },
         ],
       },
       {
@@ -73,7 +82,7 @@ export const router = createBrowserRouter([
           { path: '/hoje', element: <TodayPage /> },
           { path: '/rotina', element: <Lazy><RoutinesPage /></Lazy> },
           { path: '/metas', element: <Lazy><GoalsPage /></Lazy> },
-          { path: '/treinos', element: <Lazy><ComingSoonPage title="Treinos" phase={5} /></Lazy> },
+          { path: '/treinos', element: <Lazy><WorkoutsPage /></Lazy> },
           { path: '/evolucao', element: <Lazy><ComingSoonPage title="Evolução" phase={3} /></Lazy> },
         ],
       },
