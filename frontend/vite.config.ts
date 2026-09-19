@@ -24,6 +24,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // Service worker próprio (src/sw.ts): precache do Workbox + push do despertador.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon.png'],
       manifest: {
@@ -45,22 +49,10 @@ export default defineConfig({
           { src: 'icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,woff2,png,svg}'],
-        navigateFallback: '/index.html',
-        // A API nunca passa pelo fallback de navegação nem pelo cache de assets.
-        navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            // Leitura offline do próprio perfil (última resposta conhecida).
-            urlPattern: /\/api\/v1\/users\/me$/,
-            handler: 'NetworkFirst',
-            method: 'GET',
-            options: { cacheName: 'api-me', networkTimeoutSeconds: 4, expiration: { maxEntries: 1 } },
-          },
-        ],
       },
-      devOptions: { enabled: false },
+      devOptions: { enabled: false, type: 'module' },
     }),
   ],
 })

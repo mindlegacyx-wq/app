@@ -74,19 +74,19 @@ Detalhes em [03-banco-de-dados.md](03-banco-de-dados.md).
 | Dados | TanStack Query | Cache, revalidação, otimismo ao marcar itens |
 | Estado local | Zustand | Estado de UI leve (alarme tocando, modais) |
 | Animação | Framer Motion | Micro-interações (check, anel de progresso, transição de telas) |
-| PWA | vite-plugin-pwa (Workbox) | Instalável, cache de assets, leitura offline do dia atual |
+| PWA | vite-plugin-pwa (Workbox, `injectManifest`) | Instalável, cache de assets, service worker próprio com o handler de push |
 | Roteamento | React Router | Rotas por módulo |
 
 Por que React e não Flutter agora: Flutter exige toolchain nativa e publicação em loja, e o alarme nativo não pode ser testado neste ambiente. React entrega o MVP em semanas e, se o app nativo vier, **React Native/Expo reaproveita a API, os tipos e boa parte da lógica**.
 
 ## 6. Como o despertador funciona num PWA (limites honestos)
 
-1. Usuário cria o alarme → salvo no servidor (`alarms`).
-2. O scheduler do backend roda a cada minuto e busca alarmes devidos **no fuso de cada usuário**.
-3. Envia **Web Push** (VAPID) → o service worker exibe uma notificação com som e a ação **"Levantei"**.
-4. Se o app estiver **aberto** (celular na cabeceira), a tela de alarme entra em tela cheia, toca o som escolhido em loop (Web Audio) e mantém a tela acesa (Wake Lock API).
-5. Confirmação: **segurar o botão por 3 segundos**. Isso grava `wake_logs.confirmed_at`, que é o "horário que levantou".
-6. Soneca permitida N vezes (configurável); cada soneca é registrada.
+1. Usuário cria o alarme → salvo no servidor (`alarms`). O setup já cria o "Acordar".
+2. O scheduler do backend roda **a cada minuto** e busca alarmes devidos **no fuso de cada usuário**; cria o `wake_log` pendente (um por dia) e reenvia sonecas vencidas. Advisory lock do Postgres: só uma réplica dispara.
+3. Envia **Web Push** (VAPID, `pywebpush`) → o service worker (`src/sw.ts`) mostra uma notificação persistente; o toque abre a tela de alarme. A confirmação nunca acontece pela notificação: o atrito de segurar 3 s é proposital.
+4. Se o app estiver **aberto** (celular na cabeceira), um relógio local pede o disparo ao servidor na hora (`POST /wake/ring`, mesma regra do job) e a tela de alarme entra em tela cheia: som sintetizado em loop (Web Audio, 3 sons, volume crescente), tela acesa (Wake Lock API), vibração.
+5. Confirmação: **segurar o botão por 3 segundos**. Isso grava `wake_logs.confirmed_at`, que é o "horário que levantou". Sem confirmação em 60 min → `missed` (confirmável depois como `manual`).
+6. Soneca permitida N vezes (configurável); cada soneca é registrada e o servidor guarda `next_ring_at` para reenviar o push.
 
 Limite real: com o app fechado, é uma **notificação**, não um alarme que vence o modo silencioso. No iOS, push só funciona com o app instalado na tela inicial. Por isso o onboarding recomenda manter o alarme nativo do celular como backup e usar o app para confirmar que levantou. Quando houver app nativo, esse módulo ganha alarme de verdade sem mudar a API.
 

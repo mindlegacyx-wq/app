@@ -145,3 +145,11 @@ export function describeDeadline(ymd: string | null, today: string): string {
   if (n === -1) return 'venceu ontem'
   return `venceu há ${-n} dias`
 }
+
+/** "hoje às 06:00" · "amanhã às 06:00" · "qua às 06:00" (tudo no fuso do usuário). */
+export function describeNextRing(iso: string, timezone: string): string {
+  const today = todayIn(timezone)
+  const day = todayIn(timezone, new Date(iso))
+  const when = day === today ? 'hoje' : day === addDays(today, 1) ? 'amanhã' : relativeDay(day, today).split(',')[0]!
+  return `${when} às ${timeIn(iso, timezone)}`
+}

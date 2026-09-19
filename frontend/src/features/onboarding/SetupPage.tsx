@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -13,6 +14,7 @@ export function SetupPage() {
   const navigate = useNavigate()
   const { user, setUser } = useAuth()
 
+  const qc = useQueryClient()
   const [name, setName] = useState(user?.name ?? '')
   const [timezone, setTimezone] = useState(user?.timezone === 'America/Sao_Paulo' ? detectTimezone() : (user?.timezone ?? detectTimezone()))
   const [wakeTime, setWakeTime] = useState('06:00')
@@ -30,6 +32,8 @@ export function SetupPage() {
         body: { name: name.trim(), timezone, wake_time: wakeTime, discipline_target: target },
       })
       setUser(updated)
+      // O setup cria rotinas e o alarme: nada lido antes dele pode continuar em cache.
+      await qc.invalidateQueries()
       navigate('/instalar', { replace: true })
     } catch (err) {
       setError(errorMessage(err))

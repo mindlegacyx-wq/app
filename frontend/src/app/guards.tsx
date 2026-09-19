@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 
 import { Spinner } from '@/components/ui'
+import { AlarmWatcher } from '@/features/alarms/AlarmWatcher'
 import { isOnboarded, useAuth } from '@/lib/auth-store'
 
 function Booting() {
@@ -20,7 +21,12 @@ export function RequireAuth() {
   if (status === 'booting') return <Booting />
   if (status === 'anon') return <Navigate to="/bem-vindo" replace state={{ from: location.pathname }} />
   if (!isOnboarded(user) && location.pathname !== '/setup') return <Navigate to="/setup" replace />
-  return <Outlet />
+  return (
+    <>
+      <AlarmWatcher />
+      <Outlet />
+    </>
+  )
 }
 
 /** Rotas públicas: quem já está logado não vê boas-vindas/login de novo. */

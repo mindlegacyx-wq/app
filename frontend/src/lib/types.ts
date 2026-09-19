@@ -99,15 +99,85 @@ export interface RoutinesDay {
 // --- Acordar -----------------------------------------------------------------------------
 
 export type WakeStatus = 'pending' | 'confirmed' | 'missed' | 'manual'
+export type AlarmSound = 'classic' | 'soft' | 'pulse'
+
+export interface Alarm {
+  id: string
+  label: string
+  time: string // "HH:MM:SS"
+  days_of_week: number[]
+  sound: AlarmSound
+  requires_confirmation: boolean
+  max_snoozes: number
+  snooze_minutes: number
+  is_active: boolean
+  next_ring_at: string | null // ISO UTC
+  created_at: string
+}
+
+export interface NextRing {
+  alarm_id: string
+  label: string
+  at: string
+  sound: AlarmSound
+}
+
+export interface AlarmsOverview {
+  alarms: Alarm[]
+  next: NextRing | null
+  push_enabled: boolean
+}
+
+export interface WakeAlarm {
+  id: string
+  label: string
+  sound: AlarmSound
+  requires_confirmation: boolean
+  max_snoozes: number
+  snooze_minutes: number
+}
 
 export interface WakeDay {
   date: string
   scheduled_time: string | null
   scheduled_at: string | null
+  rang_at: string | null
+  next_ring_at: string | null
   confirmed_at: string | null
   delay_minutes: number | null
+  snooze_count: number
   status: WakeStatus | null
+  alarm: WakeAlarm | null
+  ringing: boolean
+  can_snooze: boolean
+  can_confirm: boolean
   can_undo: boolean
+}
+
+export interface WakeHistoryDay {
+  date: string
+  label: string | null
+  scheduled_at: string | null
+  rang_at: string | null
+  confirmed_at: string | null
+  delay_minutes: number | null
+  snooze_count: number
+  status: WakeStatus
+}
+
+export interface WakeHistory {
+  start: string
+  end: string
+  days: WakeHistoryDay[]
+  confirmed: number
+  missed: number
+  average_delay_minutes: number | null
+}
+
+export interface PushStatus {
+  enabled: boolean
+  public_key: string | null
+  subscriptions: number
 }
 
 // --- Tarefas -----------------------------------------------------------------------------

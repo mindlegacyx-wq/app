@@ -3,8 +3,10 @@ import { Link } from 'react-router'
 
 import { TopBar } from '@/app/shell/TopBar'
 import { Button, Card, EmptyState, Spinner } from '@/components/ui'
+import { useAlarms } from '@/features/alarms/api'
 import { errorMessage } from '@/lib/api'
-import { cn, describeDays, pluralize, shortTime } from '@/lib/format'
+import { useAuth } from '@/lib/auth-store'
+import { cn, describeDays, describeNextRing, pluralize, shortTime } from '@/lib/format'
 import type { Routine, RoutineKind } from '@/lib/types'
 
 import { RoutineSheet } from './RoutineSheet'
@@ -68,13 +70,7 @@ export function RoutinesPage() {
           <div className="mt-4 px-0.5">
             <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Despertador</h2>
           </div>
-          <Card className="flex items-center justify-between">
-            <div>
-              <p className="text-[15px]">Alarmes com confirmação</p>
-              <p className="mt-0.5 text-[13px] text-ink-faint">Chega na Fase 6. Hoje você confirma que levantou pela tela Hoje.</p>
-            </div>
-            <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[11px] text-ink-faint">em breve</span>
-          </Card>
+          <AlarmsCard />
         </div>
       )}
 
@@ -134,5 +130,28 @@ function MissingCard({ kind, onCreate }: { kind: 'morning' | 'evening'; onCreate
         </Button>
       }
     />
+  )
+}
+
+/** Atalho para o despertador (tela 11) com o próximo toque. */
+function AlarmsCard() {
+  const user = useAuth((s) => s.user)!
+  const alarms = useAlarms()
+  const active = alarms.data?.alarms.filter((a) => a.is_active).length ?? 0
+  const next = alarms.data?.next
+  return (
+    <Link to="/despertador" className="block">
+      <Card className="flex items-center justify-between gap-3 transition-colors hover:bg-elevated">
+        <div className="min-w-0">
+          <p className="text-[15px]">
+            {alarms.isPending ? 'Alarmes' : active === 0 ? 'Nenhum alarme ativo' : pluralize(active, 'alarme ativo', 'alarmes ativos')}
+          </p>
+          <p className="mt-0.5 truncate text-[13px] text-ink-faint first-letter:uppercase">
+            {next ? `Próximo: ${describeNextRing(next.at, user.timezone)}` : 'Toque para configurar o despertador.'}
+          </p>
+        </div>
+        {next && <span className="tabular shrink-0 text-[22px] font-semibold text-ink-muted">{describeNextRing(next.at, user.timezone).slice(-5)}</span>}
+      </Card>
+    </Link>
   )
 }

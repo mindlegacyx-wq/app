@@ -48,7 +48,7 @@ users ─┬─ user_settings (1:1)
 | discipline_target | smallint | padrão 80 (%) |
 | week_starts_on | smallint | 0 = segunda |
 | notifications_enabled | bool | |
-| wake_time | time NULL | informado no setup; a Fase 6 cria o alarme a partir dele |
+| wake_time | time NULL | informado no setup; o setup cria o alarme "Acordar" a partir dele. Só vale como horário planejado de acordar para quem não tem nenhum alarme |
 | onboarding_completed_at | timestamptz NULL | |
 
 ### `sessions` (refresh tokens)
@@ -63,16 +63,18 @@ users ─┬─ user_settings (1:1)
 | revoked_at | timestamptz NULL |
 | created_at | timestamptz |
 
-### `push_subscriptions`
-| Coluna | Tipo |
-|---|---|
-| id | uuid PK |
-| user_id | uuid FK |
-| endpoint | text UNIQUE |
-| p256dh | text |
-| auth | text |
-| user_agent | text |
-| created_at / last_used_at | timestamptz |
+### `push_subscriptions` (Fase 6)
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| endpoint | text UNIQUE | mesmo endpoint em outra conta → a assinatura muda de dono |
+| p256dh | text | |
+| auth | text | |
+| user_agent | text | |
+| created_at / last_used_at | timestamptz | `last_used_at` atualiza a cada push enviado |
+
+Assinaturas mortas (404/410 do serviço de push) são apagadas pelo job de alarmes.
 
 ---
 
@@ -117,34 +119,41 @@ users ─┬─ user_settings (1:1)
 
 ## Módulo 2 · Despertador
 
-### `alarms`
+### `alarms` (Fase 6)
 | Coluna | Tipo | Obs |
 |---|---|---|
 | id | uuid PK | |
 | user_id | uuid FK | |
 | label | varchar(40) | "Acordar" |
-| time | time | no fuso do usuário |
+| time | time | no fuso do usuário, minuto cheio (segundos descartados) |
 | days_of_week | smallint[] | |
-| sound | varchar(40) | chave do arquivo de som |
-| requires_confirmation | bool | padrão true |
-| max_snoozes | smallint | padrão 1 |
-| snooze_minutes | smallint | padrão 5 |
+| sound | varchar(40) | `classic` · `soft` · `pulse` — sintetizados no app (Web Audio), sem arquivo |
+| requires_confirmation | bool | padrão true: segurar 3 s para desligar; false: um toque |
+| max_snoozes | smallint | padrão 1 (0 a 5) |
+| snooze_minutes | smallint | padrão 5 (1 a 30) |
 | is_active | bool | |
 | created_at / updated_at / deleted_at | | |
+| INDEX (user_id, time) | | |
+
+Regras: o **acordar planejado** de um dia é o primeiro alarme ativo daquele dia da semana; quem não tem nenhum alarme cai no `user_settings.wake_time`. O setup cria o alarme "Acordar" no horário informado (decisão 4 do fundador).
 
 ### `wake_logs` (registro de que levantou)
 | Coluna | Tipo | Obs |
 |---|---|---|
 | id | uuid PK | |
 | user_id | uuid FK | |
-| alarm_id | uuid FK NULL | NULL quando confirmou manualmente sem alarme. **Coluna entra na Fase 6**, junto com a tabela `alarms`. |
+| alarm_id | uuid FK NULL | alarme que tocou; NULL quando confirmou manualmente sem alarme (`ON DELETE SET NULL`) |
 | date | date | |
 | scheduled_at | timestamptz NULL | horário planejado |
 | rang_at | timestamptz NULL | primeiro disparo |
+| next_ring_at | timestamptz NULL | próximo toque depois de uma soneca; NULL sem toque pendente. **Acrescentada na Fase 6**: sem ela o servidor não sabe quando reenviar o push da soneca com o app fechado |
 | confirmed_at | timestamptz NULL | **horário que levantou** |
 | snooze_count | smallint | |
 | status | enum(`pending`,`confirmed`,`missed`,`manual`) | |
 | UNIQUE (user_id, date) | | um registro de acordar por dia |
+| INDEX (status, next_ring_at) | | o job procura pendentes com toque previsto |
+
+Ciclo: o disparo (job por minuto ou `POST /wake/ring` do app aberto) cria o registro `pending` com `rang_at`; soneca incrementa `snooze_count` e marca `next_ring_at`; confirmar a partir do alarme → `confirmed`; sem confirmação em `ALARM_MISSED_MINUTES` (60) após `rang_at` → `missed`; perdido confirmado depois → `manual`. O "Levantei" manual do dia D só é aceito a partir do corte de fechamento (03:00) de D.
 
 ---
 

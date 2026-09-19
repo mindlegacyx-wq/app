@@ -2,7 +2,7 @@
 
 Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** Fases 0 a 5 concluídas. Os seis módulos do MVP estão de pé (falta o despertador com push, Fase 6, e as estatísticas completas, Fase 7).
+**Status:** Fases 0 a 6 concluídas. Os seis módulos do MVP estão de pé, incluindo o despertador com Web Push; falta a Evolução completa (Fase 7) e o polimento (Fase 8).
 
 ## Documentação
 
@@ -35,6 +35,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env          # gere um JWT_SECRET e mantenha COOKIE_SECURE=false em dev
+python -m app.core.push       # opcional: gera VAPID_PUBLIC_KEY/PRIVATE_KEY para o push do alarme; cole no .env
 alembic upgrade head
 ./scripts/dev.sh              # API em http://127.0.0.1:8000 (docs em /api/docs)
 
@@ -55,16 +56,23 @@ cd frontend && npx tsc -b && npm run lint && npm run build
 
 ```bash
 cp .env.example .env          # DOMAIN, POSTGRES_PASSWORD, JWT_SECRET
+docker compose run --rm api python -m app.core.push   # gera as chaves VAPID; cole no .env (uma vez, nunca troque)
 docker compose up -d --build  # db + api (migra sozinho) + build do PWA + Caddy com HTTPS
 ```
 
 O domínio precisa apontar para a VPS antes do primeiro `up`, para o Caddy emitir o certificado. HTTPS é obrigatório: service worker, push e Wake Lock não funcionam sem ele.
 
+### Despertador: o que esperar
+
+- **App aberto** (celular na cabeceira): a tela de alarme abre sozinha na hora, toca em loop e mantém a tela acesa.
+- **App fechado**: chega uma notificação (Web Push). No Android Chrome funciona com o app instalado ou não; no iPhone só com o app instalado na tela inicial (iOS 16.4+). É notificação, não alarme que vence o modo silencioso — mantenha o alarme nativo como reserva.
+- Ative as notificações em **Rotina → Despertador** (ou Configurações) em cada aparelho.
+
 ## Estrutura
 
 ```
-backend/   FastAPI — app/core (config, db, security, deps, errors), app/modules/<módulo>/{models,schemas,service,router}.py
-frontend/  PWA — src/app (rotas, shell), src/features/<módulo>, src/components/ui (design system), src/lib (api, auth, formatação)
+backend/   FastAPI — app/core (config, db, security, deps, errors, scheduler, push), app/modules/<módulo>/{models,schemas,service,router}.py
+frontend/  PWA — src/app (rotas, shell), src/features/<módulo>, src/components/ui (design system), src/lib (api, auth, push, formatação), src/sw.ts (service worker)
 infra/     Caddyfile
 docs/      planejamento do produto
 ```

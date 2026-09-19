@@ -37,10 +37,10 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 |---|---|---|
 | 9 | Rotinas | Cards Manhã, Noite e personalizadas · atalho para Despertador |
 | 10 | Editar rotina | Nome, tipo, horário, dias da semana, lista ordenável de itens |
-| 11 | Despertador | Lista de alarmes com toggle · horário do próximo |
-| 12 | Editar alarme | Horário, dias, som (prévia), confirmação obrigatória, sonecas |
-| 13 | **Alarme tocando** (tela cheia) | Horário grande, som em loop, **segurar 3 s para "Levantei"**, soneca (se permitida) |
-| 14 | Histórico de acordar | Lista por dia: planejado × levantou, sonecas |
+| 11 | Despertador | Lista de alarmes com toggle · próximo toque · notificações neste aparelho · atalho para o histórico |
+| 12 | Editar alarme (bottom sheet) | Horário, nome, dias, som com prévia (3 sons sintetizados), segurar 3 s obrigatório, sonecas (quantidade e duração), excluir |
+| 13 | **Alarme tocando** (tela cheia, rota `/alarme`) | Horário grande, som em loop com volume crescente, Wake Lock, silenciar, **segurar 3 s para "Levantei"**, soneca com contagem regressiva; estados: tocando · soneca · perdido · confirmado · ocioso |
+| 14 | Histórico de acordar | 30 dias: levantou × perdidos × atraso médio; lista por dia com planejado → levantou, sonecas e status |
 
 ### Metas
 | # | Tela | Conteúdo |
@@ -103,7 +103,9 @@ Noite  Rotina da noite ──► Fechar o dia ──► anel fecha em 87% · seq
 - **Offline**: Hoje abre com o último estado em cache; checks feitos offline são enviados ao reconectar (fila local).
 - **Dia com nada planejado**: Hoje avisa "Nada planejado para hoje. Sem plano, a sequência quebra." e oferece adicionar tarefa ou item de rotina.
 - **Registro retroativo**: checks e "Levantei" valem para hoje e ontem; dias anteriores ficam só leitura.
-- **Alarme perdido** (não confirmou em 60 min): status `missed`, aparece em Hoje como "Não confirmou que acordou", pode confirmar manualmente (fica marcado como `manual`).
+- **Alarme perdido** (não confirmou em 60 min): status `missed`, aparece em Hoje como "Você não confirmou que acordou", pode confirmar manualmente (fica marcado como `manual`).
+- **Janela do "Levantei" manual**: o botão de hoje só libera a partir das 03:00 (o mesmo corte que fecha o dia anterior). Antes disso, Hoje explica: "Ainda é madrugada… ou quando o alarme tocar". O alarme, quando toca, sempre pode ser confirmado.
+- **Como a tela de alarme abre**: (1) relógio local do app aberto, que pede o disparo ao servidor na hora; (2) o servidor diz que há alarme tocando ao abrir/voltar para o app; (3) clique na notificação Web Push. Quem sai da tela de propósito não é puxado de volta até o próximo toque (soneca).
 
 ## Diretrizes de design (premium, minimalista)
 

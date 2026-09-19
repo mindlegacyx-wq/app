@@ -3,9 +3,11 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 
 import { Button, Card, Dialog, Field, Sheet, Spinner, Toggle } from '@/components/ui'
+import { PushDeviceCard } from '@/features/alarms/PushDeviceCard'
+import { useAlarms } from '@/features/alarms/api'
 import { api, errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
-import { cn, dateTime, deviceLabel, shortTime } from '@/lib/format'
+import { cn, dateTime, describeNextRing, deviceLabel } from '@/lib/format'
 import type { Session, User } from '@/lib/types'
 
 const targets = [70, 80, 90] as const
@@ -22,6 +24,7 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const sessions = useQuery({ queryKey: ['sessions'], queryFn: () => api<Session[]>('/auth/sessions') })
+  const alarms = useAlarms()
   const health = useQuery({
     queryKey: ['health'],
     queryFn: () => api<{ version: string }>('/health', { auth: false }),
@@ -95,19 +98,16 @@ export function SettingsPage() {
             ))}
           </div>
         </div>
-        <Row label="Horário de acordar">
-          <input
-            type="time"
-            aria-label="Horário de acordar"
-            defaultValue={shortTime(u.settings.wake_time)}
-            onBlur={(e) => e.target.value && e.target.value !== shortTime(u.settings.wake_time) && settingsMut.mutate({ wake_time: e.target.value })}
-            className="tabular h-9 rounded-sm border border-line-strong bg-elevated px-2 text-[15px]"
-          />
-        </Row>
+        <Row
+          label="Despertador"
+          hint={alarms.data?.next ? `Próximo: ${describeNextRing(alarms.data.next.at, u.timezone)}` : 'Alarmes, sons e sonecas'}
+          value={alarms.data?.next ? undefined : alarms.data ? 'Nenhum ativo' : undefined}
+          onClick={() => navigate('/despertador')}
+        />
       </Group>
 
       <Group title="Notificações">
-        <Row label="Avisos do app" hint="Alarmes e lembretes chegam quando o despertador for ativado.">
+        <Row label="Avisos do app" hint="Desliga o push em todos os aparelhos.">
           <Toggle
             label="Notificações"
             checked={u.settings.notifications_enabled}
@@ -115,6 +115,9 @@ export function SettingsPage() {
             onChange={(v) => settingsMut.mutate({ notifications_enabled: v })}
           />
         </Row>
+        <div className="p-2">
+          <PushDeviceCard className="border-0 bg-transparent p-2" />
+        </div>
       </Group>
 
       <Group title="Dispositivos conectados">
