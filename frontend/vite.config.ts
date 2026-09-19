@@ -16,6 +16,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // VITE_ALLOW_ALL_HOSTS=1 libera acesso por túnel (ex.: trycloudflare.com) para instalar no
+    // celular enquanto o app roda no PC (docker-compose.dev.yml). Só em desenvolvimento.
+    allowedHosts: process.env.VITE_ALLOW_ALL_HOSTS ? true : undefined,
     // Em dev o PWA e a API ficam na mesma origem (como em produção atrás do Caddy),
     // então o cookie de refresh funciona sem configuração de CORS/SameSite.
     // VITE_API_PROXY aponta para a API quando ela roda em outro container (docker-compose.dev.yml).

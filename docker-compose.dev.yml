@@ -58,6 +58,7 @@ services:
       - api
     environment:
       VITE_API_PROXY: http://api:8000
+      VITE_ALLOW_ALL_HOSTS: "1"  # permite abrir por túnel HTTPS (celular); ver TESTAR-NO-PC.md
     volumes:
       - ./frontend:/app
       - web_node_modules:/app/node_modules

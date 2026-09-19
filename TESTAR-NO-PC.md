@@ -46,6 +46,25 @@ Limites de usar só no PC:
   docker compose -f docker-compose.dev.yml exec db pg_dump -U disciplina disciplina > backup-disciplina.sql
   ```
 
+## Instalar no celular (enquanto o PC estiver ligado)
+
+O celular só instala o app por um endereço `https://`. Sem publicar num servidor, dá para criar um **túnel** gratuito da Cloudflare que aponta para o seu PC:
+
+1. Baixe o `cloudflared` para Windows: https://github.com/cloudflare/cloudflared/releases/latest → arquivo **cloudflared-windows-amd64.exe**. Renomeie para `cloudflared.exe` e coloque na pasta do app.
+   (Ou, no terminal: `winget install Cloudflare.cloudflared`.)
+2. Com o app rodando (`docker compose -f docker-compose.dev.yml up -d`), abra o terminal na pasta e rode:
+
+   ```bash
+   .\cloudflared.exe tunnel --url http://localhost:5173
+   ```
+
+3. Vai aparecer um link do tipo `https://alguma-coisa.trycloudflare.com`. Abra esse link no celular:
+   - **Android (Chrome)**: menu ⋮ → **Instalar app** (ou "Adicionar à tela inicial").
+   - **iPhone (Safari)**: botão Compartilhar → **Adicionar à Tela de Início**.
+4. Entre com a mesma conta que criou no PC. Notificações do despertador funcionam se as chaves VAPID estiverem no `.env` (ver acima).
+
+Limites: o link só funciona com o PC ligado e essa janela do túnel aberta; **o endereço muda** toda vez que você fecha e abre o túnel (o app instalado continua abrindo, mas precisa do túnel de pé). Para um endereço fixo e sempre no ar, o caminho é publicar num servidor (Oracle/VPS) — aí não depende do PC.
+
 ## O que funciona no PC
 
 - Tudo: rotina, despertador (com som e tela de alarme), tarefas, metas, treinos, agenda, provas, sessões de estudo, notas, evolução, lixeira, offline.
