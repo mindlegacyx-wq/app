@@ -4,7 +4,8 @@ Como o número é calculado:
 - Cada módulo diz o que estava **planejado** e o que foi **concluído** no dia: rotinas
   (itens das rotinas ativas daquele dia da semana), acordar (1 se há horário configurado),
   tarefas (planejadas para o dia, exceto canceladas), metas (ações de metas ativas com data
-  no dia). Treino entra na Fase 5.
+  no dia), treinos (1 por plano ativo com exercícios no dia da semana; concluído = sessão
+  completed; pulado conta como não feito).
 - Percentual = concluído ÷ planejado. Peso igual para tudo (decisão do fundador).
 - Dia cumprido = planejado > 0 e percentual ≥ meta. **Dia sem nada planejado é 0% e quebra
   a sequência** (decisão do fundador: sem plano, sem disciplina).
@@ -40,6 +41,8 @@ from app.modules.routines import service as routines_service
 from app.modules.tasks import service as tasks_service
 from app.modules.tasks.models import TaskStatus
 from app.modules.users.models import User
+from app.modules.workouts import service as workouts_service
+from app.modules.workouts.models import SessionStatus
 
 MAX_BACKFILL_DAYS = 400
 
@@ -68,6 +71,7 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
     routines = await routines_service.day_overview(db, user.id, day)
     tasks = await tasks_service.day_overview(db, user.id, day)
     goals = await goals_service.day_overview(db, user.id, day)
+    workouts = await workouts_service.day_overview(db, user.id, day)
 
     breakdown = {
         "wake": {
@@ -76,7 +80,7 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
         },
         "routines": {"planned": routines.planned, "completed": routines.completed},
         "tasks": {"planned": tasks.planned, "completed": tasks.completed},
-        "workout": {"planned": 0, "completed": 0},  # Fase 5
+        "workout": {"planned": workouts.planned, "completed": workouts.completed},
         "goals": {"planned": goals.planned, "completed": goals.completed},
     }
     planned = sum(c["planned"] for c in breakdown.values())
@@ -97,6 +101,12 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
     for a in goals.actions:
         if not a.is_done:
             missing.append({"kind": "goals", "title": f"{a.goal_title}: {a.title}"})
+    for w in workouts.workouts:
+        if not (w.session and w.session.status == SessionStatus.completed):
+            skipped = w.session is not None and w.session.status == SessionStatus.skipped
+            missing.append(
+                {"kind": "workout", "title": f"{w.name}{' (pulado)' if skipped else ''}"}
+            )
 
     return Snapshot(
         planned=planned,

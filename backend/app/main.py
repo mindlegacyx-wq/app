@@ -16,6 +16,7 @@ from app.modules.progress.router import router as progress_router
 from app.modules.routines.router import router as routines_router
 from app.modules.tasks.router import router as tasks_router
 from app.modules.users.router import router as users_router
+from app.modules.workouts.router import router as workouts_router
 
 settings = get_settings()
 
@@ -77,3 +78,4 @@ app.include_router(wake_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(progress_router, prefix="/api/v1")
 app.include_router(goals_router, prefix="/api/v1")
+app.include_router(workouts_router, prefix="/api/v1")

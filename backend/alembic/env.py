@@ -14,6 +14,7 @@ import app.modules.progress.models  # noqa: F401
 import app.modules.routines.models  # noqa: F401
 import app.modules.tasks.models  # noqa: F401
 import app.modules.users.models  # noqa: F401
+import app.modules.workouts.models  # noqa: F401
 from app.core.config import get_settings
 from app.core.db import Base
 
