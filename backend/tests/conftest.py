@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker  # noqa: E40
 
 import app.modules.alarms.models  # noqa: F401,E402
 import app.modules.auth.models  # noqa: F401,E402
+import app.modules.goals.models  # noqa: F401,E402
 import app.modules.progress.models  # noqa: F401,E402
 import app.modules.routines.models  # noqa: F401,E402
 import app.modules.tasks.models  # noqa: F401,E402
