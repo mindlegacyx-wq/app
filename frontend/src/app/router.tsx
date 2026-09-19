@@ -13,6 +13,7 @@ const AuthPage = lazy(() => import('@/features/auth/AuthPage').then((m) => ({ de
 const SetupPage = lazy(() => import('@/features/onboarding/SetupPage').then((m) => ({ default: m.SetupPage })))
 const InstallPage = lazy(() => import('@/features/onboarding/InstallPage').then((m) => ({ default: m.InstallPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const TrashPage = lazy(() => import('@/features/settings/TrashPage').then((m) => ({ default: m.TrashPage })))
 const RoutinesPage = lazy(() => import('@/features/routines/RoutinesPage').then((m) => ({ default: m.RoutinesPage })))
 const RoutineEditorPage = lazy(() =>
   import('@/features/routines/RoutineEditorPage').then((m) => ({ default: m.RoutineEditorPage })),
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
           { path: '/setup', element: <Lazy><SetupPage /></Lazy> },
           { path: '/instalar', element: <Lazy><InstallPage /></Lazy> },
           { path: '/configuracoes', element: <Lazy><SettingsPage /></Lazy> },
+          { path: '/configuracoes/lixeira', element: <Lazy><TrashPage /></Lazy> },
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },
           { path: '/despertador/historico', element: <Lazy><WakeHistoryPage /></Lazy> },

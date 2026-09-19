@@ -19,8 +19,10 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress
+auth · users · routines · alarms · goals · workouts · tasks · progress · trash
 ```
+
+`trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
 
 Regras:
 
@@ -92,7 +94,7 @@ Limite real: com o app fechado, é uma **notificação**, não um alarme que ven
 
 ## 7. Jobs em background
 
-- **MVP**: APScheduler dentro do processo da API. Jobs: finalização do dia (a cada 5 min, finaliza os dias que passaram das 03:00 no fuso de cada usuário; idempotente; um advisory lock do Postgres garante que só uma réplica executa), disparo de alarmes (Fase 6, a cada minuto), limpeza de soft delete (Fase 8).
+- **MVP**: APScheduler dentro do processo da API. Jobs: finalização do dia (a cada 5 min, finaliza os dias que passaram das 03:00 no fuso de cada usuário; idempotente; um advisory lock do Postgres garante que só uma réplica executa), disparo de alarmes (a cada minuto), limpeza da lixeira (diária, 04:30 UTC: apaga em definitivo o que passou de 30 dias e não tem histórico ligado).
 - **Escala**: worker dedicado (arq ou Celery) + Redis. A interface dos services não muda; só o disparador.
 
 ## 8. Infra e deploy

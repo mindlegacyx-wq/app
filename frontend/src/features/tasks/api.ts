@@ -55,8 +55,9 @@ export function useDeleteTask() {
 export function useToggleTask(date: string) {
   const qc = useQueryClient()
   return useMutation({
+    networkMode: 'always', // offline → fila local (ver lib/offline-queue)
     mutationFn: ({ id, done }: { id: string; done: boolean }) =>
-      api<Task>(`/tasks/${id}`, { method: 'PATCH', body: { status: done ? 'done' : 'pending' } }),
+      api<Task>(`/tasks/${id}`, { method: 'PATCH', body: { status: done ? 'done' : 'pending' }, queue: true }),
     onMutate: async ({ id, done }) => {
       await qc.cancelQueries({ queryKey: taskKeys.day(date) })
       const previous = qc.getQueryData<TasksDay>(taskKeys.day(date))

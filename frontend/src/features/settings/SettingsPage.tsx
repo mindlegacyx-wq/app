@@ -144,6 +144,10 @@ export function SettingsPage() {
         )}
       </Group>
 
+      <Group title="Dados">
+        <Row label="Lixeira" hint="Itens excluídos nos últimos 30 dias, com restaurar" onClick={() => navigate('/configuracoes/lixeira')} />
+      </Group>
+
       <Group title="Sobre">
         <Row label="Versão do app" value={__APP_VERSION__} />
         <Row label="Versão da API" value={health.data?.version ?? '…'} />

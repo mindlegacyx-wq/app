@@ -128,8 +128,9 @@ export function useStartSession(date: string) {
 export function useToggleExercise(date: string) {
   const qc = useQueryClient()
   return useMutation({
+    networkMode: 'always', // offline → fila local (ver lib/offline-queue)
     mutationFn: ({ sessionId, exerciseId, completed }: { sessionId: string; exerciseId: string; completed: boolean }) =>
-      api<WorkoutSession>(`/workouts/sessions/${sessionId}/exercises/${exerciseId}`, { method: 'PUT', body: { completed } }),
+      api<WorkoutSession>(`/workouts/sessions/${sessionId}/exercises/${exerciseId}`, { method: 'PUT', body: { completed }, queue: true }),
     onMutate: async ({ sessionId, exerciseId, completed }) => {
       await qc.cancelQueries({ queryKey: workoutKeys.day(date) })
       const previous = qc.getQueryData<WorkoutsDay>(workoutKeys.day(date))

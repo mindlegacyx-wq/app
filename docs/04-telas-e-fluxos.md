@@ -68,7 +68,7 @@ Barra inferior com **5 abas**. Tudo o mais é alcançado a partir delas.
 | # | Tela | Conteúdo |
 |---|---|---|
 | 25 | Configurações | Nome, fuso, meta de disciplina, notificações, sons, dispositivos conectados, versão do app, sair |
-| 26 | Lixeira | Itens excluídos nos últimos 30 dias, restaurar |
+| 26 | Lixeira (Configurações → Dados) | Itens excluídos nos últimos 30 dias, agrupados por tipo (rotinas, itens, tarefas, categorias, metas, ações, treinos, exercícios, alarmes), com data de expiração e Restaurar |
 
 Total: **26 telas**, sendo 8 principais e 18 de edição/detalhe.
 
@@ -100,7 +100,7 @@ Noite  Rotina da noite ──► Fechar o dia ──► anel fecha em 87% · seq
 ## Estados importantes
 
 - **Vazio**: toda lista vazia ensina o próximo passo com uma frase e um botão. Nunca tela branca.
-- **Offline**: Hoje abre com o último estado em cache; checks feitos offline são enviados ao reconectar (fila local).
+- **Offline**: Hoje abre com o último estado em cache (cache de consultas persistido no aparelho por 24 h, limpo ao sair da conta). Checks de rotina, tarefa, ação de meta e exercício feitos sem rede ficam numa fila local persistida e são reenviados em ordem ao reconectar; uma faixa no topo mostra "Sem conexão · N ações pendentes". Criar/editar não entra na fila.
 - **Dia com nada planejado**: Hoje avisa "Nada planejado para hoje. Sem plano, a sequência quebra." e oferece adicionar tarefa ou item de rotina.
 - **Registro retroativo**: checks e "Levantei" valem para hoje e ontem; dias anteriores ficam só leitura.
 - **Alarme perdido** (não confirmou em 60 min): status `missed`, aparece em Hoje como "Você não confirmou que acordou", pode confirmar manualmente (fica marcado como `manual`).

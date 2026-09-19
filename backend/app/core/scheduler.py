@@ -4,6 +4,7 @@
   de cada usuário).
 - `dispatch_alarms`: a cada minuto, toca os alarmes devidos no fuso de cada usuário (cria o
   registro de acordar pendente e envia Web Push), reenvia sonecas vencidas e marca perdidos.
+- `purge_trash`: uma vez por dia, apaga em definitivo o que está na lixeira há mais de 30 dias.
 
 Um advisory lock do Postgres por job garante que só uma réplica/worker executa por vez; os
 jobs são idempotentes. Ao escalar, as mesmas funções vão para um worker dedicado sem mudar
@@ -21,12 +22,14 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.modules.alarms import service as alarms_service
 from app.modules.progress import service as progress_service
+from app.modules.trash import service as trash_service
 from app.modules.users.models import User
 
 log = logging.getLogger("disciplina.scheduler")
 
 FINALIZE_LOCK_KEY = 7_201_001  # qualquer inteiro fixo; identifica o job
 ALARMS_LOCK_KEY = 7_201_002
+PURGE_LOCK_KEY = 7_201_003
 
 
 async def _for_each_active_user(
@@ -73,6 +76,27 @@ async def dispatch_alarms() -> int:
     return total
 
 
+async def purge_trash() -> int:
+    """Apaga em definitivo o que está na lixeira há mais de 30 dias (sem histórico ligado)."""
+    async with SessionLocal() as db:
+        locked = await db.scalar(text("SELECT pg_try_advisory_lock(:k)"), {"k": PURGE_LOCK_KEY})
+        if not locked:
+            return 0
+        try:
+            total = await trash_service.purge_expired(db)
+            await db.commit()
+        except Exception:  # noqa: BLE001
+            await db.rollback()
+            log.exception("limpeza da lixeira falhou")
+            return 0
+        finally:
+            await db.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": PURGE_LOCK_KEY})
+            await db.commit()
+    if total:
+        log.info("lixeira: %d itens apagados em definitivo", total)
+    return total
+
+
 def build_scheduler() -> AsyncIOScheduler:
     s = get_settings()
     scheduler = AsyncIOScheduler(timezone="UTC")
@@ -92,5 +116,15 @@ def build_scheduler() -> AsyncIOScheduler:
         max_instances=1,
         coalesce=True,
         misfire_grace_time=60,
+    )
+    scheduler.add_job(
+        purge_trash,
+        "cron",
+        hour=4,
+        minute=30,  # uma vez por dia, fora do horário de pico
+        id="purge_trash",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
     )
     return scheduler

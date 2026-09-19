@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dates import is_day_open, now_utc, user_today
 from app.core.errors import NotFoundError
+from app.core.softdelete import TrashKind
 from app.modules.tasks.models import Task, TaskCategory, TaskPriority, TaskStatus
 from app.modules.tasks.schemas import CategoryIn, CategoryUpdate, TaskIn, TasksDayOut, TaskUpdate
 
@@ -192,3 +193,22 @@ async def day_overview(db: AsyncSession, user_id: UUID, day: date) -> TasksDayOu
         planned=len(planned),
         completed=sum(1 for t in planned if t.status == TaskStatus.done),
     )
+
+
+# --- Lixeira -----------------------------------------------------------------------------
+
+TRASH_KINDS = [
+    TrashKind(
+        kind="task",
+        label="Tarefas",
+        model=Task,
+        title=lambda t: t.title,
+        subtitle=lambda t: t.date.strftime("%d/%m/%Y"),
+    ),
+    TrashKind(
+        kind="task_category",
+        label="Categorias",
+        model=TaskCategory,
+        title=lambda c: c.name,
+    ),
+]

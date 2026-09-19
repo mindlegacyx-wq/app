@@ -19,6 +19,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.dates import is_day_open, now_utc, user_today
 from app.core.errors import ConflictError, NotFoundError
+from app.core.softdelete import TrashKind
 from app.modules.goals.models import Goal, GoalAction, GoalStatus
 from app.modules.goals.schemas import (
     ActionIn,
@@ -250,3 +251,33 @@ async def day_overview(db: AsyncSession, user_id: UUID, day: date) -> GoalsDayOu
         planned=len(actions),
         completed=sum(1 for a in actions if a.is_done),
     )
+
+
+# --- Lixeira -----------------------------------------------------------------------------
+
+AREA_LABEL = {
+    "health": "Saúde",
+    "career": "Carreira",
+    "finance": "Finanças",
+    "study": "Estudos",
+    "personal": "Pessoal",
+    "other": "Outra",
+}
+
+TRASH_KINDS = [
+    TrashKind(
+        kind="goal",
+        label="Metas",
+        model=Goal,
+        title=lambda g: g.title,
+        subtitle=lambda g: AREA_LABEL.get(g.area, None),
+    ),
+    TrashKind(
+        kind="goal_action",
+        label="Ações de metas",
+        model=GoalAction,
+        title=lambda a: a.title,
+        subtitle=lambda a: a.due_date.strftime("%d/%m/%Y") if a.due_date else None,
+        parent=(Goal, "goal_id"),
+    ),
+]

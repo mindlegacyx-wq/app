@@ -102,8 +102,9 @@ export function useReorderActions(goalId: string) {
 export function useToggleAction(opts: { goalId?: string; date?: string }) {
   const qc = useQueryClient()
   return useMutation({
+    networkMode: 'always', // offline → fila local (ver lib/offline-queue)
     mutationFn: ({ id, done }: { id: string; done: boolean }) =>
-      api<GoalAction>(`/goals/actions/${id}`, { method: 'PATCH', body: { is_done: done } }),
+      api<GoalAction>(`/goals/actions/${id}`, { method: 'PATCH', body: { is_done: done }, queue: true }),
     onMutate: async ({ id, done }) => {
       const now = new Date().toISOString()
       const snapshots: { key: readonly unknown[]; data: unknown }[] = []

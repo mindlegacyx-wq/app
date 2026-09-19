@@ -32,6 +32,7 @@ from app.core.dates import (
     weekday_index,
 )
 from app.core.errors import AppError, NotFoundError
+from app.core.softdelete import TrashKind
 from app.modules.alarms.models import Alarm, WakeLog, WakeStatus
 from app.modules.alarms.schemas import (
     AlarmIn,
@@ -475,3 +476,15 @@ async def history(
         missed=sum(1 for d in days if d.status == WakeStatus.missed),
         average_delay_minutes=round(sum(delays) / len(delays)) if delays else None,
     )
+
+
+# --- Lixeira -----------------------------------------------------------------------------
+
+TRASH_KINDS = [
+    TrashKind(
+        kind="alarm",
+        label="Alarmes",
+        model=Alarm,
+        title=lambda a: f"{a.label} · {a.time.strftime('%H:%M')}",
+    ),
+]

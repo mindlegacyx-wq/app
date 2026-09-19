@@ -114,8 +114,10 @@ export function useReorderItems(routineId: string) {
 export function useCheckItem(date: string) {
   const qc = useQueryClient()
   return useMutation({
+    // Sem rede o TanStack pausaria a mutação; aqui ela roda e cai na fila local persistida.
+    networkMode: 'always',
     mutationFn: ({ itemId, done }: { itemId: string; done: boolean }) =>
-      api<void>(`/routines/items/${itemId}/check`, { method: 'PUT', body: { date, done } }),
+      api<void>(`/routines/items/${itemId}/check`, { method: 'PUT', body: { date, done }, queue: true }),
     onMutate: async ({ itemId, done }) => {
       await qc.cancelQueries({ queryKey: routineKeys.day(date) })
       const previous = qc.getQueryData<RoutinesDay>(routineKeys.day(date))

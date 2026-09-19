@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.dates import ensure_recordable_day, now_utc, weekday_index
 from app.core.errors import ConflictError, NotFoundError
+from app.core.softdelete import TrashKind
 from app.modules.workouts.models import (
     SessionStatus,
     Workout,
@@ -366,3 +367,37 @@ async def history(db: AsyncSession, user_id: UUID, start: date, end: date) -> Hi
             for s, name in rows
         ],
     )
+
+
+# --- Lixeira -----------------------------------------------------------------------------
+
+
+def _workout_has_sessions(model: type[Workout]):
+    return select(WorkoutSession.id).where(WorkoutSession.workout_id == model.id).exists()
+
+
+def _exercise_has_history(model: type[WorkoutExercise]):
+    return (
+        select(WorkoutSessionExercise.exercise_id)
+        .where(WorkoutSessionExercise.exercise_id == model.id)
+        .exists()
+    )
+
+
+TRASH_KINDS = [
+    TrashKind(
+        kind="workout",
+        label="Treinos",
+        model=Workout,
+        title=lambda w: w.name,
+        history=_workout_has_sessions,
+    ),
+    TrashKind(
+        kind="exercise",
+        label="Exercícios",
+        model=WorkoutExercise,
+        title=lambda e: e.name,
+        parent=(Workout, "workout_id"),
+        history=_exercise_has_history,
+    ),
+]

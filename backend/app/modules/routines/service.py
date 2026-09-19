@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.dates import ensure_recordable_day, now_utc, weekday_index
 from app.core.errors import ConflictError, NotFoundError
+from app.core.softdelete import TrashKind
 from app.modules.routines.models import Routine, RoutineItem, RoutineItemLog, RoutineKind
 from app.modules.routines.schemas import (
     DayItemOut,
@@ -288,3 +289,57 @@ async def set_item_check(
             )
         )
     await db.flush()
+
+
+# --- Lixeira -----------------------------------------------------------------------------
+
+
+async def _restore_routine_guard(db: AsyncSession, routine: Routine) -> None:
+    """Só pode existir uma rotina da manhã e uma da noite."""
+    if routine.kind == RoutineKind.custom:
+        return
+    exists = await db.scalar(
+        select(func.count())
+        .select_from(Routine)
+        .where(
+            Routine.user_id == routine.user_id,
+            Routine.kind == routine.kind,
+            Routine.deleted_at.is_(None),
+        )
+    )
+    if exists:
+        raise ConflictError("Você já tem uma rotina desse tipo. Exclua ou edite a atual antes.")
+
+
+def _routine_has_logs(model: type[Routine]):
+    return (
+        select(RoutineItemLog.id)
+        .join(RoutineItem, RoutineItem.id == RoutineItemLog.routine_item_id)
+        .where(RoutineItem.routine_id == model.id)
+        .exists()
+    )
+
+
+def _item_has_logs(model: type[RoutineItem]):
+    return select(RoutineItemLog.id).where(RoutineItemLog.routine_item_id == model.id).exists()
+
+
+TRASH_KINDS = [
+    TrashKind(
+        kind="routine",
+        label="Rotinas",
+        model=Routine,
+        title=lambda r: r.name,
+        subtitle=lambda r: {"morning": "Manhã", "evening": "Noite", "custom": "Bloco"}[r.kind],
+        before_restore=_restore_routine_guard,
+        history=_routine_has_logs,
+    ),
+    TrashKind(
+        kind="routine_item",
+        label="Itens de rotina",
+        model=RoutineItem,
+        title=lambda i: i.title,
+        parent=(Routine, "routine_id"),
+        history=_item_has_logs,
+    ),
+]

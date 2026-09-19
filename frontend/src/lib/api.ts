@@ -6,6 +6,7 @@
  * - Erros da API viram ApiError com code/message/details prontos para a UI.
  */
 
+import { isNetworkError, useOffline } from './offline-queue'
 import type { ApiErrorBody, TokenResponse, User } from './types'
 
 export class ApiError extends Error {
@@ -90,10 +91,20 @@ interface RequestOptions {
   /** false para rotas públicas (login, cadastro) */
   auth?: boolean
   signal?: AbortSignal
+  /**
+   * Sem conexão, guarda a escrita na fila local e resolve como sucesso (sem corpo). Só para
+   * ações idempotentes já aplicadas de forma otimista na UI (checks).
+   */
+  queue?: boolean
 }
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, auth = true, signal } = opts
+  const { method = 'GET', body, auth = true, signal, queue = false } = opts
+
+  if (queue && method !== 'GET' && !navigator.onLine) {
+    useOffline.getState().enqueue({ method, path, body })
+    return undefined as T
+  }
 
   const doFetch = () =>
     fetch(`/api/v1${path}`, {
@@ -107,7 +118,16 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
 
-  let res = await doFetch()
+  let res: Response
+  try {
+    res = await doFetch()
+  } catch (err) {
+    if (queue && method !== 'GET' && isNetworkError(err)) {
+      useOffline.getState().enqueue({ method, path, body })
+      return undefined as T
+    }
+    throw err
+  }
 
   if (res.status === 401 && auth) {
     const renewed = await refreshSession()
@@ -125,4 +145,9 @@ export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message
   if (err instanceof TypeError) return 'Sem conexão. Verifique a internet e tente de novo.'
   return 'Algo deu errado. Tente de novo.'
+}
+
+/** Reenvia a fila offline (chamado ao voltar a conexão e ao abrir o app). */
+export function flushOfflineQueue(): Promise<number> {
+  return useOffline.getState().flush((req) => api(req.path, { method: req.method, body: req.body }))
 }

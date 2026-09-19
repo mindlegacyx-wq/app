@@ -2,7 +2,7 @@
 
 Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** Fases 0 a 6 concluídas. Os seis módulos do MVP estão de pé, incluindo o despertador com Web Push; falta a Evolução completa (Fase 7) e o polimento (Fase 8).
+**Status:** MVP completo (Fases 0 a 8). Rotina, despertador com Web Push, metas, treinos, tarefas, evolução com histórico, lixeira e uso offline. Próximo passo: testar no aparelho real com HTTPS e abrir para os primeiros usuários.
 
 ## Documentação
 
@@ -71,8 +71,8 @@ O domínio precisa apontar para a VPS antes do primeiro `up`, para o Caddy emiti
 ## Estrutura
 
 ```
-backend/   FastAPI — app/core (config, db, security, deps, errors, scheduler, push), app/modules/<módulo>/{models,schemas,service,router}.py
-frontend/  PWA — src/app (rotas, shell), src/features/<módulo>, src/components/ui (design system), src/lib (api, auth, push, formatação), src/sw.ts (service worker)
+backend/   FastAPI — app/core (config, db, security, deps, errors, scheduler, push, softdelete), app/modules/<módulo>/{models,schemas,service,router}.py
+frontend/  PWA — src/app (rotas, shell), src/features/<módulo>, src/components/ui (design system), src/lib (api, auth, push, fila offline, formatação), src/sw.ts (service worker)
 infra/     Caddyfile
 docs/      planejamento do produto
 ```

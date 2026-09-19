@@ -4,7 +4,7 @@ PostgreSQL 16. Convenções válidas para todas as tabelas:
 
 - `id UUID` (v7) como chave primária.
 - `created_at`, `updated_at` em `timestamptz` (UTC).
-- `deleted_at timestamptz NULL` (soft delete) nas entidades criadas pelo usuário.
+- `deleted_at timestamptz NULL` (soft delete) nas entidades criadas pelo usuário. A lixeira (Fase 8) lista o que foi excluído nos últimos 30 dias e permite restaurar; um job diário apaga em definitivo o que passou do prazo, **exceto** o que tem histórico ligado (treino com sessões, item de rotina com checks), que fica apenas oculto para o passado continuar íntegro.
 - `user_id` em toda tabela de domínio, com FK para `users` e índice.
 - `date` nas tabelas de registro = **dia no fuso do usuário**, tipo `date`.
 - `days_of_week smallint[]` usa 0 = segunda … 6 = domingo.
