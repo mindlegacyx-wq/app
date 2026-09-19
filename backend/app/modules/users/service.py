@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import NotFoundError
 from app.core.security import hash_password
+from app.modules.routines import service as routines_service
 from app.modules.users.models import User, UserSettings
 from app.modules.users.schemas import OnboardingComplete, UserSettingsUpdate, UserUpdate
 
@@ -55,7 +56,10 @@ async def update_settings(db: AsyncSession, user_id: UUID, data: UserSettingsUpd
 
 
 async def complete_onboarding(db: AsyncSession, user_id: UUID, data: OnboardingComplete) -> User:
-    """Setup inicial. Guarda wake_time; as Fases 1 e 6 criam rotinas e alarme a partir dele."""
+    """Setup inicial. Guarda wake_time e cria as rotinas Manhã e Noite vazias.
+
+    O alarme correspondente entra na Fase 6.
+    """
     user = await get_by_id(db, user_id)
     if user is None:
         raise NotFoundError("Usuário não encontrado.")
@@ -64,5 +68,6 @@ async def complete_onboarding(db: AsyncSession, user_id: UUID, data: OnboardingC
     user.settings.wake_time = data.wake_time
     user.settings.discipline_target = data.discipline_target
     user.settings.onboarding_completed_at = datetime.now(UTC)
+    await routines_service.ensure_default_routines(db, user.id, data.wake_time)
     await db.flush()
     return user

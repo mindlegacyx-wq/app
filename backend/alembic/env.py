@@ -7,7 +7,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Importa todos os models para que o autogenerate enxergue as tabelas.
+import app.modules.alarms.models  # noqa: F401
 import app.modules.auth.models  # noqa: F401
+import app.modules.routines.models  # noqa: F401
 import app.modules.users.models  # noqa: F401
 from app.core.config import get_settings
 from app.core.db import Base
