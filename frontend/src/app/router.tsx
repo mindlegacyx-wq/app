@@ -17,6 +17,8 @@ const RoutinesPage = lazy(() => import('@/features/routines/RoutinesPage').then(
 const RoutineEditorPage = lazy(() =>
   import('@/features/routines/RoutineEditorPage').then((m) => ({ default: m.RoutineEditorPage })),
 )
+const GoalsPage = lazy(() => import('@/features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })))
+const GoalDetailPage = lazy(() => import('@/features/goals/GoalDetailPage').then((m) => ({ default: m.GoalDetailPage })))
 const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
 const ComingSoonPage = lazy(() =>
   import('@/features/placeholders/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })),
@@ -62,6 +64,7 @@ export const router = createBrowserRouter([
           { path: '/configuracoes', element: <Lazy><SettingsPage /></Lazy> },
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },
+          { path: '/metas/:id', element: <Lazy><GoalDetailPage /></Lazy> },
         ],
       },
       {
@@ -69,7 +72,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/hoje', element: <TodayPage /> },
           { path: '/rotina', element: <Lazy><RoutinesPage /></Lazy> },
-          { path: '/metas', element: <Lazy><ComingSoonPage title="Metas" phase={4} /></Lazy> },
+          { path: '/metas', element: <Lazy><GoalsPage /></Lazy> },
           { path: '/treinos', element: <Lazy><ComingSoonPage title="Treinos" phase={5} /></Lazy> },
           { path: '/evolucao', element: <Lazy><ComingSoonPage title="Evolução" phase={3} /></Lazy> },
         ],

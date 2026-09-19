@@ -183,3 +183,68 @@ export interface DayScore {
   can_close: boolean
   can_reopen: boolean
 }
+
+// --- Metas -------------------------------------------------------------------------------
+
+export type GoalArea = 'health' | 'career' | 'finance' | 'study' | 'personal' | 'other'
+export type GoalStatus = 'active' | 'completed' | 'archived'
+
+export interface GoalAction {
+  id: string
+  goal_id: string
+  title: string
+  due_date: string | null
+  is_done: boolean
+  done_at: string | null
+  sort_order: number
+}
+
+export interface Goal {
+  id: string
+  title: string
+  description: string | null
+  area: GoalArea
+  deadline: string | null
+  status: GoalStatus
+  completed_at: string | null
+  sort_order: number
+  actions: GoalAction[]
+  actions_total: number
+  actions_done: number
+  progress_pct: number
+}
+
+export interface GoalIn {
+  title: string
+  description?: string | null
+  area?: GoalArea
+  deadline?: string | null
+}
+
+export interface GoalUpdate {
+  title?: string
+  description?: string | null
+  clear_description?: boolean
+  area?: GoalArea
+  deadline?: string | null
+  clear_deadline?: boolean
+  status?: GoalStatus
+}
+
+export interface DayGoalAction {
+  id: string
+  goal_id: string
+  goal_title: string
+  title: string
+  due_date: string
+  is_done: boolean
+  done_at: string | null
+}
+
+export interface GoalsDay {
+  date: string
+  actions: DayGoalAction[]
+  overdue: DayGoalAction[]
+  planned: number
+  completed: number
+}

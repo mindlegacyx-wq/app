@@ -177,7 +177,13 @@ users ─┬─ user_settings (1:1)
 | created_at / updated_at / deleted_at | | |
 | INDEX (user_id, due_date) | | |
 
-Progresso da meta = ações concluídas ÷ total de ações (calculado, não armazenado).
+Regras:
+
+- **Progresso da meta** = ações concluídas ÷ total de ações (calculado, não armazenado).
+- Só ações de metas **ativas** entram no dia e no percentual. Ação com data conta no dia planejado; sem data, conta só no progresso da meta.
+- **Atrasada** = ação pendente com `due_date` anterior ao dia. Aparece em Hoje num grupo próprio; não conta no planejado até ser movida.
+- **Crédito da conclusão** = mesma regra das tarefas: dia planejado ainda aberto mantém a data; fechado, futuro ou sem data, passa para hoje.
+- Concluir a meta guarda `completed_at`; ações pendentes ficam como estão e deixam de contar no dia.
 
 ---
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 
 import { TopBar } from '@/app/shell/TopBar'
 import { Button, Card, Fab, Ring, Section } from '@/components/ui'
+import { GoalsBlock } from '@/features/goals/GoalsBlock'
 import { useDayScore, useReopenDay } from '@/features/progress/api'
 import { useRoutines, useRoutinesDay } from '@/features/routines/api'
 import { TasksBlock } from '@/features/tasks/TasksBlock'
@@ -21,7 +22,7 @@ const CategoriesSheet = lazy(() =>
 
 /**
  * Tela Hoje. Blocos na ordem do dia. Os blocos ainda não construídos aparecem como
- * espaços reservados: Metas (Fase 4), Treino (5).
+ * espaços reservados: Treino (Fase 5).
  */
 export function TodayPage() {
   const user = useAuth((s) => s.user)!
@@ -120,9 +121,7 @@ export function TodayPage() {
           <Placeholder text="O treino do dia aparece aqui quando houver um plano." />
         </Section>
 
-        <Section title="Ações das metas">
-          <Placeholder text="Ações com data de hoje aparecem aqui." />
-        </Section>
+        <GoalsBlock date={date} editable={editable} />
 
         {evening ? (
           <RoutineBlock date={date} routine={evening} title="Rotina da noite" editable={editable} />

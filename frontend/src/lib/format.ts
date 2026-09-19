@@ -127,3 +127,21 @@ export function relativeDay(ymd: string, today: string): string {
     .format(new Date(y, m - 1, d))
     .replace('.', '')
 }
+
+/** Dias entre hoje e uma data (negativo = já passou). */
+export function daysUntil(ymd: string, today: string): number {
+  const [y1, m1, d1] = today.split('-').map(Number) as [number, number, number]
+  const [y2, m2, d2] = ymd.split('-').map(Number) as [number, number, number]
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000)
+}
+
+/** "faltam 12 dias" · "termina hoje" · "venceu há 3 dias" */
+export function describeDeadline(ymd: string | null, today: string): string {
+  if (!ymd) return 'sem prazo'
+  const n = daysUntil(ymd, today)
+  if (n === 0) return 'termina hoje'
+  if (n === 1) return 'termina amanhã'
+  if (n > 1) return `faltam ${n} dias`
+  if (n === -1) return 'venceu ontem'
+  return `venceu há ${-n} dias`
+}

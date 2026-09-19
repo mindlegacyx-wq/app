@@ -203,22 +203,26 @@ function ItemList({
   onDelete: (item: RoutineItem) => void
   onReorder: (ids: string[]) => void
 }) {
-  // Ordem local para o arrastar ficar fluido; sincroniza com o servidor ao soltar.
-  const [order, setOrder] = useState(items)
+  // Só a ORDEM fica local (para o arrastar ser fluido); os dados vêm sempre do servidor.
+  const [orderIds, setOrderIds] = useState(() => items.map((i) => i.id))
+  const byId = new Map(items.map((i) => [i.id, i]))
   return (
-    <Reorder.Group axis="y" values={order} onReorder={setOrder} className="mt-2 flex flex-col gap-2" as="ul">
-      {order.map((item) => (
-        <ItemRow
-          key={item.id}
-          item={item}
-          onEdit={() => onEdit(item)}
-          onDelete={() => onDelete(item)}
-          onDrop={() => {
-            const ids = order.map((i) => i.id)
-            if (ids.join() !== items.map((i) => i.id).join()) onReorder(ids)
-          }}
-        />
-      ))}
+    <Reorder.Group axis="y" values={orderIds} onReorder={setOrderIds} className="mt-2 flex flex-col gap-2" as="ul">
+      {orderIds.map((id) => {
+        const item = byId.get(id)
+        if (!item) return null
+        return (
+          <ItemRow
+            key={item.id}
+            item={item}
+            onEdit={() => onEdit(item)}
+            onDelete={() => onDelete(item)}
+            onDrop={() => {
+              if (orderIds.join() !== items.map((i) => i.id).join()) onReorder(orderIds)
+            }}
+          />
+        )
+      })}
     </Reorder.Group>
   )
 }
@@ -237,7 +241,7 @@ function ItemRow({
   const controls = useDragControls()
   return (
     <Reorder.Item
-      value={item}
+      value={item.id}
       dragListener={false}
       dragControls={controls}
       onDragEnd={onDrop}
