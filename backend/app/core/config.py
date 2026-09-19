@@ -35,9 +35,16 @@ class Settings(BaseSettings):
 
     # Fechamento do dia: um dia fica aberto até esta hora do dia seguinte (fuso do usuário)
     day_close_hour: int = Field(default=3, ge=0, le=6)
-    # Job em processo que finaliza dias vencidos (desligado em testes)
+    # Jobs em processo: finalização de dias vencidos e disparo de alarmes (desligados em testes)
     scheduler_enabled: bool = True
     scheduler_interval_minutes: int = 5
+
+    # Despertador
+    alarm_missed_minutes: int = Field(default=60, ge=5, le=240)  # sem confirmar → perdido
+    # Web Push (VAPID). Gere com `python -m app.core.push` e cole no .env.
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:contato@disciplina.app"
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -49,6 +56,10 @@ class Settings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.env == "prod"
+
+    @property
+    def push_enabled(self) -> bool:
+        return bool(self.vapid_public_key and self.vapid_private_key)
 
 
 @lru_cache

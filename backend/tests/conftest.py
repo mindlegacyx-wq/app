@@ -14,6 +14,8 @@ os.environ.setdefault(
 )
 os.environ.setdefault("AUTH_RATE_LIMIT_PER_MINUTE", "1000")
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
+os.environ.setdefault("VAPID_PUBLIC_KEY", "")
+os.environ.setdefault("VAPID_PRIVATE_KEY", "")
 
 import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402

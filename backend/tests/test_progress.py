@@ -11,7 +11,7 @@ from app.core.scheduler import finalize_due_days
 from app.modules.progress.models import ClosedBy, DailyScore
 from app.modules.users.models import User
 from tests.conftest import bearer
-from tests.test_routines import TZ, onboard, today
+from tests.test_routines import TZ, onboard, today, wake_up
 
 
 async def _seed_day(
@@ -60,7 +60,9 @@ async def test_empty_day_is_zero_and_not_closable(client: AsyncClient) -> None:
     assert d["hit_target"] is False and d["streak"] == 0
     assert d["is_open"] is True and d["can_close"] is True and d["can_reopen"] is False
 
-    # Sem horário de acordar e sem nada planejado: 0%, não fecha
+    # Sem alarme, sem horário de acordar e sem nada planejado: 0%, não fecha
+    alarm = (await client.get("/api/v1/alarms", headers=h)).json()["alarms"][0]
+    await client.delete(f"/api/v1/alarms/{alarm['id']}", headers=h)
     await client.patch("/api/v1/users/me/settings", json={"wake_time": None}, headers=h)
     d = (await client.get("/api/v1/progress/day", headers=h)).json()
     assert d["planned"] == 0 and d["can_close"] is False
@@ -92,7 +94,7 @@ async def test_score_composes_wake_routines_and_tasks(client: AsyncClient) -> No
     assert d["missing"][0] == {"kind": "wake", "title": "Confirmar que levantou"}
 
     tday = today().isoformat()
-    await client.post("/api/v1/wake/confirm", json={"date": tday}, headers=h)
+    await wake_up(client, token)
     await client.put(
         f"/api/v1/routines/items/{a['id']}/check", json={"date": tday, "done": True}, headers=h
     )
@@ -122,7 +124,7 @@ async def test_streak_continues_from_previous_days(
     assert d["streak"] == 0 and d["best_streak"] == 3
 
     # Cumprir hoje (só o acordar está planejado → 100%)
-    await client.post("/api/v1/wake/confirm", json={"date": t.isoformat()}, headers=h)
+    await wake_up(client, token)
     d = (await client.get("/api/v1/progress/day", headers=h)).json()
     assert d["pct"] == 100 and d["hit_target"] is True
     assert d["streak"] == 4 and d["best_streak"] == 4
@@ -132,7 +134,7 @@ async def test_close_and_reopen_day(client: AsyncClient) -> None:
     token = await onboard(client)
     h = bearer(token)
     tday = today().isoformat()
-    await client.post("/api/v1/wake/confirm", json={"date": tday}, headers=h)
+    await wake_up(client, token)
 
     r = await client.post("/api/v1/progress/close", json={"date": tday}, headers=h)
     assert r.status_code == 200, r.text
@@ -147,15 +149,15 @@ async def test_close_and_reopen_day(client: AsyncClient) -> None:
     ).status_code == 409
 
     # Leitura devolve a fotografia congelada mesmo se os dados mudarem
-    await client.delete(f"/api/v1/wake/day?date={tday}", headers=h)
+    await client.post("/api/v1/tasks", json={"title": "Nova", "date": tday}, headers=h)
     d = (await client.get("/api/v1/progress/day", headers=h)).json()
     assert d["pct"] == 100 and d["closed_by"] == "user"
 
-    # Reabrir volta ao cálculo ao vivo
+    # Reabrir volta ao cálculo ao vivo (1 de 2 → 50%)
     r = await client.post("/api/v1/progress/reopen", json={"date": tday}, headers=h)
     assert r.status_code == 200
     d = r.json()
-    assert d["is_open"] is True and d["pct"] == 0 and d["closed_by"] is None
+    assert d["is_open"] is True and d["pct"] == 50 and d["closed_by"] is None
 
 
 async def test_backfill_creates_missing_days_and_breaks_streak(
@@ -219,7 +221,7 @@ async def test_progress_is_isolated_between_users(client: AsyncClient) -> None:
     client.cookies.clear()
     b = await onboard(client, email="b@exemplo.com")
     tday = today().isoformat()
-    await client.post("/api/v1/wake/confirm", json={"date": tday}, headers=bearer(a))
+    await wake_up(client, a)
     await client.post("/api/v1/progress/close", json={"date": tday}, headers=bearer(a))
 
     db = (await client.get("/api/v1/progress/day", headers=bearer(b))).json()

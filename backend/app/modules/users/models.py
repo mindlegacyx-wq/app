@@ -1,7 +1,7 @@
 from datetime import datetime, time
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, SmallInteger, String, Time
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, SmallInteger, String, Text, Time
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,3 +36,20 @@ class UserSettings(Base):
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped[User] = relationship(back_populates="settings")
+
+
+class PushSubscription(Base, UUIDPrimaryKeyMixin):
+    """Uma assinatura Web Push = um navegador/dispositivo que aceitou notificações."""
+
+    __tablename__ = "push_subscriptions"
+    __table_args__ = (Index("ix_push_subscriptions_user_id", "user_id"),)
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    endpoint: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    p256dh: Mapped[str] = mapped_column(Text, nullable=False)
+    auth: Mapped[str] = mapped_column(Text, nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

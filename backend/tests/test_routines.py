@@ -13,6 +13,25 @@ def today() -> date:
     return now_utc().astimezone(ZoneInfo(TZ)).date()
 
 
+async def wake_up(client: AsyncClient, token: str) -> dict:
+    """Confirma que levantou de forma determinística em qualquer hora do dia: toca um alarme
+    no minuto atual (como o app aberto faria) e confirma. O "Levantei" manual só libera a
+    partir das 03:00 locais, então não serve para testes que rodam de madrugada."""
+    h = bearer(token)
+    now_local = now_utc().astimezone(ZoneInfo(TZ))
+    r = await client.post(
+        "/api/v1/alarms",
+        json={"label": "Teste", "time": now_local.strftime("%H:%M")},
+        headers=h,
+    )
+    assert r.status_code == 201, r.text
+    r = await client.post("/api/v1/wake/ring", json={"alarm_id": r.json()["id"]}, headers=h)
+    assert r.status_code == 200, r.text
+    r = await client.post("/api/v1/wake/confirm", json={"date": today().isoformat()}, headers=h)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
 async def onboard(client: AsyncClient, **overrides: str) -> str:
     token = (await register(client, **overrides))["access_token"]
     r = await client.post(

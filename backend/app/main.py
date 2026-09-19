@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import APP_NAME, APP_VERSION
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
-from app.modules.alarms.router import router as wake_router
+from app.modules.alarms.router import alarms_router, wake_router
 from app.modules.auth.router import router as auth_router
 from app.modules.goals.router import router as goals_router
 from app.modules.progress.router import router as progress_router
@@ -75,6 +75,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(routines_router, prefix="/api/v1")
 app.include_router(wake_router, prefix="/api/v1")
+app.include_router(alarms_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(progress_router, prefix="/api/v1")
 app.include_router(goals_router, prefix="/api/v1")
