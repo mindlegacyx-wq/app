@@ -13,6 +13,10 @@ const AuthPage = lazy(() => import('@/features/auth/AuthPage').then((m) => ({ de
 const SetupPage = lazy(() => import('@/features/onboarding/SetupPage').then((m) => ({ default: m.SetupPage })))
 const InstallPage = lazy(() => import('@/features/onboarding/InstallPage').then((m) => ({ default: m.InstallPage })))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const RoutinesPage = lazy(() => import('@/features/routines/RoutinesPage').then((m) => ({ default: m.RoutinesPage })))
+const RoutineEditorPage = lazy(() =>
+  import('@/features/routines/RoutineEditorPage').then((m) => ({ default: m.RoutineEditorPage })),
+)
 const ComingSoonPage = lazy(() =>
   import('@/features/placeholders/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })),
 )
@@ -55,13 +59,14 @@ export const router = createBrowserRouter([
           { path: '/setup', element: <Lazy><SetupPage /></Lazy> },
           { path: '/instalar', element: <Lazy><InstallPage /></Lazy> },
           { path: '/configuracoes', element: <Lazy><SettingsPage /></Lazy> },
+          { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
         ],
       },
       {
         element: <AppShell />,
         children: [
           { path: '/hoje', element: <TodayPage /> },
-          { path: '/rotina', element: <Lazy><ComingSoonPage title="Rotina" phase={1} /></Lazy> },
+          { path: '/rotina', element: <Lazy><RoutinesPage /></Lazy> },
           { path: '/metas', element: <Lazy><ComingSoonPage title="Metas" phase={4} /></Lazy> },
           { path: '/treinos', element: <Lazy><ComingSoonPage title="Treinos" phase={5} /></Lazy> },
           { path: '/evolucao', element: <Lazy><ComingSoonPage title="Evolução" phase={3} /></Lazy> },

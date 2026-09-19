@@ -21,7 +21,7 @@ void useAuth.getState().bootstrap()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={domAnimation}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>

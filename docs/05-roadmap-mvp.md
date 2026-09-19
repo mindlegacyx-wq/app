@@ -6,8 +6,8 @@ Princípio: **uma funcionalidade por vez, de ponta a ponta** (banco → API → 
 
 | Fase | Entrega | Por que nessa posição |
 |---|---|---|
-| **0** | **Fundação**: monorepo, Docker Compose (api + db + caddy), FastAPI com auth (cadastro, login, refresh, sessões), `users` + `user_settings`, migrações, PWA shell instalável, design system base (tokens, Button, Card, Sheet, Ring, Checklist, Hold), navegação de 5 abas, telas 1 a 4, casca da tela 5 (Hoje) e 25, CI | Tudo depende disso. Sai com login funcionando e app instalável no celular. |
-| **1** | **Rotinas + checklist diário** (telas 9, 10 e blocos de rotina em Hoje) + registro manual de "Levantei" em Hoje | É o coração de "rotina diária". O botão "Levantei" manual já cria a tabela `wake_logs` (módulo alarms) e antecipa o dado do despertador sem o risco técnico do push. |
+| **0** ✅ 18/09 | **Fundação**: monorepo, Docker Compose (api + db + caddy), FastAPI com auth (cadastro, login, refresh, sessões), `users` + `user_settings`, migrações, PWA shell instalável, design system base (tokens, Button, Card, Sheet, Ring, Checklist, Hold), navegação de 5 abas, telas 1 a 4, casca da tela 5 (Hoje) e 25, CI | Tudo depende disso. Sai com login funcionando e app instalável no celular. |
+| **1** ✅ 19/09 | **Rotinas + checklist diário** (telas 9, 10 e blocos de rotina em Hoje) + registro manual de "Levantei" em Hoje | É o coração de "rotina diária". O botão "Levantei" manual já cria a tabela `wake_logs` (módulo alarms) e antecipa o dado do despertador sem o risco técnico do push. |
 | **2** | **Tarefas** (telas 6, 7 e bloco em Hoje) | Segundo item do dia. Simples, valor imediato. |
 | **3** | **Evolução v1**: cálculo do score, sequência, **Fechar o dia** (tela 8), anel em Hoje, job da meia-noite | Fecha o core loop cedo. A partir daqui o produto já "transforma": dá o número honesto todo dia. Vem antes de metas e treinos de propósito, para que eles nasçam já contando no score. |
 | **4** | **Metas + ações** (telas 15 a 18, bloco em Hoje) | Entra no score via ações com data. |
@@ -31,6 +31,10 @@ Tema claro; widgets; relatórios semanais por e-mail; exportar dados.
 
 **Won't (fora do MVP)**
 Social e comunidade; coach por IA; integrações (Calendar, Health, Strava); pagamentos e planos; painel administrativo; app nativo.
+
+## Pendências de decisão levantadas durante o desenvolvimento
+
+- **Janela do "Levantei"**: hoje o botão aceita confirmação a qualquer hora do dia (um teste às 00:13 registrou "346 min antes do horário"). Manter assim (número honesto) ou só liberar a partir de X horas antes do horário configurado? Proposta: decidir na Fase 6, quando o alarme define a janela naturalmente.
 
 ## Decisões do fundador (aprovadas em 18/09/2026)
 

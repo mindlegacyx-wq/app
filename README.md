@@ -2,7 +2,7 @@
 
 Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** Fase 0 (fundação) concluída. Próxima: Fase 1, rotinas + checklist diário.
+**Status:** Fases 0 e 1 concluídas (fundação; rotinas + checklist diário + "Levantei" manual). Próxima: Fase 2, tarefas.
 
 ## Documentação
 

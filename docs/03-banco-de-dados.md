@@ -137,7 +137,7 @@ users ─┬─ user_settings (1:1)
 |---|---|---|
 | id | uuid PK | |
 | user_id | uuid FK | |
-| alarm_id | uuid FK NULL | NULL quando confirmou manualmente sem alarme |
+| alarm_id | uuid FK NULL | NULL quando confirmou manualmente sem alarme. **Coluna entra na Fase 6**, junto com a tabela `alarms`. |
 | date | date | |
 | scheduled_at | timestamptz NULL | horário planejado |
 | rang_at | timestamptz NULL | primeiro disparo |
@@ -284,6 +284,7 @@ Regras de cálculo:
 - **Disciplina** = concluído ÷ planejado × 100. Peso igual para todos no MVP; a coluna `breakdown` permite ponderar depois sem migrar dados.
 - **Sequência** = dias consecutivos com `hit_target = true`. **Dia sem nada planejado conta como 0% e quebra a sequência** (decisão do fundador: sem plano, sem disciplina).
 - O score é recalculado sempre que um registro daquele dia muda; `closed_at` congela a fotografia para o histórico.
+- **Registros diários só podem ser feitos para hoje ou ontem** (no fuso do usuário). Ontem existe para quem fecha a rotina da noite depois da meia-noite. Nunca para o futuro, nunca mais para trás.
 
 ---
 
