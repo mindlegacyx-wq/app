@@ -25,6 +25,27 @@ Jeito mais simples: **Docker Desktop**. Ele sobe o banco, a API e o site com um 
 
 Para parar: `Ctrl+C` no terminal. Para subir de novo, o mesmo comando do passo 4 (agora leva segundos). Os dados ficam guardados entre uma vez e outra.
 
+## Deixar rodando sempre (usar como app do dia a dia no PC)
+
+1. Suba em segundo plano, sem precisar deixar o terminal aberto:
+
+   ```bash
+   docker compose -f docker-compose.dev.yml up -d
+   ```
+
+2. No Docker Desktop: engrenagem (Settings) → **General** → marque **Start Docker Desktop when you sign in**. Pronto: toda vez que ligar o PC, o app sobe sozinho em ~30 segundos e o ícone instalado abre direto.
+3. Para parar de vez: `docker compose -f docker-compose.dev.yml down` (os dados continuam guardados).
+
+Limites de usar só no PC:
+
+- **Despertador**: só toca se o PC estiver ligado (sem dormir) com o app aberto. Para acordar de verdade é o celular — e isso pede o app publicado com HTTPS.
+- **Celular na mesma Wi-Fi**: dá para abrir pelo endereço que aparece como "Network" no terminal (ex.: `http://192.168.0.10:5173`), mas sem instalar, sem notificação e sem funcionar offline — é só para olhar.
+- **Cópia de segurança dos dados** (de vez em quando):
+
+  ```bash
+  docker compose -f docker-compose.dev.yml exec db pg_dump -U disciplina disciplina > backup-disciplina.sql
+  ```
+
 ## O que funciona no PC
 
 - Tudo: rotina, despertador (com som e tela de alarme), tarefas, metas, treinos, agenda, provas, sessões de estudo, notas, evolução, lixeira, offline.

@@ -5,11 +5,15 @@
 # Depois abra http://localhost:5173 no navegador. Ctrl+C para parar; os dados ficam guardados
 # (volume "pgdata_dev"). Guia passo a passo em TESTAR-NO-PC.md.
 #
+# Para deixar rodando sempre (sem terminal aberto):  docker compose -f docker-compose.dev.yml up -d
+# Com "restart: unless-stopped", os três sobem sozinhos toda vez que o Docker Desktop abrir.
+#
 # Opcional: IA para estudos — crie um arquivo .env ao lado deste com AI_API_KEY=... (ver
 # .env.example). Sem chave, o app mostra "IA não configurada" e o resto funciona.
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: disciplina
       POSTGRES_USER: disciplina
@@ -24,6 +28,7 @@ services:
 
   api:
     build: ./backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -47,6 +52,7 @@ services:
 
   web:
     image: node:22-alpine
+    restart: unless-stopped
     working_dir: /app
     depends_on:
       - api
