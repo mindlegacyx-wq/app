@@ -400,6 +400,26 @@ Regras de cálculo:
 
 `UNIQUE (exam_id, date)` · `INDEX (user_id, date)`. O planejado do dia vem da definição das provas (janela), não desta tabela — por isso mudar a data da prova não "apaga" sessões: só muda quais dias cobram dali em diante.
 
+## Módulo 9 · Notas (Fase 11)
+
+`user_settings` ganhou `passing_grade numeric(4,2)` (padrão 6), `periods_per_year smallint` (padrão 3) e `grade_max numeric(5,2)` (padrão 10).
+
+### `grades`
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| subject_id | uuid FK | `CASCADE` (nota sem matéria não faz sentido) |
+| exam_id | uuid FK NULL | `SET NULL`; nota lançada a partir de uma prova |
+| year | smallint | |
+| period | smallint | 1..`periods_per_year` |
+| title | varchar(60) NULL | "Prova 1", "Trabalho"… |
+| value | numeric(5,2) | 0..`grade_max` |
+| weight | numeric(4,2) | padrão 1 |
+| created_at · updated_at | timestamptz | sem soft delete (excluir pede confirmação) |
+
+`INDEX (user_id, year, subject_id)`. Médias e "quanto preciso tirar" são calculados na leitura (`/grades?year=`), nunca gravados.
+
 ## Índices e integridade (resumo)
 
 - Toda tabela de domínio: `INDEX (user_id)`; tabelas de registro: `INDEX (user_id, date)`.

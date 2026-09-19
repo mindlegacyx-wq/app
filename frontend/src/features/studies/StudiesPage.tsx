@@ -8,6 +8,9 @@ import { useAuth } from '@/lib/auth-store'
 import { cn, pluralize, todayIn } from '@/lib/format'
 import type { Exam } from '@/lib/types'
 
+import { useGrades } from '@/features/grades/api'
+import { fmtGrade, statusLabel } from '@/features/grades/shared'
+
 import { ExamSheet } from './ExamSheet'
 import { SessionRow } from './SessionRow'
 import { useExams, useStudyDay } from './api'
@@ -96,6 +99,11 @@ export function StudiesPage() {
         </div>
       )}
 
+      <div className="mt-6 px-0.5">
+        <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Notas</h2>
+      </div>
+      <GradesCard />
+
       <Fab label="Nova prova ou trabalho" onClick={() => setCreating(true)} />
       <ExamSheet open={creating} onClose={() => setCreating(false)} />
     </>
@@ -138,6 +146,50 @@ function ExamCard({ exam, today, muted }: { exam: Exam; today: string; muted?: b
             {exam.topics_total > 0 && ` · ${exam.topics_done}/${pluralize(exam.topics_total, 'conteúdo', 'conteúdos')}`}
           </p>
         </div>
+      </Card>
+    </Link>
+  )
+}
+
+/** Atalho para as notas (tela 36): média mínima e quantas matérias pedem atenção. */
+function GradesCard() {
+  const grades = useGrades()
+  const subjects = grades.data?.subjects ?? []
+  const withGrades = subjects.filter((s) => s.status !== 'no_grades')
+  const attention = subjects.filter((s) => s.status === 'at_risk' || s.status === 'failing' || s.status === 'closed_failed')
+  const title = grades.isPending
+    ? 'Notas'
+    : subjects.length === 0
+      ? 'Notas por matéria'
+      : withGrades.length === 0
+        ? 'Nenhuma nota lançada'
+        : attention.length === 0
+          ? 'Todas as matérias no caminho'
+          : `${attention.length} ${attention.length === 1 ? 'matéria pede' : 'matérias pedem'} atenção`
+  const detail =
+    subjects.length === 0
+      ? 'Crie as matérias na agenda e lance as notas de cada período.'
+      : attention.length > 0
+        ? attention.map((s) => `${s.name}: ${statusLabel[s.status].toLowerCase()}`).join(' · ')
+        : `Média mínima ${fmtGrade(grades.data?.passing_grade)} · toque para lançar e ver quanto falta.`
+  return (
+    <Link to="/estudos/notas" className="mt-3 block">
+      <Card className="flex items-center justify-between gap-3 transition-colors hover:bg-elevated">
+        <div className="min-w-0">
+          <p className={cn('text-[15px]', attention.length > 0 && 'text-warning')}>{title}</p>
+          <p className="mt-0.5 truncate text-[13px] text-ink-faint">{detail}</p>
+        </div>
+        <svg
+          className="size-4 shrink-0 text-ink-faint"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 5l7 7-7 7" />
+        </svg>
       </Card>
     </Link>
   )

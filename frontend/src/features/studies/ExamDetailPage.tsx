@@ -7,6 +7,10 @@ import { useAuth } from '@/lib/auth-store'
 import { cn, relativeDay, todayIn } from '@/lib/format'
 import type { StudySession } from '@/lib/types'
 
+import { GradeSheet } from '@/features/grades/GradeSheet'
+import { useGrades } from '@/features/grades/api'
+import { fmtGrade } from '@/features/grades/shared'
+
 import { ExamSheet } from './ExamSheet'
 import { useAddTopic, useDeleteTopic, useExam, useUpdateTopic } from './api'
 import { describeDaysUntil, examDateLabel, examKindLabel, fmtFocus, fmtMinutes, sessionStatusLabel } from './shared'
@@ -21,7 +25,10 @@ export function ExamDetailPage() {
   const updateTopic = useUpdateTopic()
   const deleteTopic = useDeleteTopic()
   const [editing, setEditing] = useState(false)
+  const [gradeOpen, setGradeOpen] = useState(false)
   const [newTopic, setNewTopic] = useState('')
+  const examYear = Number(exam.data?.date.slice(0, 4) ?? today.slice(0, 4))
+  const grades = useGrades(examYear)
   const [error, setError] = useState<string | null>(null)
 
   if (exam.isPending) {
@@ -50,6 +57,8 @@ export function ExamDetailPage() {
   }
 
   const e = exam.data
+  const linkedGrade = grades.data?.subjects.flatMap((s) => s.periods.flatMap((p) => p.grades)).find((g) => g.exam_id === e.id) ?? null
+  const canGrade = e.subject_id !== null && (e.date <= today || e.status === 'done')
   const todaySession = e.sessions.find((s) => s.date === today)
   const canStudyToday = e.status === 'open' && (todaySession !== undefined || e.date > today)
   const pct = e.sessions_total ? Math.round((e.sessions_done * 100) / e.sessions_total) : 0
@@ -98,6 +107,18 @@ export function ExamDetailPage() {
           {fmtMinutes(e.minutes_per_day)} por dia · cobra a partir de {relativeDay(e.study_from, today)} · {e.lead_days} dias antes
         </p>
         {e.notes && <p className="mt-3 text-[14px] leading-relaxed whitespace-pre-line text-ink-muted">{e.notes}</p>}
+        {canGrade && (
+          <button
+            type="button"
+            onClick={() => setGradeOpen(true)}
+            className="mt-4 flex w-full items-center justify-between rounded-lg border border-line bg-elevated px-4 py-3 text-left transition-colors hover:bg-white/8"
+          >
+            <span className="text-[15px]">{linkedGrade ? 'Nota lançada' : 'Lançar a nota'}</span>
+            <span className={cn('tabular text-[18px] font-semibold', linkedGrade ? 'text-accent' : 'text-ink-faint')}>
+              {linkedGrade ? fmtGrade(linkedGrade.value) : '—'}
+            </span>
+          </button>
+        )}
         {canStudyToday && (
           <Link to={`/estudos/${e.id}/sessao/${today}`} className="mt-4 block">
             <Button size="lg" full variant={todaySession?.status === 'completed' ? 'secondary' : 'primary'}>
@@ -200,6 +221,17 @@ export function ExamDetailPage() {
       </section>
 
       <ExamSheet open={editing} exam={e} onClose={() => setEditing(false)} />
+      {e.subject_id && (
+        <GradeSheet
+          open={gradeOpen}
+          onClose={() => setGradeOpen(false)}
+          subjectId={e.subject_id}
+          subjectName={e.subject_name ?? ''}
+          year={examYear}
+          grade={linkedGrade ?? undefined}
+          exam={{ id: e.id, title: e.title }}
+        />
+      )}
     </div>
   )
 }

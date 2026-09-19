@@ -19,7 +19,7 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress · trash · schedule · studies
+auth · users · routines · alarms · goals · workouts · tasks · progress · trash · schedule · studies · grades
 ```
 
 `trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
@@ -27,6 +27,8 @@ auth · users · routines · alarms · goals · workouts · tasks · progress ·
 `schedule` (Fase 9) é a **agenda semanal**: matérias e blocos fixos por dia da semana (aula, treino, estudo, outro) com início e fim. É referência de horário, **não entra no percentual** — aula não é algo que se "marca como feito". Ele oferece a outros módulos: as janelas livres do dia (para a Fase 10 encaixar sessões de estudo) e o horário do treino (tela Hoje). Um bloco de treino ligado a um plano **acrescenta o dia ao plano** via `workouts.service.ensure_days` — o plano continua sendo a única fonte de "em que dias eu treino"; a agenda só diz a hora.
 
 `studies` (Fase 10) são as **provas e trabalhos** com sessões de estudo automáticas. A prova tem data, `lead_days` ("começar a cobrar X dias antes") e `minutes_per_day`; em cada dia da janela `[data − lead_days, véspera]` ela pede **uma sessão**, que entra no percentual como qualquer item planejado (componente `study` em `progress`). A sessão planejada nasce da definição, como um item de rotina: a linha em `study_sessions` só existe quando o usuário começa, conclui ou pula. A janela só começa no dia do cadastro (prova criada 2 dias antes com `lead_days = 7` cobra 2 sessões). O horário é uma **sugestão** calculada a cada leitura: a sessão é encaixada no maior buraco da agenda do dia (`schedule.free_windows`), preferindo o que ainda está pela frente quando o dia é hoje. Pular conta como planejada e não feita (regra do treino). Prova `done` para de cobrar.
+
+`grades` (Fase 11) são as **notas** por matéria e período. A régua é do usuário (`user_settings`): média mínima (padrão 6), períodos por ano (2/3/4; padrão 3 = trimestres) e escala (10 ou 100). Várias notas no mesmo período viram média ponderada pelos pesos; a média do ano é a **média simples** dos períodos. O módulo calcula "quanto preciso tirar": a média necessária em cada período restante para fechar o ano na mínima, com o status (`no_grades` · `on_track` · `at_risk` · `failing` = só com recuperação · `approved` · `closed_failed`). Uma nota pode apontar para uma prova (`exam_id`), que é como a tela da prova lança e mostra a nota. `Decimal` no banco, número no JSON (`app/core/schemas.Num`).
 
 Regras:
 

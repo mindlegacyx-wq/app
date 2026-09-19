@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 import app.modules.alarms.models  # noqa: F401
 import app.modules.auth.models  # noqa: F401
 import app.modules.goals.models  # noqa: F401
+import app.modules.grades.models  # noqa: F401
 import app.modules.progress.models  # noqa: F401
 import app.modules.routines.models  # noqa: F401
 import app.modules.schedule.models  # noqa: F401

@@ -1,7 +1,18 @@
 from datetime import datetime, time
+from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, SmallInteger, String, Text, Time
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Numeric,
+    SmallInteger,
+    String,
+    Text,
+    Time,
+)
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,6 +45,14 @@ class UserSettings(Base):
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     wake_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Notas (Fase 11): média mínima da escola, períodos por ano e nota máxima da escala.
+    passing_grade: Mapped[Decimal] = mapped_column(
+        Numeric(4, 2), nullable=False, default=Decimal("6.00")
+    )
+    periods_per_year: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=3)
+    grade_max: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), nullable=False, default=Decimal("10.00")
+    )
 
     user: Mapped[User] = relationship(back_populates="settings")
 

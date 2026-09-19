@@ -6,6 +6,9 @@ export interface UserSettings {
   notifications_enabled: boolean
   wake_time: string | null // "HH:MM:SS"
   onboarding_completed_at: string | null
+  passing_grade: number // média mínima da escola (Fase 11)
+  periods_per_year: number // 2 = semestres · 3 = trimestres · 4 = bimestres
+  grade_max: number // topo da escala (10 ou 100)
 }
 
 export interface User {
@@ -541,4 +544,46 @@ export interface StudyDay {
   planned: number
   completed: number
   total_minutes: number
+}
+
+// --- Notas (Fase 11) --------------------------------------------------------------------
+
+export interface Grade {
+  id: string
+  subject_id: string
+  exam_id: string | null
+  year: number
+  period: number
+  title: string | null
+  value: number
+  weight: number
+}
+
+export interface PeriodGrades {
+  period: number
+  grades: Grade[]
+  average: number | null
+}
+
+export type SubjectGradeStatus = 'approved' | 'on_track' | 'at_risk' | 'failing' | 'no_grades' | 'closed_failed'
+
+export interface SubjectGrades {
+  subject_id: string
+  name: string
+  color: string
+  periods: PeriodGrades[]
+  year_average: number | null
+  projected_final: number | null
+  remaining_periods: number
+  needed_average: number | null
+  status: SubjectGradeStatus
+}
+
+export interface GradesSummary {
+  year: number
+  years: number[]
+  passing_grade: number
+  periods_per_year: number
+  grade_max: number
+  subjects: SubjectGrades[]
 }

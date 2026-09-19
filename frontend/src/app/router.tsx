@@ -25,6 +25,7 @@ const ExamDetailPage = lazy(() => import('@/features/studies/ExamDetailPage').th
 const StudySessionPage = lazy(() =>
   import('@/features/studies/StudySessionPage').then((m) => ({ default: m.StudySessionPage })),
 )
+const GradesPage = lazy(() => import('@/features/grades/GradesPage').then((m) => ({ default: m.GradesPage })))
 const GoalsPage = lazy(() => import('@/features/goals/GoalsPage').then((m) => ({ default: m.GoalsPage })))
 const GoalDetailPage = lazy(() => import('@/features/goals/GoalDetailPage').then((m) => ({ default: m.GoalDetailPage })))
 const WorkoutsPage = lazy(() => import('@/features/workouts/WorkoutsPage').then((m) => ({ default: m.WorkoutsPage })))
@@ -86,6 +87,7 @@ export const router = createBrowserRouter([
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
           { path: '/agenda', element: <Lazy><AgendaPage /></Lazy> },
           { path: '/agenda/materias', element: <Lazy><SubjectsPage /></Lazy> },
+          { path: '/estudos/notas', element: <Lazy><GradesPage /></Lazy> },
           { path: '/estudos/:id', element: <Lazy><ExamDetailPage /></Lazy> },
           { path: '/estudos/:id/sessao/:date', element: <Lazy><StudySessionPage /></Lazy> },
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },

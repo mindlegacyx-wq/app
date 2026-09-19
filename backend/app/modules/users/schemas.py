@@ -1,8 +1,11 @@
 from datetime import datetime, time
+from decimal import Decimal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.core.schemas import Num
 
 
 def validate_timezone(value: str) -> str:
@@ -21,6 +24,9 @@ class UserSettingsOut(BaseModel):
     notifications_enabled: bool
     wake_time: time | None
     onboarding_completed_at: datetime | None
+    passing_grade: Num
+    periods_per_year: int
+    grade_max: Num
 
 
 class UserSettingsUpdate(BaseModel):
@@ -28,6 +34,19 @@ class UserSettingsUpdate(BaseModel):
     week_starts_on: int | None = Field(default=None, ge=0, le=6)
     notifications_enabled: bool | None = None
     wake_time: time | None = None
+    passing_grade: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
+    periods_per_year: int | None = Field(default=None, ge=1, le=6)
+    grade_max: Decimal | None = Field(default=None, gt=0, le=100, decimal_places=2)
+
+    @model_validator(mode="after")
+    def _passing_within_scale(self) -> "UserSettingsUpdate":
+        if (
+            self.passing_grade is not None
+            and self.grade_max is not None
+            and self.passing_grade > self.grade_max
+        ):
+            raise ValueError("A média mínima não pode passar da nota máxima.")
+        return self
 
 
 class UserOut(BaseModel):

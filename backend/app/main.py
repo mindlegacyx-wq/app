@@ -12,6 +12,7 @@ from app.core.errors import register_error_handlers
 from app.modules.alarms.router import alarms_router, wake_router
 from app.modules.auth.router import router as auth_router
 from app.modules.goals.router import router as goals_router
+from app.modules.grades.router import router as grades_router
 from app.modules.progress.router import router as progress_router
 from app.modules.routines.router import router as routines_router
 from app.modules.schedule.router import schedule_router, subjects_router
@@ -88,3 +89,4 @@ app.include_router(subjects_router, prefix="/api/v1")
 app.include_router(schedule_router, prefix="/api/v1")
 app.include_router(exams_router, prefix="/api/v1")
 app.include_router(study_router, prefix="/api/v1")
+app.include_router(grades_router, prefix="/api/v1")
