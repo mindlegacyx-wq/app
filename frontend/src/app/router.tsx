@@ -17,6 +17,7 @@ const RoutinesPage = lazy(() => import('@/features/routines/RoutinesPage').then(
 const RoutineEditorPage = lazy(() =>
   import('@/features/routines/RoutineEditorPage').then((m) => ({ default: m.RoutineEditorPage })),
 )
+const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
 const ComingSoonPage = lazy(() =>
   import('@/features/placeholders/ComingSoonPage').then((m) => ({ default: m.ComingSoonPage })),
 )
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
           { path: '/instalar', element: <Lazy><InstallPage /></Lazy> },
           { path: '/configuracoes', element: <Lazy><SettingsPage /></Lazy> },
           { path: '/rotina/:id', element: <Lazy><RoutineEditorPage /></Lazy> },
+          { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },
         ],
       },
       {

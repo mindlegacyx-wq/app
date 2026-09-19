@@ -8,12 +8,12 @@ import { shortTime, timeIn } from '@/lib/format'
 interface Props {
   date: string
   timezone: string
-  /** só o dia de hoje aceita o botão de segurar */
-  isToday: boolean
+  /** dia aberto e não fechado: aceita segurar/desfazer */
+  editable: boolean
 }
 
 /** Bloco "Acordar" da tela Hoje: segurar 3 s para registrar o horário real em que levantou. */
-export function WakeBlock({ date, timezone, isToday }: Props) {
+export function WakeBlock({ date, timezone, editable }: Props) {
   const wake = useWakeDay(date)
   const confirm = useConfirmWake(date)
   const undo = useUndoWake(date)
@@ -39,7 +39,7 @@ export function WakeBlock({ date, timezone, isToday }: Props) {
               <Delay minutes={wake.data.delay_minutes} />
             </p>
           </div>
-          {wake.data.can_undo && (
+          {wake.data.can_undo && editable && (
             <Button
               size="sm"
               variant="ghost"
@@ -50,7 +50,7 @@ export function WakeBlock({ date, timezone, isToday }: Props) {
             </Button>
           )}
         </Card>
-      ) : isToday ? (
+      ) : editable ? (
         <>
           <HoldButton
             onComplete={() => confirm.mutate(undefined, { onError: (e) => setError(errorMessage(e)) })}

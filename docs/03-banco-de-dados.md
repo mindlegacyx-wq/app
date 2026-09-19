@@ -268,7 +268,7 @@ Regras:
 
 ## Módulo 6 · Evolução
 
-### `daily_scores` (fotografia do dia)
+### `daily_scores` (fotografia de um dia fechado)
 | Coluna | Tipo | Obs |
 |---|---|---|
 | id | uuid PK | |
@@ -277,20 +277,28 @@ Regras:
 | planned_count | smallint | itens que contavam naquele dia |
 | completed_count | smallint | |
 | discipline_pct | smallint | 0 a 100 |
-| hit_target | bool | discipline_pct ≥ meta do usuário |
-| streak_day | int | 0 quando não bateu a meta |
-| breakdown | jsonb | `{routines:{p,c}, tasks:{p,c}, workout:{p,c}, goals:{p,c}, wake:{p,c}}` |
-| closed_at | timestamptz NULL | preenchido ao "fechar o dia" ou pelo job da meia-noite |
+| target_pct | smallint | meta vigente no dia (a meta do usuário pode mudar depois) |
+| hit_target | bool | planejado > 0 e pct ≥ meta |
+| streak_day | int | sequência contando este dia; 0 quando não bateu |
+| breakdown | jsonb | `{wake:{planned,completed}, routines:{…}, tasks:{…}, workout:{…}, goals:{…}, missing:[{kind,title}]}` |
+| closed_at | timestamptz | |
+| closed_by | enum(`user`,`system`) | `user` = botão "Fechar o dia"; `system` = job |
+| finalized_at | timestamptz NULL | preenchido pelo job; a partir daí o dia é imutável |
 | UNIQUE (user_id, date) | | |
+
+Ciclo de vida de um dia:
+
+- **Aberto**: sem linha; o percentual é calculado ao vivo a partir dos serviços dos módulos.
+- **Fechado pelo usuário**: linha com `closed_by = user`. Congela o número; pode ser reaberto (linha apagada) até o corte.
+- **Finalizado**: o job das 03:00 (fuso do usuário) cria a linha de quem não fechou (`system`) ou preenche `finalized_at` de quem fechou. Imutável. O job também preenche dias que ficaram para trás (autocura), e qualquer leitura de `/progress/day` faz o mesmo.
 
 Regras de cálculo:
 
-- **Planejado no dia** = itens de rotinas ativas cujo `days_of_week` inclui o dia + tarefas com `date` = dia (exceto canceladas) + 1 treino se há plano ativo para o dia + ações de metas com `due_date` = dia + 1 "acordar" se há alarme ativo para o dia.
+- **Planejado no dia** = itens de rotinas ativas cujo `days_of_week` inclui o dia + tarefas com `date` = dia (exceto canceladas) + 1 treino se há plano ativo para o dia (Fase 5) + ações de metas com `due_date` = dia (Fase 4) + 1 "acordar" se há horário de acordar configurado.
 - **Concluído** = os mesmos itens com registro de conclusão.
 - **Disciplina** = concluído ÷ planejado × 100. Peso igual para todos no MVP; a coluna `breakdown` permite ponderar depois sem migrar dados.
 - **Sequência** = dias consecutivos com `hit_target = true`. **Dia sem nada planejado conta como 0% e quebra a sequência** (decisão do fundador: sem plano, sem disciplina).
-- O score é recalculado sempre que um registro daquele dia muda; `closed_at` congela a fotografia para o histórico.
-- **Registros diários só podem ser feitos para hoje ou ontem** (no fuso do usuário). Ontem existe para quem fecha a rotina da noite depois da meia-noite. Nunca para o futuro, nunca mais para trás.
+- **Janela de registro**: um dia D aceita checks, tarefas e "Levantei" até as **03:00 de D+1** no fuso do usuário (quem fecha a rotina da noite depois da meia-noite). Nunca para o futuro. O corte é configurável (`DAY_CLOSE_HOUR`).
 
 ---
 

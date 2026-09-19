@@ -11,12 +11,13 @@ import { useCategories, useTasksDay, useToggleTask, useUpdateTask } from './api'
 interface Props {
   date: string
   today: string
+  editable: boolean
   onAdd: () => void
   onEdit: (task: Task) => void
 }
 
 /** Bloco "Tarefas" da tela Hoje: atrasadas, pendentes por prioridade, feitas e canceladas. */
-export function TasksBlock({ date, today, onAdd, onEdit }: Props) {
+export function TasksBlock({ date, today, editable, onAdd, onEdit }: Props) {
   const day = useTasksDay(date)
   const cats = useCategories()
   const toggle = useToggleTask(date)
@@ -58,6 +59,7 @@ export function TasksBlock({ date, today, onAdd, onEdit }: Props) {
                     task={t}
                     category={t.category_id ? byId.get(t.category_id) : undefined}
                     meta={relativeDay(t.date, today)}
+                    editable={editable}
                     onToggle={(done) => toggle.mutate({ id: t.id, done }, { onError: (e) => setError(errorMessage(e)) })}
                     onOpen={() => onEdit(t)}
                     action={{
@@ -87,6 +89,7 @@ export function TasksBlock({ date, today, onAdd, onEdit }: Props) {
                     key={t.id}
                     task={t}
                     category={t.category_id ? byId.get(t.category_id) : undefined}
+                    editable={editable}
                     onToggle={(done) => toggle.mutate({ id: t.id, done }, { onError: (e) => setError(errorMessage(e)) })}
                     onOpen={() => onEdit(t)}
                   />
@@ -115,6 +118,7 @@ function TaskRow({
   task,
   category,
   meta,
+  editable,
   onToggle,
   onOpen,
   action,
@@ -122,6 +126,7 @@ function TaskRow({
   task: Task
   category?: TaskCategory
   meta?: string
+  editable: boolean
   onToggle: (done: boolean) => void
   onOpen: () => void
   action?: { label: string; onClick: () => void }
@@ -135,7 +140,7 @@ function TaskRow({
           <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </span>
       ) : (
-        <Checkbox label={task.title} checked={done} onChange={onToggle} />
+        <Checkbox label={task.title} checked={done} onChange={onToggle} disabled={!editable} />
       )}
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
         <span className={cn('min-w-0 flex-1', done && 'text-ink-faint line-through', cancelled && 'line-through')}>
@@ -154,7 +159,7 @@ function TaskRow({
         </span>
         {!done && !cancelled && <PriorityIcon priority={task.priority} className="shrink-0" />}
       </button>
-      {action && !done && (
+      {action && !done && editable && (
         <button type="button" onClick={action.onClick} className="shrink-0 text-[12px] font-semibold text-accent">
           {action.label}
         </button>

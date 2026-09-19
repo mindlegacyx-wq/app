@@ -160,3 +160,26 @@ export interface TasksDay {
   planned: number
   completed: number
 }
+
+// --- Evolução ----------------------------------------------------------------------------
+
+export type ScoreComponent = 'wake' | 'routines' | 'tasks' | 'workout' | 'goals'
+
+export interface DayScore {
+  date: string
+  planned: number
+  completed: number
+  pct: number
+  target: number
+  hit_target: boolean
+  streak: number
+  best_streak: number
+  breakdown: Record<ScoreComponent, { planned: number; completed: number }>
+  missing: { kind: ScoreComponent; title: string }[]
+  is_open: boolean
+  closed_at: string | null
+  closed_by: 'user' | 'system' | null
+  finalized: boolean
+  can_close: boolean
+  can_reopen: boolean
+}
