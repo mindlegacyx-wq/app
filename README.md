@@ -1,8 +1,8 @@
-# app (nome provisório)
+# Disciplina (nome provisório)
 
 Aplicativo de disciplina pessoal: rotina diária, despertador com confirmação, metas, treinos, tarefas e percentual de disciplina. PWA mobile-first com backend em Python.
 
-**Status:** planejamento concluído, aguardando aprovação para iniciar a Fase 0.
+**Status:** Fase 0 (fundação) em desenvolvimento.
 
 ## Documentação
 

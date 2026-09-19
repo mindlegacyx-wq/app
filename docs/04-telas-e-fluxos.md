@@ -101,7 +101,7 @@ Noite  Rotina da noite ──► Fechar o dia ──► anel fecha em 87% · seq
 
 - **Vazio**: toda lista vazia ensina o próximo passo com uma frase e um botão. Nunca tela branca.
 - **Offline**: Hoje abre com o último estado em cache; checks feitos offline são enviados ao reconectar (fila local).
-- **Dia com nada planejado**: Hoje mostra "Dia livre" e oferece adicionar tarefa. Não afeta a sequência.
+- **Dia com nada planejado**: Hoje avisa "Nada planejado para hoje. Sem plano, a sequência quebra." e oferece adicionar tarefa ou item de rotina.
 - **Alarme perdido** (não confirmou em 60 min): status `missed`, aparece em Hoje como "Não confirmou que acordou", pode confirmar manualmente (fica marcado como `manual`).
 
 ## Diretrizes de design (premium, minimalista)

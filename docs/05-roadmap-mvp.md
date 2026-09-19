@@ -32,14 +32,14 @@ Tema claro; widgets; relatórios semanais por e-mail; exportar dados.
 **Won't (fora do MVP)**
 Social e comunidade; coach por IA; integrações (Calendar, Health, Strava); pagamentos e planos; painel administrativo; app nativo.
 
-## Pontos que precisam de decisão do fundador
+## Decisões do fundador (aprovadas em 18/09/2026)
 
-1. **Tema escuro por padrão** com tema claro no pós-MVP: ok?
-2. **Peso igual** para todos os itens no cálculo da disciplina (uma tarefa vale o mesmo que um treino) no MVP: ok? A estrutura já permite ponderar depois.
-3. **Dia sem nada planejado é neutro** (não quebra nem soma sequência): ok?
-4. **Setup cria automaticamente** alarme + rotinas Manhã e Noite vazias: ok?
-5. **"Levantei" manual desde a fase 1**, antes do alarme com push: ok?
-6. **Nome do produto**: preciso de um nome (ou provisório) para manifest, título e repositório de ícones.
+1. **Tema escuro por padrão**; tema claro no pós-MVP.
+2. **Peso igual** para todos os itens no cálculo da disciplina no MVP; a estrutura permite ponderar depois.
+3. **Dia sem nada planejado conta como 0% e quebra a sequência.** Sem plano, sem disciplina.
+4. **Setup cria automaticamente** alarme + rotinas Manhã e Noite vazias. Na Fase 0 o setup guarda `wake_time` em `user_settings`; a Fase 1 cria as rotinas e a Fase 6 cria o alarme a partir desse valor.
+5. **"Levantei" manual desde a Fase 1**, antes do alarme com push.
+6. **Nome provisório: "Disciplina"** (constante única no código; troca depois sem refatorar).
 
 ## Definição de pronto de cada funcionalidade
 

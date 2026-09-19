@@ -48,6 +48,7 @@ users ─┬─ user_settings (1:1)
 | discipline_target | smallint | padrão 80 (%) |
 | week_starts_on | smallint | 0 = segunda |
 | notifications_enabled | bool | |
+| wake_time | time NULL | informado no setup; a Fase 6 cria o alarme a partir dele |
 | onboarding_completed_at | timestamptz NULL | |
 
 ### `sessions` (refresh tokens)
@@ -281,7 +282,7 @@ Regras de cálculo:
 - **Planejado no dia** = itens de rotinas ativas cujo `days_of_week` inclui o dia + tarefas com `date` = dia (exceto canceladas) + 1 treino se há plano ativo para o dia + ações de metas com `due_date` = dia + 1 "acordar" se há alarme ativo para o dia.
 - **Concluído** = os mesmos itens com registro de conclusão.
 - **Disciplina** = concluído ÷ planejado × 100. Peso igual para todos no MVP; a coluna `breakdown` permite ponderar depois sem migrar dados.
-- **Sequência** = dias consecutivos com `hit_target = true`. Dia sem nada planejado não quebra nem soma sequência (é neutro).
+- **Sequência** = dias consecutivos com `hit_target = true`. **Dia sem nada planejado conta como 0% e quebra a sequência** (decisão do fundador: sem plano, sem disciplina).
 - O score é recalculado sempre que um registro daquele dia muda; `closed_at` congela a fotografia para o histórico.
 
 ---
