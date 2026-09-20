@@ -73,7 +73,7 @@ Limites: o link só funciona com o PC ligado e essa janela do túnel aberta; **o
 ## O que só funciona publicado com HTTPS
 
 - Abrir **no celular**: o app precisa de um endereço `https://` (é assim que o navegador libera service worker, notificações, câmera e tela acesa). É o deploy gratuito do [PUBLICAR-DE-GRACA.md](PUBLICAR-DE-GRACA.md) (ou uma VPS).
-- **Notificação com o app fechado** (Web Push): precisa das chaves VAPID no `.env` (`docker compose -f docker-compose.dev.yml run --rm api python -m app.core.push` gera; cole as duas linhas num arquivo `.env` ao lado do compose e suba de novo).
+- **Notificação com o app fechado** (Web Push): precisa das chaves VAPID no `.env` (`docker compose -f docker-compose.dev.yml run --rm --entrypoint python api -m app.core.push` gera; cole as duas linhas num arquivo `.env` ao lado do compose e suba de novo).
 
 ## IA para estudos (opcional)
 

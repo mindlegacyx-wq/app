@@ -70,7 +70,7 @@ cd frontend && npx tsc -b && npm run lint && npm run build
 
 ```bash
 cp .env.example .env          # DOMAIN, POSTGRES_PASSWORD, JWT_SECRET
-docker compose run --rm api python -m app.core.push   # gera as chaves VAPID; cole no .env (uma vez, nunca troque)
+docker compose run --rm --entrypoint python api -m app.core.push   # gera as chaves VAPID; cole no .env (uma vez, nunca troque)
 docker compose up -d --build  # db + api (migra sozinho) + build do PWA + Caddy com HTTPS
 ```
 

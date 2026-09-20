@@ -122,7 +122,7 @@ Conta importante: acordado 24 h por dia, o app usa ~744 das **750 horas gratuita
 Precisa de um par de chaves gerado uma vez só. No seu PC, na pasta do app, com o Docker Desktop aberto:
 
 ```bash
-docker compose -f docker-compose.dev.yml run --rm api python -m app.core.push
+docker compose -f docker-compose.dev.yml run --rm --entrypoint python api -m app.core.push
 ```
 
 Ele imprime duas linhas, `VAPID_PUBLIC_KEY=...` e `VAPID_PRIVATE_KEY=...`. No Render → **Environment**, adicione as duas (nome de um lado, valor do outro) e também `VAPID_SUBJECT` = `mailto:seu@email.com`. **Save Changes**.
