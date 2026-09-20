@@ -32,6 +32,8 @@ class ExerciseIn(BaseModel):
     load_mode: LoadMode | None = None
     bar_weight: float | None = Field(default=None, ge=0, le=100)
     increment: float | None = Field(default=None, gt=0, le=50)
+    goal: str | None = Field(default=None, max_length=12)
+    start_weight: float | None = Field(default=None, ge=0, le=999)
 
 
 class ExerciseUpdate(BaseModel):
@@ -43,6 +45,8 @@ class ExerciseUpdate(BaseModel):
     load_mode: LoadMode | None = None
     bar_weight: float | None = Field(default=None, ge=0, le=100)
     increment: float | None = Field(default=None, gt=0, le=50)
+    goal: str | None = Field(default=None, max_length=12)
+    start_weight: float | None = Field(default=None, ge=0, le=999)
     clear: list[str] = Field(
         default_factory=list
     )  # campos a limpar: sets, reps, load, rest_seconds
@@ -64,6 +68,8 @@ class ExerciseOut(BaseModel):
     load_mode: LoadMode = LoadMode.total
     bar_weight: Num = Decimal("0")
     increment: Num = Decimal("2.5")
+    goal: str | None = None
+    start_weight: Num | None = None
 
 
 class ReorderIn(BaseModel):
@@ -75,6 +81,7 @@ class ReorderIn(BaseModel):
 
 class WorkoutIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
+    goal: str | None = Field(default=None, max_length=12)
     days_of_week: list[int] = Field(default=[0, 2, 4])
     notes: str | None = Field(default=None, max_length=1000)
 
@@ -86,6 +93,7 @@ class WorkoutIn(BaseModel):
 
 class WorkoutUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=60)
+    goal: str | None = Field(default=None, max_length=12)
     days_of_week: list[int] | None = None
     notes: str | None = Field(default=None, max_length=1000)
     clear_notes: bool = False
@@ -106,6 +114,7 @@ class WorkoutOut(BaseModel):
     notes: str | None
     is_active: bool
     sort_order: int
+    goal: str | None = None
     exercises: list[ExerciseOut]
 
 
@@ -271,8 +280,18 @@ class LibraryGroupOut(BaseModel):
     exercises: list[LibraryExerciseOut]
 
 
+class GoalOut(BaseModel):
+    key: str
+    label: str
+    hint: str
+    reps: str
+    sets: int
+    rest: int
+
+
 class LibraryOut(BaseModel):
     groups: list[LibraryGroupOut]
+    goals: list[GoalOut]
 
 
 class BodyWeightIn(BaseModel):

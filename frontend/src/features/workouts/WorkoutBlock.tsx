@@ -74,8 +74,13 @@ export function WorkoutBlock({ date }: { date: string }) {
                             : pluralize(total, 'exercício', 'exercícios')}
                     </span>
                   </span>
-                  <span className="shrink-0 text-[13px] font-semibold text-accent">
-                    {status === 'completed' ? 'Ver' : status === 'in_progress' ? 'Continuar' : status === 'skipped' ? 'Ver' : 'Iniciar'}
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-transform active:scale-[0.97]',
+                      status === 'completed' || status === 'skipped' ? 'text-ink-faint' : 'bg-accent text-on-accent',
+                    )}
+                  >
+                    {status === 'completed' ? 'Ver' : status === 'in_progress' ? 'Continuar' : status === 'skipped' ? 'Ver' : 'Começar'}
                   </span>
                 </Card>
               </Link>

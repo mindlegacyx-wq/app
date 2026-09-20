@@ -20,7 +20,7 @@ from sqlalchemy.orm import selectinload
 from app.core.dates import ensure_recordable_day, is_day_open, now_utc, user_today, weekday_index
 from app.core.errors import ConflictError, NotFoundError
 from app.core.softdelete import TrashKind
-from app.modules.workouts.library import CATALOG, MUSCLES
+from app.modules.workouts.library import CATALOG, GOALS, GOALS_BY_KEY, MUSCLES
 from app.modules.workouts.models import (
     BodyWeight,
     LoadMode,
@@ -43,6 +43,7 @@ from app.modules.workouts.schemas import (
     ExerciseOut,
     ExerciseProgressOut,
     ExerciseUpdate,
+    GoalOut,
     HistoryItemOut,
     HistoryOut,
     LibraryExerciseOut,
@@ -125,6 +126,7 @@ async def create_workout(db: AsyncSession, user_id: UUID, data: WorkoutIn) -> Wo
         name=data.name,
         days_of_week=data.days_of_week,
         notes=data.notes,
+        goal=data.goal,
         is_active=True,
         sort_order=next_order or 0,
     )
@@ -181,15 +183,20 @@ async def add_exercise(
     from app.modules.workouts.library import BY_KEY
 
     preset = BY_KEY.get(data.library_key or "")
+    goal = GOALS_BY_KEY.get(data.goal or w.goal or "")
     e = WorkoutExercise(
         workout_id=w.id,
         user_id=user_id,
         name=data.name,
-        sets=data.sets,
-        reps=data.reps,
+        sets=data.sets or (goal.sets if goal else None),
+        reps=data.reps or (goal.reps if goal else None),
         load=data.load,
-        rest_seconds=data.rest_seconds or (preset.rest if preset else None) or None,
+        rest_seconds=data.rest_seconds
+        or (goal.rest if goal else None)
+        or (preset.rest if preset else None),
         sort_order=next_order,
+        goal=data.goal or w.goal,
+        start_weight=Decimal(str(data.start_weight)) if data.start_weight is not None else None,
         library_key=data.library_key,
         muscle=data.muscle or (preset.muscle if preset else None),
         icon=data.icon or (preset.icon if preset else None),
@@ -221,11 +228,11 @@ async def update_exercise(
     for field, value in data.model_dump(exclude_unset=True, exclude={"clear"}).items():
         if value is None:
             continue
-        if field in ("bar_weight", "increment"):
+        if field in ("bar_weight", "increment", "start_weight"):
             value = Decimal(str(value))
         setattr(e, field, value)
     for field in data.clear:
-        if field in ("sets", "reps", "load", "rest_seconds"):
+        if field in ("sets", "reps", "load", "rest_seconds", "start_weight"):
             setattr(e, field, None)
     await db.flush()
     return e
@@ -557,7 +564,7 @@ async def exercise_progress(
     closed_everything = bool(
         last and top and all(s.reps is not None and s.reps >= top for s in last)
     )
-    suggested = last_weight
+    suggested = last_weight if last_weight is not None else exercise.start_weight
     if closed_everything and last_weight is not None:
         suggested = last_weight + Decimal(exercise.increment or 0)
     return ExerciseProgressOut(
@@ -861,4 +868,8 @@ def library() -> LibraryOut:
             if e.muscle == muscle
         ]
         groups.append(LibraryGroupOut(muscle=muscle, label=label, exercises=items))
-    return LibraryOut(groups=groups)
+    goals = [
+        GoalOut(key=g.key, label=g.label, hint=g.hint, reps=g.reps, sets=g.sets, rest=g.rest)
+        for g in GOALS
+    ]
+    return LibraryOut(groups=groups, goals=goals)

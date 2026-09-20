@@ -48,6 +48,7 @@ class Workout(Base, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin):
     )
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     days_of_week: Mapped[list[int]] = mapped_column(ARRAY(SmallInteger), nullable=False)
+    goal: Mapped[str | None] = mapped_column(String(12))  # objetivo padrão dos exercícios novos
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -92,6 +93,9 @@ class WorkoutExercise(Base, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin
     increment: Mapped[Decimal] = mapped_column(
         Numeric(4, 2), nullable=False, default=Decimal("2.5")
     )
+    goal: Mapped[str | None] = mapped_column(String(12))  # força · hipertrofia · resistência…
+    # Carga de partida, definida ao montar o plano. Serve só enquanto não há histórico.
+    start_weight: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
 
     workout: Mapped[Workout] = relationship(back_populates="exercises")
 

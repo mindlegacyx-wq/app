@@ -7,9 +7,10 @@ import { errorMessage } from '@/lib/api'
 import { cn, describeDays } from '@/lib/format'
 import type { Exercise } from '@/lib/types'
 
+import { ExerciseIcon } from './ExerciseIcon'
 import { ExerciseSheet } from './ExerciseSheet'
 import { WorkoutSheet } from './WorkoutSheet'
-import { useDeleteWorkout, useReorderExercises, useUpdateWorkout, useWorkout } from './api'
+import { useDeleteWorkout, useExerciseLibrary, useReorderExercises, useUpdateWorkout, useWorkout } from './api'
 import { exerciseMeta } from './shared'
 
 /** Tela 20: plano com dias, notas e a lista ordenável de exercícios. */
@@ -20,6 +21,7 @@ export function WorkoutEditorPage() {
   const update = useUpdateWorkout(id)
   const remove = useDeleteWorkout()
   const reorder = useReorderExercises(id)
+  const library = useExerciseLibrary()
 
   const [metaOpen, setMetaOpen] = useState(false)
   const [exSheet, setExSheet] = useState<{ open: boolean; exercise?: Exercise }>({ open: false })
@@ -42,6 +44,7 @@ export function WorkoutEditorPage() {
     )
   }
   const w = workout.data
+  const goalLabel = library.data?.goals.find((g) => g.key === w.goal)?.label ?? null
 
   return (
     <div className="safe-top pt-2">
@@ -57,7 +60,10 @@ export function WorkoutEditorPage() {
         <button type="button" onClick={() => setMetaOpen(true)} className="flex w-full items-start justify-between gap-3 text-left">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold tracking-[0.06em] text-ink-faint uppercase">Plano</p>
-            <p className="mt-1 text-[15px] text-ink-muted first-letter:uppercase">{describeDays(w.days_of_week)}</p>
+            <p className="mt-1 text-[15px] text-ink-muted first-letter:uppercase">
+              {describeDays(w.days_of_week)}
+              {goalLabel && <span className="text-ink-faint"> · {goalLabel.toLowerCase()}</span>}
+            </p>
             {w.notes && <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">{w.notes}</p>}
           </div>
           <svg className="mt-1 size-4 shrink-0 text-ink-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
@@ -107,7 +113,7 @@ export function WorkoutEditorPage() {
       </div>
 
       <WorkoutSheet open={metaOpen} onClose={() => setMetaOpen(false)} workout={w} />
-      <ExerciseSheet open={exSheet.open} workoutId={w.id} exercise={exSheet.exercise} onClose={() => setExSheet({ open: false })} />
+      <ExerciseSheet open={exSheet.open} workoutId={w.id} exercise={exSheet.exercise} planGoal={w.goal} onClose={() => setExSheet({ open: false })} />
       <Dialog
         open={confirmDelete}
         title="Excluir treino?"
@@ -177,9 +183,14 @@ function ExerciseRow({ exercise, onEdit, onDrop }: { exercise: Exercise; onEdit:
           <circle cx="5.5" cy="12.5" r="1.4" /><circle cx="10.5" cy="12.5" r="1.4" />
         </svg>
       </button>
-      <button type="button" onClick={onEdit} className="flex min-w-0 flex-1 items-center gap-3 py-3 text-left">
-        <span className="min-w-0 flex-1 truncate text-[15px]">{exercise.name}</span>
-        {meta && <span className={cn('tabular shrink-0 text-[12px] text-ink-faint')}>{meta}</span>}
+      <button type="button" onClick={onEdit} className="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/6 text-ink-muted">
+          <ExerciseIcon icon={exercise.icon} className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px]">{exercise.name}</span>
+          {meta && <span className={cn('tabular block truncate text-[12px] text-ink-faint')}>{meta}</span>}
+        </span>
       </button>
     </Reorder.Item>
   )

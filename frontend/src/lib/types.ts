@@ -468,6 +468,8 @@ export interface Exercise {
   load_mode: LoadMode
   bar_weight: number // kg da barra quando o peso é digitado por lado
   increment: number // degrau de carga sugerido
+  goal: string | null // força · hipertrofia · resistência · potência
+  start_weight: number | null // carga de partida, definida ao montar o plano
 }
 
 export type LoadMode = 'total' | 'per_side' | 'bodyweight'
@@ -479,6 +481,7 @@ export interface Workout {
   notes: string | null
   is_active: boolean
   sort_order: number
+  goal: string | null
   exercises: Exercise[]
 }
 
@@ -550,8 +553,18 @@ export interface LibraryGroup {
   exercises: LibraryExercise[]
 }
 
+export interface TrainingGoal {
+  key: string
+  label: string
+  hint: string
+  reps: string
+  sets: number
+  rest: number
+}
+
 export interface ExerciseLibrary {
   groups: LibraryGroup[]
+  goals: TrainingGoal[]
 }
 
 export interface BodyWeightEntry {

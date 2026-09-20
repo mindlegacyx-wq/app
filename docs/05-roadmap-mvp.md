@@ -50,6 +50,16 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
 - **Fase 16 — Treinos com carga de verdade** (feita): biblioteca de 73 exercícios com ícones,
   séries com peso e reps, carga anterior e sugestão de progressão, descanso automático, tempo
   total, peso corporal e gráficos de evolução.
+- **Fase 17 — Objetivo do treino e começar treino** (feita): tela de aquecimento com o botão
+  "Começar treino" (a sessão só começa quando a pessoa manda), objetivo por plano e por exercício
+  (força 4-6 · hipertrofia 8-12 · resistência 15-20 · potência 3-5, com séries e descanso
+  próprios), carga inicial no plano para o primeiro treino já vir preenchido, campo de peso
+  dizendo "kg/lado" com a conta na tela, ícones redesenhados (equipamento em dois tons, grupo
+  muscular como mapa do corpo) e mais animação nas telas de treino.
+
+  As faixas seguem as diretrizes de treino de força (ACSM, edição 2026): carga alta com poucas
+  repetições para força, faixa intermediária para hipertrofia, muitas repetições com descanso
+  curto para resistência/definição — e ir à falha não é requisito.
 
 ## MoSCoW
 

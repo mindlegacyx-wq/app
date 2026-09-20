@@ -28,6 +28,33 @@ MUSCLE_LABELS = dict(MUSCLES)
 
 
 @dataclass(frozen=True)
+class Goal:
+    """Objetivo do treino → faixa de repetições, séries e descanso.
+
+    Números das diretrizes de treino de força (ACSM 2026 e revisões): força usa carga alta e
+    poucas repetições com descanso longo; hipertrofia fica na faixa média; resistência/definição
+    usa mais repetições com descanso curto. O usuário pode mudar tudo depois — isto é só o
+    ponto de partida, para ninguém ficar preso em "3 × 12" por falta de opção.
+    """
+
+    key: str
+    label: str
+    hint: str
+    reps: str
+    sets: int
+    rest: int
+
+
+GOALS: tuple[Goal, ...] = (
+    Goal("strength", "Força", "Carga alta, poucas repetições", "4-6", 4, 180),
+    Goal("hypertrophy", "Hipertrofia", "Crescer músculo", "8-12", 3, 90),
+    Goal("endurance", "Resistência", "Definição e fôlego", "15-20", 3, 45),
+    Goal("power", "Potência", "Movimento explosivo", "3-5", 4, 150),
+)
+GOALS_BY_KEY = {g.key: g for g in GOALS}
+
+
+@dataclass(frozen=True)
 class LibraryExercise:
     key: str
     name: str

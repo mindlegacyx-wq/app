@@ -57,7 +57,7 @@ function useInvalidate() {
 export function useCreateWorkout() {
   const invalidate = useInvalidate()
   return useMutation({
-    mutationFn: (body: { name: string; days_of_week: number[]; notes?: string | null }) =>
+    mutationFn: (body: { name: string; days_of_week: number[]; notes?: string | null; goal?: string | null }) =>
       api<Workout>('/workouts', { method: 'POST', body }),
     onSuccess: invalidate,
   })
@@ -66,7 +66,7 @@ export function useCreateWorkout() {
 export function useUpdateWorkout(id: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name?: string; days_of_week?: number[]; notes?: string; clear_notes?: boolean; is_active?: boolean }) =>
+    mutationFn: (body: { name?: string; days_of_week?: number[]; notes?: string; clear_notes?: boolean; is_active?: boolean; goal?: string | null }) =>
       api<Workout>(`/workouts/${id}`, { method: 'PATCH', body }),
     onSuccess: (w) => {
       qc.setQueryData(workoutKeys.one(id), w)
@@ -93,6 +93,8 @@ export interface ExerciseBody {
   load_mode?: LoadMode
   bar_weight?: number | null
   increment?: number | null
+  goal?: string | null
+  start_weight?: number | null
 }
 
 export function useAddExercise(workoutId: string) {

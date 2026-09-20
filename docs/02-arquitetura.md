@@ -165,6 +165,25 @@ não dava para ver evolução. Agora:
 - **`body_weights`**: um registro por dia, com variação de 30 dias e gráfico próprio.
 - `duration_seconds` na sessão guarda o cronômetro do treino.
 
+## 7.5. Objetivo do treino (Fase 17)
+
+O número de repetições não é um só: quem busca força faz poucas com carga alta, quem busca
+definição faz muitas com descanso curto. Em vez de deixar o usuário adivinhar, o app tem quatro
+objetivos em código (`library.py`, ao lado da biblioteca), cada um com faixa de repetições,
+séries e descanso — força 4-6/180s, hipertrofia 8-12/90s, resistência 15-20/45s, potência
+3-5/150s, na linha das diretrizes de treino de força (ACSM 2026).
+
+- `workouts.goal` e `workout_exercises.goal` (migração 0016). Escolher o objetivo **preenche**
+  séries, repetições e descanso; tudo continua editável depois — o objetivo é um atalho, não uma
+  regra.
+- Exercício novo herda o objetivo do plano quando não recebe um (`data.goal or w.goal`), então
+  montar um "Treino A · força" já sai coerente.
+- `workout_exercises.start_weight` (kg reais) é a carga de partida: sem histórico,
+  `exercise_progress` sugere esse valor e o primeiro treino já abre com o peso preenchido. A
+  partir do segundo, quem manda é o que foi levantado.
+- A sessão **não começa sozinha**: a tela mostra o treino do dia e um botão "Começar treino"; o
+  cronômetro e o registro só nascem daí (antes, abrir a tela já criava a sessão).
+
 ## 8. Infra e deploy
 
 ```

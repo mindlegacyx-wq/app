@@ -290,3 +290,81 @@ async def test_finishing_all_sets_marks_the_exercise_in_the_day(client: AsyncCli
     await client.patch(f"/api/v1/workouts/sets/{sets[0]['id']}", json={"done": False}, headers=h)
     day_view = (await client.get(f"/api/v1/workouts/day?date={day}", headers=h)).json()
     assert day_view["workouts"][0]["exercises"][0]["completed"] is False
+
+
+async def test_goal_fills_reps_sets_and_rest(client: AsyncClient) -> None:
+    token = await onboard(client)
+    h = bearer(token)
+    r = await client.get("/api/v1/workouts/library", headers=h)
+    goals = {g["key"]: g for g in r.json()["goals"]}
+    assert set(goals) == {"strength", "hypertrophy", "endurance", "power"}
+    assert goals["strength"]["reps"] == "4-6" and goals["strength"]["rest"] == 180
+    assert goals["endurance"]["reps"] == "15-20"
+
+    # Objetivo do plano vira padrão dos exercícios novos
+    w = (
+        await client.post(
+            "/api/v1/workouts",
+            json={"name": "Força", "days_of_week": [0], "goal": "strength"},
+            headers=h,
+        )
+    ).json()
+    assert w["goal"] == "strength"
+    e = (
+        await client.post(
+            f"/api/v1/workouts/{w['id']}/exercises",
+            json={"name": "Agachamento", "library_key": "agachamento_livre"},
+            headers=h,
+        )
+    ).json()
+    assert e["reps"] == "4-6" and e["sets"] == 4 and e["goal"] == "strength"
+    assert e["rest_seconds"] == 180
+
+    # O exercício pode ter objetivo próprio (e o que o usuário digita sempre vence)
+    e2 = (
+        await client.post(
+            f"/api/v1/workouts/{w['id']}/exercises",
+            json={"name": "Elevação lateral", "goal": "endurance", "reps": "20-25"},
+            headers=h,
+        )
+    ).json()
+    assert e2["goal"] == "endurance" and e2["reps"] == "20-25" and e2["sets"] == 3
+
+
+async def test_start_weight_seeds_the_first_session(client: AsyncClient) -> None:
+    token = await onboard(client)
+    h = bearer(token)
+    w = (
+        await client.post(
+            "/api/v1/workouts",
+            json={"name": "Peito", "days_of_week": [0, 1, 2, 3, 4, 5, 6]},
+            headers=h,
+        )
+    ).json()
+    e = (
+        await client.post(
+            f"/api/v1/workouts/{w['id']}/exercises",
+            json={
+                "name": "Supino reto",
+                "sets": 3,
+                "reps": "8-10",
+                "library_key": "supino_reto",
+                "start_weight": 60,
+            },
+            headers=h,
+        )
+    ).json()
+    assert e["start_weight"] == 60
+
+    session = (
+        await client.post(
+            f"/api/v1/workouts/{w['id']}/sessions",
+            json={"date": today().isoformat()},
+            headers=h,
+        )
+    ).json()
+    detail = (await client.get(f"/api/v1/workouts/sessions/{session['id']}", headers=h)).json()
+    item = detail["exercises"][0]
+    # Sem histórico, a carga inicial do plano é o ponto de partida
+    assert item["progress"]["suggested_weight"] == 60
+    assert [s["weight"] for s in item["sets"]] == [60, 60, 60]

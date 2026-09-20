@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { m } from 'motion/react'
 import { Link } from 'react-router'
 
 import { TopBar } from '@/app/shell/TopBar'
@@ -6,11 +7,11 @@ import { Button, Card, EmptyState, Fab, Spinner } from '@/components/ui'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
 import { cn, describeDays, pluralize, todayIn } from '@/lib/format'
-import type { DayWorkout, Workout } from '@/lib/types'
+import type { DayWorkout, TrainingGoal, Workout } from '@/lib/types'
 
 import { BodyWeightCard } from './BodyWeightCard'
 import { WorkoutSheet } from './WorkoutSheet'
-import { useWorkouts, useWorkoutsDay } from './api'
+import { useExerciseLibrary, useWorkouts, useWorkoutsDay } from './api'
 
 /** Tela 19: planos com dias da semana; treino de hoje em destaque; atalho para o histórico. */
 export function WorkoutsPage() {
@@ -18,7 +19,9 @@ export function WorkoutsPage() {
   const today = todayIn(user.timezone)
   const workouts = useWorkouts()
   const day = useWorkoutsDay(today)
+  const library = useExerciseLibrary()
   const [creating, setCreating] = useState(false)
+  const goals = library.data?.goals ?? []
 
   return (
     <>
@@ -49,8 +52,8 @@ export function WorkoutsPage() {
               <h2 className="mt-3 px-0.5 text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Todos os planos</h2>
             </>
           )}
-          {workouts.data.map((w) => (
-            <PlanCard key={w.id} w={w} />
+          {workouts.data.map((w, i) => (
+            <PlanCard key={w.id} w={w} goals={goals} index={i} />
           ))}
           <Link to="/treinos/historico" className="mt-2 block">
             <Card className="flex items-center justify-between transition-colors hover:bg-elevated">
@@ -70,57 +73,99 @@ export function WorkoutsPage() {
   )
 }
 
+/** Treino de hoje: o card já é o botão de começar — é daqui que a sessão sai. */
 function TodayCard({ w }: { w: DayWorkout }) {
   const status = w.session?.status
   const total = w.exercises.length
+  const done = w.exercises_done
+  const finished = status === 'completed'
+  const label = finished ? 'Ver resumo' : status === 'in_progress' ? 'Continuar treino' : status === 'skipped' ? 'Ver treino' : 'Começar treino'
+
   return (
-    <Link to={`/treinos/${w.workout_id}/sessao`} className="block">
-      <Card className={cn('border-accent/30 transition-colors hover:bg-elevated', status === 'completed' && 'bg-accent-soft')}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-[18px] font-semibold tracking-[-0.01em]">{w.name}</h3>
-            <p className="mt-0.5 text-[13px] text-ink-muted">
-              {status === 'completed'
-                ? 'Concluído'
-                : status === 'skipped'
-                  ? 'Pulado hoje'
-                  : status === 'in_progress'
-                    ? `Em andamento · ${w.exercises_done}/${total}`
-                    : `${pluralize(total, 'exercício', 'exercícios')}`}
-            </p>
+    <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>
+      <Link to={`/treinos/${w.workout_id}/sessao`} className="block">
+        <Card className={cn('border-accent/30 transition-colors hover:bg-elevated', finished && 'bg-accent-soft')}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="truncate text-[18px] font-semibold tracking-[-0.01em]">{w.name}</h3>
+              <p className="mt-0.5 text-[13px] text-ink-muted">
+                {finished
+                  ? `Concluído · ${done}/${total}`
+                  : status === 'skipped'
+                    ? 'Pulado hoje'
+                    : status === 'in_progress'
+                      ? `Em andamento · ${done}/${total}`
+                      : pluralize(total, 'exercício', 'exercícios')}
+              </p>
+            </div>
+            {finished && (
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-on-accent" aria-hidden>
+                <svg viewBox="0 0 16 16" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 8.5l3 3 6-7" /></svg>
+              </span>
+            )}
           </div>
-          <span className={cn('shrink-0 text-[13px] font-semibold', status === 'completed' ? 'text-accent' : 'text-accent')}>
-            {status === 'completed' ? '✓' : status === 'in_progress' ? 'Continuar' : status === 'skipped' ? 'Ver' : 'Iniciar'}
+
+          {status === 'in_progress' && total > 0 && (
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+              <m.div
+                className="h-full rounded-full bg-accent"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.round((done / total) * 100)}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+            </div>
+          )}
+
+          <span
+            className={cn(
+              'mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-md text-[15px] font-semibold transition-transform active:scale-[0.99]',
+              finished || status === 'skipped' ? 'border border-line-strong text-ink-muted' : 'bg-accent text-on-accent',
+            )}
+          >
+            {label}
+            {!finished && status !== 'skipped' && (
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 5l7 7-7 7" />
+              </svg>
+            )}
           </span>
-        </div>
-      </Card>
-    </Link>
+        </Card>
+      </Link>
+    </m.div>
   )
 }
 
-function PlanCard({ w }: { w: Workout }) {
+function PlanCard({ w, goals, index }: { w: Workout; goals: TrainingGoal[]; index: number }) {
+  const goal = goals.find((g) => g.key === w.goal)
   return (
-    <Link to={`/treinos/${w.id}`} className="block">
-      <Card className={cn('transition-colors hover:bg-elevated', !w.is_active && 'opacity-60')}>
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="min-w-0 truncate text-[17px] font-semibold tracking-[-0.01em]">{w.name}</h3>
-          <span className="shrink-0 text-[13px] text-ink-muted first-letter:uppercase">{describeDays(w.days_of_week)}</span>
-        </div>
-        <p className="mt-1.5 text-[13px] text-ink-muted">
-          {w.exercises.length === 0 ? 'Sem exercícios ainda' : pluralize(w.exercises.length, 'exercício', 'exercícios')}
-          {!w.is_active && ' · pausado'}
-        </p>
-        {w.exercises.length > 0 && (
-          <ul className="mt-2.5 flex flex-wrap gap-1.5">
-            {w.exercises.slice(0, 4).map((e) => (
-              <li key={e.id} className="rounded-full border border-line bg-elevated px-2.5 py-1 text-[12px] text-ink-muted">
-                {e.name}
-              </li>
-            ))}
-            {w.exercises.length > 4 && <li className="px-1 py-1 text-[12px] text-ink-faint">+{w.exercises.length - 4}</li>}
-          </ul>
-        )}
-      </Card>
-    </Link>
+    <m.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index, 6) * 0.04, duration: 0.24, ease: 'easeOut' }}
+    >
+      <Link to={`/treinos/${w.id}`} className="block">
+        <Card className={cn('transition-colors hover:bg-elevated', !w.is_active && 'opacity-60')}>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="min-w-0 truncate text-[17px] font-semibold tracking-[-0.01em]">{w.name}</h3>
+            <span className="shrink-0 text-[13px] text-ink-muted first-letter:uppercase">{describeDays(w.days_of_week)}</span>
+          </div>
+          <p className="mt-1.5 text-[13px] text-ink-muted">
+            {w.exercises.length === 0 ? 'Sem exercícios ainda' : pluralize(w.exercises.length, 'exercício', 'exercícios')}
+            {goal && ` · ${goal.label.toLowerCase()}`}
+            {!w.is_active && ' · pausado'}
+          </p>
+          {w.exercises.length > 0 && (
+            <ul className="mt-2.5 flex flex-wrap gap-1.5">
+              {w.exercises.slice(0, 4).map((e) => (
+                <li key={e.id} className="rounded-full border border-line bg-elevated px-2.5 py-1 text-[12px] text-ink-muted">
+                  {e.name}
+                </li>
+              ))}
+              {w.exercises.length > 4 && <li className="px-1 py-1 text-[12px] text-ink-faint">+{w.exercises.length - 4}</li>}
+            </ul>
+          )}
+        </Card>
+      </Link>
+    </m.div>
   )
 }

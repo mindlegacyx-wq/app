@@ -1,5 +1,5 @@
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { Button, Card, Dialog, EmptyState, Spinner } from '@/components/ui'
@@ -8,7 +8,7 @@ import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
 import { cn, todayIn } from '@/lib/format'
 import { useWakeLock } from '@/lib/wake-lock'
-import type { SessionExercise, SessionDetail } from '@/lib/types'
+import type { DayWorkout, SessionDetail, SessionExercise } from '@/lib/types'
 
 import { useAddSet, useDeleteSet, useSessionDetail, useSetSessionStatus, useStartSession, useUpdateSet, useWorkoutsDay } from './api'
 import { ExerciseIcon } from './ExerciseIcon'
@@ -33,14 +33,6 @@ export function SessionPage() {
   const w = day.data?.workouts.find((x) => x.workout_id === id)
   const sessionId = w?.session?.id
   const detail = useSessionDetail(sessionId)
-
-  // Sem sessão ainda: começa uma ao abrir a tela (é o que o usuário veio fazer).
-  const started = useRef(false)
-  useEffect(() => {
-    if (!w || w.session || started.current || !day.data) return
-    started.current = true
-    start.mutate(id, { onError: (e) => setError(errorMessage(e)) })
-  }, [w, day.data, id, start])
 
   if (day.isPending) {
     return (
@@ -71,7 +63,13 @@ export function SessionPage() {
           {error}
         </p>
       )}
-      {!detail.data ? (
+      {!sessionId ? (
+        <Warmup
+          workout={w}
+          starting={start.isPending}
+          onStart={() => start.mutate(id, { onError: (e) => setError(errorMessage(e)) })}
+        />
+      ) : !detail.data ? (
         <div className="flex justify-center py-16">
           <Spinner className="size-6 text-ink-faint" />
         </div>
@@ -102,6 +100,74 @@ export function SessionPage() {
           setStatus.mutate({ sessionId, status: 'skipped' }, { onSuccess: () => navigate('/treinos') })
         }}
       />
+    </>
+  )
+}
+
+/**
+ * Antes de começar: o que vem pela frente e um botão grande. Sem isso o usuário entrava num
+ * treino "já em andamento" sem ter decidido nada — e o cronômetro corria sozinho.
+ */
+function Warmup({
+  workout,
+  starting,
+  onStart,
+}: {
+  workout: DayWorkout
+  starting: boolean
+  onStart: () => void
+}) {
+  const reduced = useReducedMotion()
+  const totalSets = workout.exercises.reduce((sum, e) => sum + (e.sets ?? 3), 0)
+
+  return (
+    <>
+      <Card className="mt-4 p-4">
+        <p className="text-[12px] tracking-[0.14em] text-ink-faint uppercase">Hoje</p>
+        <p className="mt-1 text-[22px] leading-tight font-semibold tracking-[-0.02em]">{workout.name}</p>
+        <p className="mt-1 text-[13px] text-ink-muted">
+          {workout.exercises.length} exercícios · {totalSets} séries previstas
+        </p>
+      </Card>
+
+      <ul className="mt-3 flex flex-col gap-2">
+        {workout.exercises.map((e, i) => (
+          <m.li
+            key={e.id}
+            initial={reduced ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduced ? 0 : 0.04 * i, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+          >
+            <Card className="flex items-center gap-3 p-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/6 text-ink-muted">
+                <ExerciseIcon icon={e.icon} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-medium">{e.name}</span>
+                <span className="block text-[12px] text-ink-faint">
+                  {[e.sets ? `${e.sets} séries` : null, e.reps ? `${e.reps} reps` : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
+            </Card>
+          </m.li>
+        ))}
+      </ul>
+
+      <m.div
+        className="sticky bottom-20 z-10 mt-6"
+        initial={reduced ? false : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: reduced ? 0 : 0.12, type: 'spring', stiffness: 260, damping: 26 }}
+      >
+        <Button size="lg" full loading={starting} onClick={onStart}>
+          Começar treino
+        </Button>
+      </m.div>
+      <p className="mt-2 text-center text-[12px] text-ink-faint">
+        O cronômetro começa agora e o descanso liga sozinho a cada série marcada.
+      </p>
     </>
   )
 }
@@ -176,9 +242,14 @@ function Running({
       </div>
 
       <div className="mt-5 flex flex-col gap-3">
-        {detail.exercises.map((item) => (
-          <ExerciseCard
+        {detail.exercises.map((item, i) => (
+          <m.div
             key={item.exercise.id}
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduced ? 0 : Math.min(i, 6) * 0.05, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+          >
+          <ExerciseCard
             item={item}
             editable={editable}
             onSet={(setId, patch) => {
@@ -197,6 +268,7 @@ function Running({
             }
             onRemove={(setId) => removeSet.mutate(setId)}
           />
+          </m.div>
         ))}
       </div>
 
@@ -251,14 +323,16 @@ function ExerciseCard({
   return (
     <Card className={cn('p-3.5 transition-colors', complete && 'border-accent/30')}>
       <div className="flex items-start gap-3">
-        <span
+        <m.span
           className={cn(
-            'grid size-9 shrink-0 place-items-center rounded-full',
+            'grid size-9 shrink-0 place-items-center rounded-full transition-colors',
             complete ? 'bg-accent text-on-accent' : 'bg-white/6 text-ink-muted',
           )}
+          animate={complete ? { scale: [1, 1.14, 1] } : { scale: 1 }}
+          transition={{ duration: 0.36, ease: 'easeOut' }}
         >
           <ExerciseIcon icon={exercise.icon} />
-        </span>
+        </m.span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <Link to={`/treinos/exercicio/${exercise.id}`} className="truncate text-[16px] font-semibold">

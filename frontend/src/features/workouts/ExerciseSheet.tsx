@@ -1,20 +1,22 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { Button, Dialog, Field, Sheet } from '@/components/ui'
 import { errorMessage } from '@/lib/api'
 import { cn } from '@/lib/format'
 import type { Exercise, LibraryExercise, LoadMode } from '@/lib/types'
 
-import { useAddExercise, useDeleteExercise, useUpdateExercise } from './api'
+import { useAddExercise, useDeleteExercise, useExerciseLibrary, useUpdateExercise } from './api'
+import { GoalChips } from './GoalChips'
 import { ExerciseIcon } from './ExerciseIcon'
 import { ExercisePicker } from './ExercisePicker'
-import { loadLabel } from './load'
+import { fmtKg, loadLabel, toReal, toTyped } from './load'
 
 interface Props {
   open: boolean
   onClose: () => void
   workoutId: string
   exercise?: Exercise
+  planGoal?: string | null // objetivo do plano: o exercício novo já nasce com ele
 }
 
 /**
@@ -22,7 +24,7 @@ interface Props {
  *
  * Os passos se revezam na mesma camada — sheet sobre sheet fica atrás no celular e confunde.
  */
-export function ExerciseSheet({ open, onClose, workoutId, exercise }: Props) {
+export function ExerciseSheet({ open, onClose, workoutId, exercise, planGoal }: Props) {
   const [step, setStep] = useState<'pick' | 'form'>(exercise ? 'form' : 'pick')
   const [preset, setPreset] = useState<LibraryExercise | null>(null)
 
@@ -50,6 +52,7 @@ export function ExerciseSheet({ open, onClose, workoutId, exercise }: Props) {
       <ExerciseForm
         workoutId={workoutId}
         exercise={exercise}
+        planGoal={planGoal}
         preset={preset}
         onPickAgain={() => setStep('pick')}
         onClose={onClose}
@@ -61,6 +64,7 @@ export function ExerciseSheet({ open, onClose, workoutId, exercise }: Props) {
 function ExerciseForm({
   workoutId,
   exercise,
+  planGoal,
   preset,
   onPickAgain,
   onClose,
@@ -76,9 +80,32 @@ function ExerciseForm({
   )
   const [mode, setMode] = useState<LoadMode>(preset?.load_mode ?? exercise?.load_mode ?? 'total')
   const [bar, setBar] = useState(String(preset?.bar_weight ?? exercise?.bar_weight ?? 20))
+  const [goal, setGoal] = useState<string | null>(exercise?.goal ?? planGoal ?? null)
+  // A carga inicial é guardada em kg reais; aqui ela aparece no formato que a pessoa digita.
+  const [startWeight, setStartWeight] = useState(() =>
+    exercise?.start_weight != null
+      ? String(toTyped(exercise, exercise.start_weight)).replace('.', ',')
+      : '',
+  )
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const library = useExerciseLibrary()
   const [error, setError] = useState<string | null>(null)
   const icon = preset?.icon ?? exercise?.icon ?? null
+
+  const goals = library.data?.goals ?? []
+  const primed = useRef(Boolean(exercise))
+  useEffect(() => {
+    if (primed.current) return
+    const picked = goals.find((g) => g.key === goal)
+    if (!picked) return
+    primed.current = true
+    setSets(String(picked.sets))
+    setReps(picked.reps)
+    setRest(String(picked.rest))
+  }, [goals, goal])
+
+  const barWeight = mode === 'per_side' ? Number(bar.replace(',', '.')) || 0 : 0
+  const typedStart = startWeight.trim() === '' ? null : Number(startWeight.replace(',', '.'))
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -90,11 +117,15 @@ function ExerciseForm({
       load: null,
       rest_seconds: rest ? Number(rest) : null,
       load_mode: mode,
-      bar_weight: mode === 'per_side' ? Number(bar.replace(',', '.')) || 0 : 0,
+      bar_weight: barWeight,
+      goal,
+      start_weight: typedStart === null ? null : toReal({ load_mode: mode, bar_weight: barWeight }, typedStart),
     }
     try {
       if (exercise) {
-        const clear = (['sets', 'reps', 'rest_seconds'] as const).filter((k) => body[k] === null)
+        const clear = (['sets', 'reps', 'rest_seconds', 'start_weight'] as const).filter(
+          (k) => body[k] === null,
+        )
         await update.mutateAsync({ id: exercise.id, ...body, clear })
       } else {
         await add.mutateAsync({
@@ -128,6 +159,24 @@ function ExerciseForm({
       </button>
 
       <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder="Ex.: Agachamento livre" />
+
+      <div>
+        <p className="text-[13px] font-medium text-ink-muted">Objetivo deste exercício</p>
+        <GoalChips
+          className="mt-2"
+          goals={goals}
+          value={goal}
+          onChange={(picked) => {
+            primed.current = true
+            setGoal(picked?.key ?? null)
+            if (picked) {
+              setReps(picked.reps)
+              setSets(String(picked.sets))
+              setRest(String(picked.rest))
+            }
+          }}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Séries" type="number" inputMode="numeric" min={1} max={50} value={sets} onChange={(e) => setSets(e.target.value)} placeholder="3" className="[&_input]:tabular" />
@@ -164,6 +213,22 @@ function ExerciseForm({
               : `Você digita o peso cheio (${loadLabel('total')}).`}
         </p>
       </div>
+
+      {mode !== 'bodyweight' && (
+        <Field
+          label={`Carga inicial (${loadLabel(mode)})`}
+          inputMode="decimal"
+          value={startWeight}
+          onChange={(e) => setStartWeight(e.target.value.replace(/[^\d.,]/g, ''))}
+          placeholder="opcional"
+          hint={
+            mode === 'per_side' && typedStart !== null && Number.isFinite(typedStart)
+              ? `${startWeight} de cada lado = ${fmtKg(toReal({ load_mode: mode, bar_weight: barWeight }, typedStart))} na barra.`
+              : 'Só para o primeiro treino. Depois o app usa o que você levantou da última vez.'
+          }
+          className="[&_input]:tabular"
+        />
+      )}
       {error && <p className="text-[14px] text-danger">{error}</p>}
       <Button type="submit" size="lg" full loading={add.isPending || update.isPending} disabled={!name.trim()}>
         {exercise ? 'Salvar' : 'Adicionar'}

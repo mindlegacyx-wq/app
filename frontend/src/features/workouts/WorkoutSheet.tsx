@@ -5,7 +5,8 @@ import { Button, DayPicker, Field, Sheet } from '@/components/ui'
 import { errorMessage } from '@/lib/api'
 import type { Workout } from '@/lib/types'
 
-import { useCreateWorkout, useUpdateWorkout } from './api'
+import { GoalChips } from './GoalChips'
+import { useCreateWorkout, useExerciseLibrary, useUpdateWorkout } from './api'
 
 interface Props {
   open: boolean
@@ -13,7 +14,7 @@ interface Props {
   workout?: Workout
 }
 
-/** Tela 20 (meta do plano): nome, dias da semana, notas. */
+/** Tela 20 (meta do plano): nome, objetivo, dias da semana, notas. */
 export function WorkoutSheet({ open, onClose, workout }: Props) {
   return (
     <Sheet open={open} onClose={onClose} title={workout ? 'Editar treino' : 'Novo treino'}>
@@ -26,7 +27,9 @@ function WorkoutForm({ workout, onClose }: { workout?: Workout; onClose: () => v
   const navigate = useNavigate()
   const create = useCreateWorkout()
   const update = useUpdateWorkout(workout?.id ?? '')
+  const library = useExerciseLibrary()
   const [name, setName] = useState(workout?.name ?? '')
+  const [goal, setGoal] = useState<string | null>(workout?.goal ?? null)
   const [days, setDays] = useState<number[]>(workout?.days_of_week ?? [0, 2, 4])
   const [notes, setNotes] = useState(workout?.notes ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -40,10 +43,16 @@ function WorkoutForm({ workout, onClose }: { workout?: Workout; onClose: () => v
     }
     try {
       if (workout) {
-        await update.mutateAsync({ name: name.trim(), days_of_week: days, notes: notes.trim() || undefined, clear_notes: notes.trim() === '' })
+        await update.mutateAsync({
+          name: name.trim(),
+          days_of_week: days,
+          goal,
+          notes: notes.trim() || undefined,
+          clear_notes: notes.trim() === '',
+        })
         onClose()
       } else {
-        const created = await create.mutateAsync({ name: name.trim(), days_of_week: days, notes: notes.trim() || null })
+        const created = await create.mutateAsync({ name: name.trim(), days_of_week: days, goal, notes: notes.trim() || null })
         onClose()
         navigate(`/treinos/${created.id}`)
       }
@@ -55,6 +64,15 @@ function WorkoutForm({ workout, onClose }: { workout?: Workout; onClose: () => v
   return (
     <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
       <Field label="Nome do treino" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required autoFocus={!workout} placeholder="Ex.: Treino A · Pernas" />
+
+      {library.data && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-medium text-ink-muted">Objetivo (opcional)</span>
+          <GoalChips goals={library.data.goals} value={goal} onChange={(g) => setGoal(g?.key ?? null)} />
+          <p className="text-[12px] text-ink-faint">Cada exercício novo já entra com as séries, repetições e descanso desse objetivo.</p>
+        </div>
+      )}
+
       <DayPicker value={days} onChange={setDays} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor="wk-notes" className="text-[13px] font-medium text-ink-muted">

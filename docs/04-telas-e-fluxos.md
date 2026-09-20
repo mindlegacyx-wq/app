@@ -27,6 +27,8 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### HUD (todas as abas)
 | # | Tela | Conteúdo |
 |---|---|---|
+| 47 | **Objetivo do treino** (no plano e em cada exercício): força 4-6 · hipertrofia 8-12 · resistência 15-20 · potência 3-5, cada um com séries e descanso próprios. Escolher preenche os campos; tudo continua editável. |
+| 46 | **Aquecimento** (`/treinos/:id/sessao`, antes de começar): o treino do dia com os exercícios e o botão **Começar treino**. O cronômetro só corre depois disso. |
 | 45 | **Evolução do exercício** (`/treinos/exercicio/:id`): gráfico da maior carga por treino e o registro de cada dia com o volume. |
 | 44 | **Treino em andamento** (`/treinos/:id/sessao`): tempo total correndo, séries com peso e repetições, "última vez" e convite a subir carga, descanso automático com som e vibração, volume do dia. |
 | 43 | **Conquistas** (`/conquistas`): vitrine de 25 selos por família, com data nos conquistados e barra de progresso nos que faltam. Aviso no rodapé quando um selo cai (três ou mais de uma vez viram um aviso só). Cartão resumo na Evolução. |
@@ -77,9 +79,9 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### Treinos
 | # | Tela | Conteúdo |
 |---|---|---|
-| 19 | Treinos | Planos com dias da semana · treino de hoje em destaque |
-| 20 | Editar plano | Nome, dias, lista ordenável de exercícios (séries, reps, carga, descanso) |
-| 21 | **Sessão de treino** | Exercícios com check, cronômetro de descanso, botão Concluir / Pular |
+| 19 | Treinos | Planos com dias da semana · treino de hoje em destaque com o botão **Começar treino** |
+| 20 | Editar plano | Nome, **objetivo**, dias, lista ordenável de exercícios com ícone (séries, reps, carga inicial, descanso) |
+| 21 | **Sessão de treino** | Aquecimento com "Começar treino" → séries com peso (**kg/lado** quando é barra, com a conta na tela) e repetições, cronômetro de descanso, Concluir / Pular |
 | 22 | Histórico de treinos | Calendário do mês com dias treinados |
 
 ### Evolução
