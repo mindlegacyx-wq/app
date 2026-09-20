@@ -9,6 +9,8 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    Integer,
+    LargeBinary,
     SmallInteger,
     String,
     Time,
@@ -19,8 +21,42 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
 
-# Sons disponíveis: chaves sintetizadas no app pela Web Audio API (sem arquivo de áudio).
+# Sons prontos: chaves sintetizadas no app pela Web Audio API (sem arquivo de áudio).
 ALARM_SOUNDS = ("classic", "soft", "pulse")
+
+# Áudio do usuário: pequeno de propósito (é um despertador, não uma biblioteca).
+MAX_SOUND_BYTES = 5 * 1024 * 1024
+MAX_SOUNDS_PER_USER = 5
+ALLOWED_AUDIO = {
+    "audio/mpeg": "mp3",
+    "audio/mp3": "mp3",
+    "audio/mp4": "m4a",
+    "audio/x-m4a": "m4a",
+    "audio/aac": "aac",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/x-wav": "wav",
+    "audio/webm": "webm",
+}
+
+
+class AlarmSoundFile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Áudio que o usuário subiu para usar como alarme.
+
+    Fica no banco (bytea) e não em disco: no plano gratuito do Render o disco some a cada
+    publicação. Poucos megabytes, e assim o som acompanha o usuário em qualquer aparelho.
+    """
+
+    __tablename__ = "alarm_sounds"
+    __table_args__ = (Index("ix_alarm_sounds_user_id_created_at", "user_id", "created_at"),)
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(60), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
 
 
 class Alarm(Base, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin):
@@ -36,6 +72,12 @@ class Alarm(Base, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin):
     time: Mapped[time] = mapped_column(Time, nullable=False)
     days_of_week: Mapped[list[int]] = mapped_column(ARRAY(SmallInteger), nullable=False)
     sound: Mapped[str] = mapped_column(String(40), nullable=False, default="classic")
+    # Quando preenchido, toca o áudio do usuário no lugar do som pronto.
+    sound_file_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("alarm_sounds.id", ondelete="SET NULL"), nullable=True
+    )
+    # Repetir a notificação a cada minuto até confirmar (com o app fechado).
+    insist: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     requires_confirmation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     max_snoozes: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
     snooze_minutes: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=5)
@@ -71,6 +113,8 @@ class WakeLog(Base, UUIDPrimaryKeyMixin):
     next_ring_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     snooze_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    # Último envio de notificação deste toque: segura a insistência em um por minuto.
+    last_push_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[WakeStatus] = mapped_column(
         Enum(WakeStatus, name="wake_status", native_enum=False, length=16), nullable=False
     )

@@ -160,6 +160,24 @@ export async function apiUpload<T>(path: string, form: FormData, signal?: AbortS
   return (await res.json()) as T
 }
 
+/** Baixa um arquivo com a sessão do usuário (áudio do alarme). */
+export async function apiBlob(path: string, signal?: AbortSignal): Promise<Blob> {
+  const doFetch = () =>
+    fetch(`/api/v1${path}`, {
+      credentials: 'include',
+      signal,
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    })
+  let res = await doFetch()
+  if (res.status === 401) {
+    const renewed = await refreshSession()
+    if (!renewed) throw await parseError(res)
+    res = await doFetch()
+  }
+  if (!res.ok) throw await parseError(res)
+  return await res.blob()
+}
+
 /** Mensagem legível para qualquer erro capturado na UI. */
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message

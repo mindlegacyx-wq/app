@@ -53,6 +53,8 @@ class Settings(BaseSettings):
 
     # Despertador
     alarm_missed_minutes: int = Field(default=60, ge=5, le=240)  # sem confirmar → perdido
+    # Com o app fechado, um toque só não acorda: reenvia a notificação nesse intervalo.
+    alarm_repeat_seconds: int = Field(default=60, ge=30, le=600)
     # Web Push (VAPID). Gere com `python -m app.core.push` e cole no .env.
     vapid_public_key: str = ""
     vapid_private_key: str = ""

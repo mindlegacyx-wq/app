@@ -2,17 +2,20 @@ from datetime import date, timedelta
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Form, Query, UploadFile, status
+from fastapi.responses import Response
 
 from app.core.dates import user_today
 from app.core.deps import DB, CurrentUser
 from app.core.errors import AppError
 from app.modules.alarms import service
+from app.modules.alarms.models import MAX_SOUND_BYTES
 from app.modules.alarms.schemas import (
     AlarmIn,
     AlarmOut,
     AlarmsOut,
     AlarmUpdate,
+    SoundOut,
     WakeConfirmIn,
     WakeDayOut,
     WakeHistoryOut,
@@ -96,6 +99,49 @@ async def create_alarm(data: AlarmIn, user: CurrentUser, db: DB) -> AlarmOut:
     alarm = await service.create_alarm(db, user.id, data)
     await db.commit()
     return service.to_out(alarm, user.timezone)
+
+
+# --- Áudio do usuário (antes de /{alarm_id}) ---------------------------------------------
+
+
+@alarms_router.get("/sounds", response_model=list[SoundOut])
+async def list_sounds(user: CurrentUser, db: DB) -> list[SoundOut]:
+    return await service.list_sounds(db, user.id)
+
+
+@alarms_router.post("/sounds", response_model=SoundOut, status_code=status.HTTP_201_CREATED)
+async def upload_sound(
+    user: CurrentUser,
+    db: DB,
+    file: Annotated[UploadFile, File()],
+    name: Annotated[str | None, Form()] = None,
+) -> SoundOut:
+    # Lê com teto: arquivo grande demais para de ser lido em vez de estourar a memória.
+    data = await file.read(MAX_SOUND_BYTES + 1)
+    label = (name or file.filename or "Meu áudio").rsplit(".", 1)[0]
+    row = await service.create_sound(db, user.id, label, file.content_type or "", data)
+    await db.commit()
+    return SoundOut.model_validate(row)
+
+
+@alarms_router.get("/sounds/{sound_id}/file")
+async def sound_file(sound_id: UUID, user: CurrentUser, db: DB) -> Response:
+    row = await service.get_sound(db, user.id, sound_id)
+    return Response(
+        content=row.data,
+        media_type=row.content_type,
+        headers={
+            # O arquivo nunca muda (troca = novo id): pode ficar guardado no aparelho.
+            "Cache-Control": "private, max-age=31536000, immutable",
+            "Content-Disposition": "inline",
+        },
+    )
+
+
+@alarms_router.delete("/sounds/{sound_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_sound(sound_id: UUID, user: CurrentUser, db: DB) -> None:
+    await service.delete_sound(db, user.id, sound_id)
+    await db.commit()
 
 
 @alarms_router.get("/{alarm_id}", response_model=AlarmOut)

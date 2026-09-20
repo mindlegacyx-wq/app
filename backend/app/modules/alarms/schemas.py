@@ -25,6 +25,8 @@ class AlarmIn(BaseModel):
     time: dt.time
     days_of_week: list[int] = Field(default=[0, 1, 2, 3, 4, 5, 6])
     sound: AlarmSound = "classic"
+    sound_file_id: UUID | None = None  # áudio do usuário; vence o som pronto
+    insist: bool = True  # repete a notificação até confirmar
     requires_confirmation: bool = True
     max_snoozes: int = Field(default=1, ge=0, le=5)
     snooze_minutes: int = Field(default=5, ge=1, le=30)
@@ -46,6 +48,9 @@ class AlarmUpdate(BaseModel):
     time: dt.time | None = None
     days_of_week: list[int] | None = None
     sound: AlarmSound | None = None
+    sound_file_id: UUID | None = None
+    clear_sound_file: bool = False  # volta para o som pronto
+    insist: bool | None = None
     requires_confirmation: bool | None = None
     max_snoozes: int | None = Field(default=None, ge=0, le=5)
     snooze_minutes: int | None = Field(default=None, ge=1, le=30)
@@ -79,6 +84,8 @@ class AlarmOut(BaseModel):
     time: dt.time
     days_of_week: list[int]
     sound: str
+    sound_file_id: UUID | None = None
+    insist: bool = True
     requires_confirmation: bool
     max_snoozes: int
     snooze_minutes: int
@@ -109,6 +116,7 @@ class WakeAlarmOut(BaseModel):
     id: UUID
     label: str
     sound: str
+    sound_file_id: UUID | None = None
     requires_confirmation: bool
     max_snoozes: int
     snooze_minutes: int
@@ -157,3 +165,16 @@ class WakeHistoryOut(BaseModel):
     confirmed: int
     missed: int
     average_delay_minutes: int | None
+
+
+# --- Áudio do usuário --------------------------------------------------------------------
+
+
+class SoundOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    content_type: str
+    size_bytes: int
+    created_at: dt.datetime

@@ -128,6 +128,8 @@ Assinaturas mortas (404/410 do serviço de push) são apagadas pelo job de alarm
 | time | time | no fuso do usuário, minuto cheio (segundos descartados) |
 | days_of_week | smallint[] | |
 | sound | varchar(40) | `classic` · `soft` · `pulse` — sintetizados no app (Web Audio), sem arquivo |
+| sound_file_id | uuid FK NULL | áudio do usuário (`alarm_sounds`); quando presente, vence o som pronto (`ON DELETE SET NULL`) |
+| insist | bool | padrão true: repete a notificação a cada minuto até confirmar |
 | requires_confirmation | bool | padrão true: segurar 3 s para desligar; false: um toque |
 | max_snoozes | smallint | padrão 1 (0 a 5) |
 | snooze_minutes | smallint | padrão 5 (1 a 30) |
@@ -136,6 +138,23 @@ Assinaturas mortas (404/410 do serviço de push) são apagadas pelo job de alarm
 | INDEX (user_id, time) | | |
 
 Regras: o **acordar planejado** de um dia é o primeiro alarme ativo daquele dia da semana; quem não tem nenhum alarme cai no `user_settings.wake_time`. O setup cria o alarme "Acordar" no horário informado (decisão 4 do fundador).
+
+### `alarm_sounds` (Fase 19)
+
+O áudio que o usuário subiu para usar como alarme.
+
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| name | varchar(60) | nome do arquivo, sem a extensão |
+| content_type | varchar(40) | mp3, m4a, aac, ogg, wav ou webm |
+| size_bytes | int | até 5 MB |
+| data | bytea | o arquivo |
+| created_at / updated_at | | |
+| INDEX (user_id, created_at) | | |
+
+Por que no banco e não em disco: no plano gratuito do Render o disco some a cada publicação. São poucos megabytes (até 5 arquivos por usuário) e assim o som acompanha o usuário em qualquer aparelho. O arquivo é servido em `GET /alarms/sounds/{id}/file` com cache imutável e guardado no Cache Storage do aparelho na primeira vez — despertador não pode depender de internet às 6 da manhã. Excluir o áudio devolve o alarme ao som pronto (nunca fica mudo).
 
 ### `wake_logs` (registro de que levantou)
 | Coluna | Tipo | Obs |
@@ -149,11 +168,12 @@ Regras: o **acordar planejado** de um dia é o primeiro alarme ativo daquele dia
 | next_ring_at | timestamptz NULL | próximo toque depois de uma soneca; NULL sem toque pendente. **Acrescentada na Fase 6**: sem ela o servidor não sabe quando reenviar o push da soneca com o app fechado |
 | confirmed_at | timestamptz NULL | **horário que levantou** |
 | snooze_count | smallint | |
+| last_push_at | timestamptz NULL | último envio deste toque; segura a insistência em uma notificação por minuto |
 | status | enum(`pending`,`confirmed`,`missed`,`manual`) | |
 | UNIQUE (user_id, date) | | um registro de acordar por dia |
 | INDEX (status, next_ring_at) | | o job procura pendentes com toque previsto |
 
-Ciclo: o disparo (job por minuto ou `POST /wake/ring` do app aberto) cria o registro `pending` com `rang_at`; soneca incrementa `snooze_count` e marca `next_ring_at`; confirmar a partir do alarme → `confirmed`; sem confirmação em `ALARM_MISSED_MINUTES` (60) após `rang_at` → `missed`; perdido confirmado depois → `manual`. O "Levantei" manual do dia D só é aceito a partir do corte de fechamento (03:00) de D.
+Ciclo: o disparo (job por minuto ou `POST /wake/ring` do app aberto) cria o registro `pending` com `rang_at`; enquanto ficar pendente e `insist` estiver ligado, o job reenvia a notificação a cada `ALARM_REPEAT_SECONDS` (60); soneca incrementa `snooze_count` e marca `next_ring_at`; confirmar a partir do alarme → `confirmed`; sem confirmação em `ALARM_MISSED_MINUTES` (60) após `rang_at` → `missed`; perdido confirmado depois → `manual`. O "Levantei" manual do dia D só é aceito a partir do corte de fechamento (03:00) de D.
 
 ---
 

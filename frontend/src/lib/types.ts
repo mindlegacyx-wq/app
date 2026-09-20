@@ -114,11 +114,22 @@ export interface Alarm {
   time: string // "HH:MM:SS"
   days_of_week: number[]
   sound: AlarmSound
+  sound_file_id: string | null // áudio do usuário; quando presente, vence o som pronto
+  insist: boolean // repete a notificação até confirmar
   requires_confirmation: boolean
   max_snoozes: number
   snooze_minutes: number
   is_active: boolean
   next_ring_at: string | null // ISO UTC
+  created_at: string
+}
+
+/** Áudio que o usuário subiu para usar como alarme. */
+export interface AlarmSoundFile {
+  id: string
+  name: string
+  content_type: string
+  size_bytes: number
   created_at: string
 }
 
@@ -139,6 +150,7 @@ export interface WakeAlarm {
   id: string
   label: string
   sound: AlarmSound
+  sound_file_id: string | null
   requires_confirmation: boolean
   max_snoozes: number
   snooze_minutes: number

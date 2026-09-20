@@ -11,6 +11,7 @@ import { cn, longDate, timeIn, todayIn } from '@/lib/format'
 import type { AlarmSound, WakeDay } from '@/lib/types'
 
 import { useAlarms } from './api'
+import { alarmSoundUrl, playLoop } from './audio'
 import { createAlarmPlayer } from './sounds'
 
 /**
@@ -34,8 +35,9 @@ export function AlarmScreen() {
   const snoozedUntil = d?.status === 'pending' && !d.ringing && d.next_ring_at ? d.next_ring_at : null
   const confirmed = Boolean(d?.confirmed_at)
   const sound = d?.alarm?.sound ?? 'classic'
+  const soundFileId = d?.alarm?.sound_file_id ?? null
 
-  useAlarmSound(ringing && !muted && !confirmed, sound)
+  useAlarmSound(ringing && !muted && !confirmed, sound, soundFileId)
   useWakeLock(Boolean(d && d.status === 'pending'))
 
   // Soneca acabou → toca de novo (o job também faz isso; a chamada é idempotente).
@@ -252,11 +254,45 @@ function useClock(): string {
   return now
 }
 
-function useAlarmSound(active: boolean, sound: AlarmSound) {
+/**
+ * Toca o alarme: o áudio do usuário quando há um escolhido, o som sintetizado quando não há.
+ *
+ * Duas redes de proteção, porque despertador mudo não serve para nada: se o arquivo não
+ * carregar (sem rede e fora do cache) ou o navegador bloquear o autoplay, cai no som
+ * sintetizado na hora.
+ */
+function useAlarmSound(active: boolean, sound: AlarmSound, soundFileId: string | null) {
   useEffect(() => {
     if (!active) return
-    const player = createAlarmPlayer(sound)
-    player.start()
-    return () => player.stop()
-  }, [active, sound])
+    let stopped = false
+    let stopFile: (() => void) | null = null
+    let fallback: ReturnType<typeof createAlarmPlayer> | null = null
+
+    const startFallback = () => {
+      if (stopped || fallback) return
+      fallback = createAlarmPlayer(sound)
+      fallback.start()
+    }
+
+    if (soundFileId) {
+      alarmSoundUrl(soundFileId)
+        .then((url) => {
+          if (stopped) {
+            URL.revokeObjectURL(url)
+            return
+          }
+          const player = playLoop(url, startFallback)
+          stopFile = player.stop
+        })
+        .catch(startFallback)
+    } else {
+      startFallback()
+    }
+
+    return () => {
+      stopped = true
+      stopFile?.()
+      fallback?.stop()
+    }
+  }, [active, sound, soundFileId])
 }

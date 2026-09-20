@@ -27,6 +27,8 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### HUD (todas as abas)
 | # | Tela | Conteúdo |
 |---|---|---|
+| 51 | **Modo cabeceira** (`/despertador/cabeceira`): relógio grande, tela acesa, escurece sozinho. O alarme toca aí mesmo, com o áudio escolhido, sem depender de notificação. |
+| 50 | **Áudio próprio do alarme**: subir o arquivo (até 5 MB, até 5 guardados), ouvir a prévia, escolher por alarme; "Insistir até eu desligar" repete a notificação a cada minuto. |
 | 49 | **Treinar em qualquer dia**: "Treinar agora" em cada plano e "Começar treino" dentro do plano. Fora do dia marcado, a sessão entra como **treino extra** do dia. |
 | 48 | **Tarefa fixa**: em Nova tarefa, "Repetir" + os dias da semana. Ela aparece sozinha todo dia marcado, com o ícone de repetição, e a lista "Tarefas fixas" (no rodapé do bloco Tarefas) edita, pausa ou exclui a regra. |
 | 47 | **Objetivo do treino** (no plano e em cada exercício): força 4-6 · hipertrofia 8-12 · resistência 15-20 · potência 3-5, cada um com séries e descanso próprios. Escolher preenche os campos; tudo continua editável. |

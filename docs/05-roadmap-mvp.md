@@ -67,6 +67,12 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   fora do dia marcado a sessão entra como treino extra. Teste novo comparando as migrações com
   os modelos, depois de uma coluna sem default quebrar a criação da tarefa fixa.
 
+- **Fase 19 — Despertador que acorda de verdade** (feita): áudio do usuário como som do alarme
+  (guardado no banco, em cache no aparelho, com o som sintetizado como reserva), notificação
+  insistente a cada minuto até confirmar, modo cabeceira (tela aberta, sem depender de push) e
+  um guia de como deixar alto com o app fechado. Link do YouTube não entra: extrair áudio de lá
+  é contra os termos do serviço.
+
 ## MoSCoW
 
 **Must (MVP)**

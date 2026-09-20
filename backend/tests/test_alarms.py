@@ -192,12 +192,14 @@ async def test_dispatch_rings_snoozes_and_marks_missed(
     assert sent[0]["type"] == "alarm" and sent[0]["time"] == alarm_hm
     assert sent[0]["endpoint"] == SUB["endpoint"]
 
-    # 2) Rodar de novo no minuto seguinte não toca duas vezes.
+    # 2) Rodar de novo no minuto seguinte insiste: mesma notificação, nenhum registro novo.
     assert (
         await alarms_service.dispatch_for_user(db_session, user, ring_at + timedelta(seconds=60))
-        == 0
+        == 1
     )
-    assert len(sent) == 1
+    assert len(sent) == 2
+    day = (await client.get("/api/v1/wake/day", headers=h)).json()
+    assert day["status"] == "pending" and day["ringing"] is True
 
     # 3) Soneca: adia, e a segunda soneca é recusada (max_snoozes = 1).
     r = await client.post("/api/v1/wake/snooze", headers=h)
@@ -212,12 +214,13 @@ async def test_dispatch_rings_snoozes_and_marks_missed(
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "wake_not_ringing"
 
-    # 4) Soneca vencida → toca de novo (segundo push), sem novo registro.
+    # 4) Soneca vencida → toca de novo, sem novo registro.
+    before = len(sent)
     assert (
         await alarms_service.dispatch_for_user(db_session, user, next_ring + timedelta(seconds=5))
         == 1
     )
-    assert len(sent) == 2
+    assert len(sent) == before + 1
     day = (await client.get("/api/v1/wake/day", headers=h)).json()
     assert day["status"] == "pending" and day["ringing"] is True and day["next_ring_at"] is None
 

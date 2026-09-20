@@ -202,6 +202,27 @@ Três regras seguram o histórico:
 - editar a regra altera só as tarefas **pendentes de hoje em diante**;
 - tarefa fixa **não entra em "atrasadas"**: ela já contou (ou não) no dia dela.
 
+## 7.7. Despertador que acorda (Fase 19)
+
+O que o navegador **não** faz, e por isso nenhuma gambiarra vai resolver: notificação de site
+não aceita som personalizado — a propriedade foi proposta em 2014, nunca chegou a navegador
+nenhum e saiu do padrão em 2018. Com o app fechado, quem toca é o som de notificação do
+aparelho. Também não dá para usar link do YouTube: extrair o áudio é contra os termos deles.
+
+O que dá, e é o que o app faz:
+
+- **Áudio do usuário** (`alarm_sounds`): o arquivo toca na tela do alarme — que abre ao tocar
+  na notificação — e no modo cabeceira. Fica no Cache Storage depois do primeiro uso, então
+  toca offline. Se o arquivo falhar ou o navegador bloquear o autoplay, o som sintetizado
+  entra na hora: alarme mudo não existe.
+- **Insistência**: o job por minuto reenvia a notificação enquanto o alarme segue pendente,
+  até o limite do "perdido". Um toque só não tira ninguém da cama.
+- **Modo cabeceira** (`/despertador/cabeceira`): a tela fica aberta com Wake Lock e o relógio
+  do próprio app dispara o alarme. É o caminho que não depende de push nenhum — o mais
+  confiável que um app web tem.
+- **Guia dentro do app**: como deixar a notificação alta no Android (canal + ignorar o Não
+  perturbe) e no iPhone.
+
 ## 8. Infra e deploy
 
 ```

@@ -39,6 +39,7 @@ const AlarmsPage = lazy(() => import('@/features/alarms/AlarmsPage').then((m) =>
 const WakeHistoryPage = lazy(() =>
   import('@/features/alarms/WakeHistoryPage').then((m) => ({ default: m.WakeHistoryPage })),
 )
+const BedsideScreen = lazy(() => import('@/features/alarms/BedsideScreen').then((m) => ({ default: m.BedsideScreen })))
 const AlarmScreen = lazy(() => import('@/features/alarms/AlarmScreen').then((m) => ({ default: m.AlarmScreen })))
 const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
 const AchievementsPage = lazy(() => import('@/features/achievements/AchievementsPage').then((m) => ({ default: m.AchievementsPage })))
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
           { path: '/estudos/:id/sessao/:date', element: <Lazy><StudySessionPage /></Lazy> },
           { path: '/estudos/:id/ia/:kind', element: <Lazy><AIStudyPage /></Lazy> },
           { path: '/despertador', element: <Lazy><AlarmsPage /></Lazy> },
+          { path: '/despertador/cabeceira', element: <Lazy><BedsideScreen /></Lazy> },
           { path: '/despertador/historico', element: <Lazy><WakeHistoryPage /></Lazy> },
           { path: '/hoje/fechar', element: <Lazy><CloseDayPage /></Lazy> },
           { path: '/evolucao/:date', element: <Lazy><DayDetailPage /></Lazy> },

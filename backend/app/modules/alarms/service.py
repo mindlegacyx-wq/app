@@ -16,7 +16,7 @@ from datetime import date, datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import push
@@ -31,15 +31,24 @@ from app.core.dates import (
     user_today,
     weekday_index,
 )
-from app.core.errors import AppError, NotFoundError
+from app.core.errors import AppError, ConflictError, NotFoundError
 from app.core.softdelete import TrashKind
-from app.modules.alarms.models import Alarm, WakeLog, WakeStatus
+from app.modules.alarms.models import (
+    ALLOWED_AUDIO,
+    MAX_SOUND_BYTES,
+    MAX_SOUNDS_PER_USER,
+    Alarm,
+    AlarmSoundFile,
+    WakeLog,
+    WakeStatus,
+)
 from app.modules.alarms.schemas import (
     AlarmIn,
     AlarmOut,
     AlarmsOut,
     AlarmUpdate,
     NextRingOut,
+    SoundOut,
     WakeAlarmOut,
     WakeDayOut,
     WakeHistoryDayOut,
@@ -122,6 +131,8 @@ async def overview(db: AsyncSession, user_id: UUID, timezone: str) -> AlarmsOut:
 
 
 async def create_alarm(db: AsyncSession, user_id: UUID, data: AlarmIn) -> Alarm:
+    if data.sound_file_id is not None:
+        await get_sound(db, user_id, data.sound_file_id)  # garante que o áudio é do usuário
     alarm = Alarm(user_id=user_id, **data.model_dump())
     db.add(alarm)
     await db.flush()
@@ -130,8 +141,14 @@ async def create_alarm(db: AsyncSession, user_id: UUID, data: AlarmIn) -> Alarm:
 
 async def update_alarm(db: AsyncSession, user_id: UUID, alarm_id: UUID, data: AlarmUpdate) -> Alarm:
     alarm = await get_alarm(db, user_id, alarm_id)
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(alarm, field, value)
+    fields = data.model_dump(exclude_unset=True, exclude={"clear_sound_file"})
+    if fields.get("sound_file_id") is not None:
+        await get_sound(db, user_id, fields["sound_file_id"])
+    if data.clear_sound_file:
+        fields["sound_file_id"] = None
+    for field, value in fields.items():
+        if value is not None or field == "sound_file_id":
+            setattr(alarm, field, value)
     await db.flush()
     return alarm
 
@@ -315,6 +332,7 @@ def _payload(user: User, alarm: Alarm, log: WakeLog) -> dict[str, object]:
         "label": alarm.label,
         "time": alarm.time.strftime("%H:%M"),
         "sound": alarm.sound,
+        "sound_file_id": str(alarm.sound_file_id) if alarm.sound_file_id else None,
         "can_snooze": log.snooze_count < alarm.max_snoozes,
         "url": "/alarme",
     }
@@ -361,6 +379,7 @@ async def _ring(
         await db.flush()
     else:
         return None
+    log.last_push_at = now
     await _notify(db, user, _payload(user, alarm, log))
     return log
 
@@ -416,19 +435,107 @@ async def dispatch_for_user(db: AsyncSession, user: User, now: datetime | None =
         else:
             log.next_ring_at = None
 
-    # 3) Sem confirmação depois do limite → perdido. Vale para hoje e para a véspera.
-    missed_after = timedelta(minutes=get_settings().alarm_missed_minutes)
+    # 3) Insistência: com o app fechado, um toque só não acorda ninguém. Enquanto o alarme
+    #    segue pendente (e dentro do limite do "perdido"), reenvia a notificação a cada minuto.
+    missed_limit = timedelta(minutes=get_settings().alarm_missed_minutes)
+    if (
+        log is not None
+        and log.status == WakeStatus.pending
+        and log.rang_at is not None
+        and log.next_ring_at is None  # em soneca, quem toca é o passo 2
+        and log.rang_at + missed_limit > now
+    ):
+        insisting = await db.get(Alarm, log.alarm_id) if log.alarm_id else None
+        repeat = timedelta(seconds=get_settings().alarm_repeat_seconds)
+        if (
+            insisting is not None
+            and insisting.insist
+            and (log.last_push_at is None or log.last_push_at + repeat <= now)
+        ):
+            log.last_push_at = now
+            await _notify(db, user, _payload(user, insisting, log))
+            rings += 1
+
+    # 4) Sem confirmação depois do limite → perdido. Vale para hoje e para a véspera.
     for candidate in (log, await _get_log(db, user.id, day - timedelta(days=1))):
         if (
             candidate is not None
             and candidate.status == WakeStatus.pending
             and candidate.rang_at is not None
-            and candidate.rang_at + missed_after <= now
+            and candidate.rang_at + missed_limit <= now
         ):
             candidate.status = WakeStatus.missed
             candidate.next_ring_at = None
     await db.flush()
     return rings
+
+
+# --- Áudio do usuário --------------------------------------------------------------------
+
+
+async def list_sounds(db: AsyncSession, user_id: UUID) -> list[SoundOut]:
+    """Sem o arquivo: a lista é só metadado (o áudio vai pela rota do arquivo)."""
+    rows = await db.execute(
+        select(
+            AlarmSoundFile.id,
+            AlarmSoundFile.name,
+            AlarmSoundFile.content_type,
+            AlarmSoundFile.size_bytes,
+            AlarmSoundFile.created_at,
+        )
+        .where(AlarmSoundFile.user_id == user_id)
+        .order_by(AlarmSoundFile.created_at)
+    )
+    return [SoundOut.model_validate(r, from_attributes=True) for r in rows]
+
+
+async def get_sound(db: AsyncSession, user_id: UUID, sound_id: UUID) -> AlarmSoundFile:
+    row = await db.scalar(
+        select(AlarmSoundFile).where(
+            AlarmSoundFile.id == sound_id, AlarmSoundFile.user_id == user_id
+        )
+    )
+    if row is None:
+        raise NotFoundError("Áudio não encontrado.")
+    return row
+
+
+async def create_sound(
+    db: AsyncSession, user_id: UUID, name: str, content_type: str, data: bytes
+) -> AlarmSoundFile:
+    kind = (content_type or "").split(";")[0].strip().lower()
+    if kind not in ALLOWED_AUDIO:
+        raise AppError("Formato de áudio não aceito. Use mp3, m4a, aac, ogg ou wav.")
+    if not data:
+        raise AppError("O arquivo chegou vazio.")
+    if len(data) > MAX_SOUND_BYTES:
+        mb = MAX_SOUND_BYTES // (1024 * 1024)
+        raise AppError(f"O áudio precisa ter no máximo {mb} MB.")
+    total = await db.scalar(
+        select(func.count()).select_from(AlarmSoundFile).where(AlarmSoundFile.user_id == user_id)
+    )
+    if (total or 0) >= MAX_SOUNDS_PER_USER:
+        raise ConflictError(
+            f"Você já tem {MAX_SOUNDS_PER_USER} áudios guardados. Apague um para subir outro."
+        )
+    row = AlarmSoundFile(
+        user_id=user_id,
+        name=(name or "Meu áudio")[:60],
+        content_type=kind,
+        size_bytes=len(data),
+        data=data,
+    )
+    db.add(row)
+    await db.flush()
+    return row
+
+
+async def delete_sound(db: AsyncSession, user_id: UUID, sound_id: UUID) -> None:
+    """Apaga de verdade: é um arquivo, não histórico. Alarmes que usavam voltam ao som pronto."""
+    row = await get_sound(db, user_id, sound_id)
+    await db.execute(update(Alarm).where(Alarm.sound_file_id == row.id).values(sound_file_id=None))
+    await db.delete(row)
+    await db.flush()
 
 
 # --- Histórico ---------------------------------------------------------------------------
