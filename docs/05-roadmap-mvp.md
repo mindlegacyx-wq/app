@@ -27,6 +27,18 @@ Cada fase termina com: migração aplicada, testes passando, tela usável no cel
 | **11** ✅ 19/09 | **Notas** (telas 36, 37): régua da escola (média mínima padrão 6, 2/3/4 períodos, escala 10 ou 100), notas com peso por período, média do ano, "quanto preciso tirar" com status, nota ligada à prova | Média simples entre períodos; ponderada dentro do período. |
 | **12** ✅ 19/09 | **Estudos com IA a partir de fotos** (telas 39, 40): fotos → transcrição editável (só o texto é guardado) → teoria focada nos exercícios, resoluções passo a passo, mapa mental e quiz, gerados em segundo plano; estado "desatualizado" quando o material muda | Provedor compatível com OpenAI por `.env` (Groq/Gemini/Mistral gratuitos ou pago); sem chave, "IA não configurada". |
 
+## Pós-MVP · trilha do jogo (aprovada em 20/09/2026)
+
+Decisões do fundador: visual escuro premium com camada de jogo (não arcade), XP por item com bônus
+no fechamento do dia, liga semanal com bots identificados como robôs, começando pelo motor de XP.
+
+- **Fase 13 — XP, níveis e animações** (feita): XP derivado do dia, curva de níveis com patentes,
+  HUD fixo com barra de XP, comemoração de nível, check com mola/estouro, cartão de nível na Evolução.
+- **Fase 14 — Liga semanal com bots**: divisões (Bronze→Diamante), 6 bots com ritmo e personalidade,
+  sobe/desce na segunda-feira, tela de classificação. Bots sempre marcados como robôs.
+- **Fase 15 — Conquistas e polimento visual**: selos por marco (primeira semana cheia, 30 dias de
+  sequência), transições entre telas, revisão fina de espaçamento e tipografia.
+
 ## MoSCoW
 
 **Must (MVP)**

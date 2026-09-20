@@ -251,6 +251,7 @@ export interface DayScore {
   hit_target: boolean
   streak: number
   best_streak: number
+  xp: number
   breakdown: Record<ScoreComponent, { planned: number; completed: number }>
   missing: { kind: ScoreComponent; title: string }[]
   is_open: boolean
@@ -259,6 +260,18 @@ export interface DayScore {
   finalized: boolean
   can_close: boolean
   can_reopen: boolean
+}
+
+/** Estado do jogador (Fase 13): nível, patente e XP. */
+export interface Player {
+  level: number
+  title: string
+  total_xp: number
+  into_level: number
+  level_span: number
+  to_next: number
+  xp_today: number
+  max_level: boolean
 }
 
 export interface HistoryDay {

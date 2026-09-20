@@ -19,7 +19,7 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress · trash · schedule · studies · grades
+auth · users · routines · alarms · goals · workouts · tasks · progress · player · trash · schedule · studies · grades
 ```
 
 `trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
@@ -104,6 +104,18 @@ Limite real: com o app fechado, é uma **notificação**, não um alarme que ven
 
 - **MVP**: APScheduler dentro do processo da API. Jobs: finalização do dia (a cada 5 min, finaliza os dias que passaram das 03:00 no fuso de cada usuário; idempotente; um advisory lock do Postgres garante que só uma réplica executa), disparo de alarmes (a cada minuto), limpeza da lixeira (diária, 04:30 UTC: apaga em definitivo o que passou de 30 dias e não tem histórico ligado).
 - **Escala**: worker dedicado (arq ou Celery) + Redis. A interface dos services não muda; só o disparador.
+
+## 7.1. Jogo: XP, níveis e patentes (Fase 13)
+
+`player` traduz disciplina em progressão. A regra central é que **o XP é derivado do dia, não um
+saldo à parte**: `xp_for_day(breakdown, pct, hit_target, streak)` usa a mesma foto que gera o
+percentual (itens concluídos × peso da área + bônus de meta, de dia 100% e de sequência, com teto).
+Consequências: marcar e desmarcar não acumula, a fila offline não conta duas vezes, e recalcular um
+dia recalcula o XP junto. `daily_scores.xp` guarda o valor dos dias fechados; os dias abertos (hoje
+e, antes das 03:00, ontem) são calculados na hora — é o que faz a barra subir no mesmo segundo.
+Nível e patente saem de uma curva progressiva (`level_for`), sem estado no banco. `GET /player`
+devolve nível, patente, XP total, progresso no nível e XP do dia; `GET /progress/day` passou a
+incluir o `xp` do dia.
 
 ## 8. Infra e deploy
 

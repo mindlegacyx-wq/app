@@ -35,6 +35,7 @@ from app.core.dates import (
 from app.core.errors import AppError, ConflictError
 from app.modules.alarms import service as alarms_service
 from app.modules.goals import service as goals_service
+from app.modules.player.xp import xp_for_day
 from app.modules.progress.models import ClosedBy, DailyScore
 from app.modules.progress.schemas import (
     AreaOut,
@@ -62,6 +63,12 @@ AREA_KINDS = ("wake", "routines", "tasks", "workout", "goals", "study")
 
 class DayNotClosableError(AppError):
     code = "day_not_closable"
+
+
+@dataclass
+class XpTotals:
+    total: int  # XP de toda a vida da conta
+    today: int  # XP já feito hoje (ainda pode subir ou descer)
 
 
 @dataclass
@@ -225,6 +232,7 @@ async def ensure_finalized_through(db: AsyncSession, user: User, through: date) 
                     target_pct=snap.target,
                     hit_target=snap.hit_target,
                     streak_day=streak,
+                    xp=xp_for_day(snap.breakdown, snap.pct, snap.hit_target, streak),
                     breakdown={**snap.breakdown, "missing": snap.missing},
                     closed_at=now,
                     closed_by=ClosedBy.system,
@@ -236,6 +244,8 @@ async def ensure_finalized_through(db: AsyncSession, user: User, through: date) 
             # sequência para o caso de a linha anterior ter mudado).
             streak = streak + 1 if row.hit_target else 0
             row.streak_day = streak
+            # A sequência entra no XP: recalcula sempre que a linha é (re)finalizada.
+            row.xp = xp_for_day(dict(row.breakdown), row.discipline_pct, row.hit_target, streak)
             if row.finalized_at is None:
                 row.finalized_at = now
         count += 1
@@ -272,6 +282,7 @@ def _to_out(
         hit_target=snap.hit_target,
         streak=streak,
         best_streak=max(best, streak),
+        xp=xp_for_day(snap.breakdown, snap.pct, snap.hit_target, streak),
         breakdown={k: ComponentOut(**v) for k, v in snap.breakdown.items()},  # type: ignore[misc]
         missing=[MissingItemOut(**m) for m in snap.missing],  # type: ignore[arg-type]
         is_open=open_ and row is None,
@@ -309,6 +320,38 @@ async def day_score(db: AsyncSession, user: User, day: date) -> DayScoreOut:
     snap = await compute_snapshot(db, user, day)
     streak = (await _streak_before(db, user, day)) + 1 if snap.hit_target else 0
     return _to_out(day, snap, streak, best, None, user.timezone)
+
+
+async def xp_totals(db: AsyncSession, user: User) -> XpTotals:
+    """XP acumulado da conta + o de hoje (Fase 13).
+
+    Dias fechados já têm o XP gravado; os que ainda estão abertos (hoje e, antes das 03:00,
+    ontem) são calculados na hora — é o que faz o número subir no mesmo segundo em que o
+    usuário marca um item.
+    """
+    today = user_today(user.timezone)
+    await ensure_finalized_through(db, user, last_finalizable_day(user.timezone))
+    stored = await db.scalar(
+        select(func.coalesce(func.sum(DailyScore.xp), 0)).where(
+            DailyScore.user_id == user.id, DailyScore.date <= today
+        )
+    )
+    total = int(stored or 0)
+    today_xp = 0
+    cursor = max(_first_day(user), today - timedelta(days=2))
+    while cursor <= today:
+        if await _get_row(db, user.id, cursor) is None:
+            snap = await compute_snapshot(db, user, cursor)
+            streak = (await _streak_before(db, user, cursor)) + 1 if snap.hit_target else 0
+            live = xp_for_day(snap.breakdown, snap.pct, snap.hit_target, streak)
+            total += live
+            if cursor == today:
+                today_xp = live
+        elif cursor == today:
+            row = await _get_row(db, user.id, cursor)
+            today_xp = int(row.xp or 0) if row else 0
+        cursor += timedelta(days=1)
+    return XpTotals(total=total, today=today_xp)
 
 
 # --- Evolução (Fase 7) -------------------------------------------------------------------
@@ -467,6 +510,7 @@ async def close_day(db: AsyncSession, user: User, day: date) -> DayScoreOut:
             target_pct=snap.target,
             hit_target=snap.hit_target,
             streak_day=streak,
+            xp=xp_for_day(snap.breakdown, snap.pct, snap.hit_target, streak),
             breakdown={**snap.breakdown, "missing": snap.missing},
             closed_at=now_utc(),
             closed_by=ClosedBy.user,

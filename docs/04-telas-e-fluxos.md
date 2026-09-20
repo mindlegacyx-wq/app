@@ -24,6 +24,11 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 | 3 | Setup inicial: nome, fuso (detectado), horário de acordar, meta de disciplina | Continuar |
 | 4 | Instalar o app (guia por plataforma; explica por que o push precisa disso) | Instalar / Depois |
 
+### HUD (todas as abas)
+| # | Tela | Conteúdo |
+|---|---|---|
+| 41 | **Barra de XP** fixa no topo: emblema do nível, patente colorida, progresso do nível. Ao concluir algo, o contador vira "+N XP" e a barra pulsa; ao subir de nível, abre a comemoração (anéis, faíscas, som curto e vibração). |
+
 ### Hoje (home)
 | # | Tela | Conteúdo |
 |---|---|---|

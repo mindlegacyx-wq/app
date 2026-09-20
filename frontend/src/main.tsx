@@ -18,9 +18,13 @@ const queryClient: QueryClient = new QueryClient({
     // gcTime alto para o cache persistido sobreviver ao fechar o app (leitura offline).
     queries: { staleTime: 30_000, gcTime: 24 * 60 * 60_000, retry: 1, refetchOnWindowFocus: true },
   },
-  // Qualquer mudança (check, tarefa, acordar, fechar) pode alterar o percentual do dia.
+  // Qualquer mudança (check, tarefa, acordar, fechar) pode alterar o percentual do dia —
+  // e, com ele, o XP do jogador. Invalidar aqui é o que faz a barra subir na hora.
   mutationCache: new MutationCache({
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['progress'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['progress'] })
+      void queryClient.invalidateQueries({ queryKey: ['player'] })
+    },
   }),
 })
 

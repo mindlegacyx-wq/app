@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/auth-store'
 import { addDays, cn, todayIn } from '@/lib/format'
 import type { AreaStat, HistoryDay, ProgressSummary } from '@/lib/types'
 
+import { LevelCard } from '@/features/player/LevelCard'
+
 import { useProgressHistory, useProgressSummary } from './api'
 import { heatClass, kindLabel } from './shared'
 
@@ -28,10 +30,21 @@ export function EvolutionPage() {
         <EmptyState className="mt-6" title="Não foi possível carregar" description={errorMessage(summary.error)} />
       ) : (
         <div className="mt-2 flex flex-col gap-3">
+          <LevelCard />
           <StreakCard s={summary.data} />
           <div className="grid grid-cols-2 gap-3">
-            <WindowCard title="7 dias" avg={summary.data.week.average_pct} hit={summary.data.week.hit_days} tracked={summary.data.week.tracked} />
-            <WindowCard title="30 dias" avg={summary.data.month.average_pct} hit={summary.data.month.hit_days} tracked={summary.data.month.tracked} />
+            <WindowCard
+              title="7 dias"
+              avg={summary.data.week.average_pct}
+              hit={summary.data.week.hit_days}
+              tracked={summary.data.week.tracked}
+            />
+            <WindowCard
+              title="30 dias"
+              avg={summary.data.month.average_pct}
+              hit={summary.data.month.hit_days}
+              tracked={summary.data.month.tracked}
+            />
           </div>
           <Heatmap today={today} firstDay={summary.data.first_day} target={user.settings.discipline_target} />
           <AreasCard areas={summary.data.areas} tracked={summary.data.month.tracked} />
@@ -53,7 +66,9 @@ function StreakCard({ s }: { s: ProgressSummary }) {
       <div>
         <p className="text-[12px] font-semibold tracking-[0.06em] text-ink-faint uppercase">Sequência</p>
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className={cn('tabular text-[44px] leading-none font-semibold tracking-[-0.04em]', s.streak > 0 && 'text-accent')}>{s.streak}</span>
+          <span className={cn('tabular text-[44px] leading-none font-semibold tracking-[-0.04em]', s.streak > 0 && 'text-accent')}>
+            {s.streak}
+          </span>
           <span className="text-[15px] text-ink-muted">{s.streak === 1 ? 'dia' : 'dias'}</span>
           {record && <span className="ml-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">recorde</span>}
         </p>
@@ -98,15 +113,49 @@ function Heatmap({ today, firstDay, target }: { today: string; firstDay: string;
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <button type="button" aria-label="Mês anterior" disabled={!canGoBack} onClick={() => setOffset((m) => m - 1)} className="flex size-9 items-center justify-center rounded-full text-ink-muted hover:bg-white/5 disabled:opacity-30">
-          <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+        <button
+          type="button"
+          aria-label="Mês anterior"
+          disabled={!canGoBack}
+          onClick={() => setOffset((m) => m - 1)}
+          className="flex size-9 items-center justify-center rounded-full text-ink-muted hover:bg-white/5 disabled:opacity-30"
+        >
+          <svg
+            className="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
         <div className="text-center">
           <p className="text-[15px] font-semibold first-letter:uppercase">{label}</p>
-          <p className="text-[12px] text-ink-faint">{history.isPending ? '…' : `${hits} ${hits === 1 ? 'dia' : 'dias'} na meta de ${target}%`}</p>
+          <p className="text-[12px] text-ink-faint">
+            {history.isPending ? '…' : `${hits} ${hits === 1 ? 'dia' : 'dias'} na meta de ${target}%`}
+          </p>
         </div>
-        <button type="button" aria-label="Próximo mês" disabled={offset >= 0} onClick={() => setOffset((m) => m + 1)} className="flex size-9 items-center justify-center rounded-full text-ink-muted hover:bg-white/5 disabled:opacity-30">
-          <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+        <button
+          type="button"
+          aria-label="Próximo mês"
+          disabled={offset >= 0}
+          onClick={() => setOffset((m) => m + 1)}
+          className="flex size-9 items-center justify-center rounded-full text-ink-muted hover:bg-white/5 disabled:opacity-30"
+        >
+          <svg
+            className="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
 
@@ -134,7 +183,9 @@ function Heatmap({ today, firstDay, target }: { today: string; firstDay: string;
             </span>
           )
           return inert ? (
-            <span key={ymd} className="block">{cell}</span>
+            <span key={ymd} className="block">
+              {cell}
+            </span>
           ) : (
             <Link key={ymd} to={`/evolucao/${ymd}`} aria-label={`Dia ${ymd}${d ? `, ${d.pct}%` : ''}`} className="block">
               {cell}
@@ -159,7 +210,11 @@ function AreasCard({ areas, tracked }: { areas: AreaStat[]; tracked: number }) {
     <Card>
       <div className="flex items-baseline justify-between">
         <p className="text-[12px] font-semibold tracking-[0.06em] text-ink-faint uppercase">Por área · 30 dias</p>
-        {tracked > 0 && <span className="text-[12px] text-ink-faint">{tracked} {tracked === 1 ? 'dia fechado' : 'dias fechados'}</span>}
+        {tracked > 0 && (
+          <span className="text-[12px] text-ink-faint">
+            {tracked} {tracked === 1 ? 'dia fechado' : 'dias fechados'}
+          </span>
+        )}
       </div>
       <ul className="mt-3 flex flex-col gap-3">
         {areas.map((a) => (
@@ -167,11 +222,24 @@ function AreasCard({ areas, tracked }: { areas: AreaStat[]; tracked: number }) {
             <div className="flex items-baseline justify-between text-[14px]">
               <span>{kindLabel[a.kind]}</span>
               <span className="tabular text-ink-muted">
-                {a.pct === null ? <span className="text-ink-faint">nada planejado</span> : <>{a.completed}/{a.planned} · <span className={cn('font-semibold', a.pct >= 80 ? 'text-accent' : 'text-ink')}>{a.pct}%</span></>}
+                {a.pct === null ? (
+                  <span className="text-ink-faint">nada planejado</span>
+                ) : (
+                  <>
+                    {a.completed}/{a.planned} ·{' '}
+                    <span className={cn('font-semibold', a.pct >= 80 ? 'text-accent' : 'text-ink')}>{a.pct}%</span>
+                  </>
+                )}
               </span>
             </div>
             <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/8">
-              <div className={cn('h-full rounded-full transition-[width] duration-500 ease-out-quart', (a.pct ?? 0) >= 80 ? 'bg-accent' : 'bg-ink-muted')} style={{ width: `${a.pct ?? 0}%` }} />
+              <div
+                className={cn(
+                  'h-full rounded-full transition-[width] duration-500 ease-out-quart',
+                  (a.pct ?? 0) >= 80 ? 'bg-accent' : 'bg-ink-muted',
+                )}
+                style={{ width: `${a.pct ?? 0}%` }}
+              />
             </div>
           </li>
         ))}

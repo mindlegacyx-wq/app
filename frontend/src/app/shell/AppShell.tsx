@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
+import { PlayerHud } from '@/features/player/PlayerHud'
+
 import { BottomNav } from './BottomNav'
 import { OfflineBanner } from './OfflineBanner'
 
@@ -12,13 +14,14 @@ function useScrollToTop() {
   }, [pathname])
 }
 
-/** Layout das 5 abas: conteúdo rolável + barra inferior fixa. */
+/** Layout das abas: HUD de XP no topo, conteúdo rolável e barra inferior fixa. */
 export function AppShell() {
   useScrollToTop()
   return (
     <div className="min-h-dvh">
       <OfflineBanner />
-      <main className="mx-auto max-w-lg px-5 pb-28">
+      <PlayerHud />
+      <main className="mx-auto max-w-lg px-5 pt-4 pb-28">
         <Outlet />
       </main>
       <BottomNav />

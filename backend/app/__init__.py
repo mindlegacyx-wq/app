@@ -1,4 +1,4 @@
 """Disciplina API."""
 
 APP_NAME = "Disciplina"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"

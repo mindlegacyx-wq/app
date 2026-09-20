@@ -66,6 +66,11 @@ export function CloseDayPage() {
               ? 'Sem plano não há o que medir. Dia vazio zera a sequência.'
               : `Você fez ${d.pct}% do que planejou. A meta era ${d.target}%.`}
         </p>
+        {d.xp > 0 && (
+          <p className="mt-4 rounded-full bg-accent-soft px-3.5 py-1.5 text-[14px] font-semibold text-accent tabular-nums">
+            +{d.xp.toLocaleString('pt-BR')} XP neste dia
+          </p>
+        )}
       </div>
 
       <Card className="mt-7 flex items-center justify-between">

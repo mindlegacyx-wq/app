@@ -27,6 +27,7 @@ class DayScoreOut(BaseModel):
     hit_target: bool
     streak: int  # sequência contando este dia (0 se não bateu ou dia vazio)
     best_streak: int
+    xp: int  # XP deste dia (Fase 13)
     breakdown: dict[Component, ComponentOut]
     missing: list[MissingItemOut]
     is_open: bool  # ainda aceita registros (hoje, ou ontem antes do corte)

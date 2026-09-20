@@ -40,6 +40,8 @@ class DailyScore(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     target_pct: Mapped[int] = mapped_column(SmallInteger, nullable=False)  # meta vigente no dia
     hit_target: Mapped[bool] = mapped_column(Boolean, nullable=False)
     streak_day: Mapped[int] = mapped_column(Integer, nullable=False)  # 0 quando não bateu
+    # XP do dia (Fase 13). Derivado de breakdown/pct/sequência; ver app/modules/player/xp.py.
+    xp: Mapped[int | None] = mapped_column(Integer)
     breakdown: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     closed_by: Mapped[ClosedBy] = mapped_column(
