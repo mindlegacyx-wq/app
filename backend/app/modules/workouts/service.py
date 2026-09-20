@@ -8,31 +8,53 @@
 - Sessões só podem ser criadas/alteradas em dia aberto (hoje, ou ontem antes do corte).
 """
 
-from datetime import date
+import re
+from datetime import date, timedelta
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.dates import ensure_recordable_day, now_utc, weekday_index
+from app.core.dates import ensure_recordable_day, is_day_open, now_utc, user_today, weekday_index
 from app.core.errors import ConflictError, NotFoundError
 from app.core.softdelete import TrashKind
+from app.modules.workouts.library import CATALOG, MUSCLES
 from app.modules.workouts.models import (
+    BodyWeight,
+    LoadMode,
     SessionStatus,
     Workout,
     WorkoutExercise,
     WorkoutSession,
     WorkoutSessionExercise,
+    WorkoutSet,
 )
 from app.modules.workouts.schemas import (
+    BodyWeightHistoryOut,
+    BodyWeightIn,
+    BodyWeightOut,
     DayExerciseOut,
     DayWorkoutOut,
+    ExerciseHistoryOut,
+    ExerciseHistoryPointOut,
     ExerciseIn,
+    ExerciseOut,
+    ExerciseProgressOut,
     ExerciseUpdate,
     HistoryItemOut,
     HistoryOut,
+    LibraryExerciseOut,
+    LibraryGroupOut,
+    LibraryOut,
+    PreviousSetOut,
+    SessionDetailOut,
+    SessionExerciseOut,
     SessionOut,
+    SetIn,
+    SetOut,
+    SetUpdate,
     WorkoutIn,
     WorkoutsDayOut,
     WorkoutUpdate,
@@ -153,8 +175,12 @@ async def delete_workout(db: AsyncSession, user_id: UUID, workout_id: UUID) -> N
 async def add_exercise(
     db: AsyncSession, user_id: UUID, workout_id: UUID, data: ExerciseIn
 ) -> WorkoutExercise:
+    """Cria o exercício. Vindo da biblioteca, herda ícone, modo de carga, barra e descanso."""
     w = await get_workout(db, user_id, workout_id)
     next_order = max((e.sort_order for e in w.exercises), default=-1) + 1
+    from app.modules.workouts.library import BY_KEY
+
+    preset = BY_KEY.get(data.library_key or "")
     e = WorkoutExercise(
         workout_id=w.id,
         user_id=user_id,
@@ -162,8 +188,26 @@ async def add_exercise(
         sets=data.sets,
         reps=data.reps,
         load=data.load,
-        rest_seconds=data.rest_seconds,
+        rest_seconds=data.rest_seconds or (preset.rest if preset else None) or None,
         sort_order=next_order,
+        library_key=data.library_key,
+        muscle=data.muscle or (preset.muscle if preset else None),
+        icon=data.icon or (preset.icon if preset else None),
+        load_mode=LoadMode(data.load_mode or (preset.load_mode if preset else LoadMode.total)),
+        bar_weight=Decimal(
+            str(
+                data.bar_weight
+                if data.bar_weight is not None
+                else (preset.bar_weight if preset else 0)
+            )
+        ),
+        increment=Decimal(
+            str(
+                data.increment
+                if data.increment is not None
+                else (preset.increment if preset else 2.5)
+            )
+        ),
     )
     db.add(e)
     await db.flush()
@@ -175,8 +219,11 @@ async def update_exercise(
 ) -> WorkoutExercise:
     e = await _get_exercise(db, user_id, exercise_id)
     for field, value in data.model_dump(exclude_unset=True, exclude={"clear"}).items():
-        if value is not None:
-            setattr(e, field, value)
+        if value is None:
+            continue
+        if field in ("bar_weight", "increment"):
+            value = Decimal(str(value))
+        setattr(e, field, value)
     for field in data.clear:
         if field in ("sets", "reps", "load", "rest_seconds"):
             setattr(e, field, None)
@@ -328,15 +375,19 @@ async def set_session_status(
     user_id: UUID,
     timezone: str,
     session_id: UUID,
-    status: SessionStatus,
+    status: SessionStatus | None,
     notes: str | None,
+    duration_seconds: int | None = None,
 ) -> WorkoutSession:
     s = await _get_session(db, user_id, session_id)
     ensure_recordable_day(s.date, timezone)
-    s.status = status
-    s.completed_at = now_utc() if status == SessionStatus.completed else None
+    if status is not None:
+        s.status = status
+        s.completed_at = now_utc() if status == SessionStatus.completed else None
     if notes is not None:
         s.notes = notes
+    if duration_seconds is not None:
+        s.duration_seconds = duration_seconds
     await db.flush()
     return s
 
@@ -418,3 +469,396 @@ TRASH_KINDS = [
         history=_exercise_has_history,
     ),
 ]
+
+
+# --- Carga por série, progressão e peso corporal (Fase 16) -------------------------------
+
+
+def reps_top(text: str | None) -> int | None:
+    """Topo da faixa de repetições: "8-12" → 12, "12" → 12, "30s" → None."""
+    if not text:
+        return None
+    numbers = [int(n) for n in re.findall(r"\d+", text)]
+    if not numbers or "s" in text.lower().replace("séries", "").replace("series", ""):
+        return None
+    return max(numbers)
+
+
+def real_weight(exercise: WorkoutExercise, typed: Decimal | float | None) -> Decimal | None:
+    """Converte o que foi digitado em peso real. "20 de cada lado" numa barra de 20 = 60 kg."""
+    if typed is None:
+        return None
+    value = Decimal(str(typed))
+    if exercise.load_mode == LoadMode.per_side:
+        return value * 2 + Decimal(exercise.bar_weight or 0)
+    return value
+
+
+async def _last_session_sets(
+    db: AsyncSession, user_id: UUID, exercise_id: UUID, before: date
+) -> tuple[date | None, list[WorkoutSet]]:
+    """Séries feitas na última vez que este exercício foi treinado antes de `before`."""
+    row = await db.execute(
+        select(WorkoutSession.date)
+        .join(WorkoutSet, WorkoutSet.session_id == WorkoutSession.id)
+        .where(
+            WorkoutSet.user_id == user_id,
+            WorkoutSet.exercise_id == exercise_id,
+            WorkoutSet.done.is_(True),
+            WorkoutSession.date < before,
+        )
+        .order_by(WorkoutSession.date.desc())
+        .limit(1)
+    )
+    day = row.scalar_one_or_none()
+    if day is None:
+        return None, []
+    sets = list(
+        await db.scalars(
+            select(WorkoutSet)
+            .join(WorkoutSession, WorkoutSession.id == WorkoutSet.session_id)
+            .where(
+                WorkoutSet.user_id == user_id,
+                WorkoutSet.exercise_id == exercise_id,
+                WorkoutSet.done.is_(True),
+                WorkoutSession.date == day,
+            )
+            .order_by(WorkoutSet.set_number)
+        )
+    )
+    return day, sets
+
+
+async def exercise_progress(
+    db: AsyncSession, user_id: UUID, exercise: WorkoutExercise, day: date
+) -> ExerciseProgressOut:
+    """Carga anterior, recorde e a sugestão de hoje.
+
+    A regra da sugestão é conservadora de propósito: só convida a subir quando **todas** as
+    séries da última vez bateram o topo da faixa de repetições. Subir carga sem ter fechado o
+    número é como marcar item que não fez.
+    """
+    last_date, last = await _last_session_sets(db, user_id, exercise.id, day)
+    best = await db.execute(
+        select(WorkoutSet.weight, WorkoutSession.date)
+        .join(WorkoutSession, WorkoutSession.id == WorkoutSet.session_id)
+        .where(
+            WorkoutSet.user_id == user_id,
+            WorkoutSet.exercise_id == exercise.id,
+            WorkoutSet.done.is_(True),
+            WorkoutSet.weight.is_not(None),
+        )
+        .order_by(WorkoutSet.weight.desc(), WorkoutSession.date.desc())
+        .limit(1)
+    )
+    best_row = best.first()
+    top = reps_top(exercise.reps)
+    last_weight = max((s.weight for s in last if s.weight is not None), default=None)
+    closed_everything = bool(
+        last and top and all(s.reps is not None and s.reps >= top for s in last)
+    )
+    suggested = last_weight
+    if closed_everything and last_weight is not None:
+        suggested = last_weight + Decimal(exercise.increment or 0)
+    return ExerciseProgressOut(
+        exercise_id=exercise.id,
+        last_date=last_date,
+        last_sets=[PreviousSetOut(weight=s.weight, reps=s.reps, seconds=s.seconds) for s in last],
+        best_weight=best_row[0] if best_row else None,
+        best_date=best_row[1] if best_row else None,
+        suggested_weight=suggested,
+        should_increase=closed_everything,
+    )
+
+
+async def ensure_sets(db: AsyncSession, user_id: UUID, session: WorkoutSession) -> None:
+    """Cria as séries planejadas do treino, já preenchidas com o da última vez.
+
+    Idempotente: exercício que já tem série não é tocado (não sobrescreve o que o usuário fez).
+    """
+    workout = await get_workout(db, user_id, session.workout_id)
+    existing = {(s.exercise_id, s.set_number) for s in session.sets}
+    for exercise in workout.exercises:
+        if exercise.deleted_at is not None:
+            continue
+        planned = exercise.sets or 3
+        progress = await exercise_progress(db, user_id, exercise, session.date)
+        top = reps_top(exercise.reps)
+        for number in range(1, planned + 1):
+            if (exercise.id, number) in existing:
+                continue
+            previous = (
+                progress.last_sets[number - 1]
+                if len(progress.last_sets) >= number
+                else (progress.last_sets[-1] if progress.last_sets else None)
+            )
+            db.add(
+                WorkoutSet(
+                    user_id=user_id,
+                    session_id=session.id,
+                    exercise_id=exercise.id,
+                    exercise_sort=exercise.sort_order,
+                    set_number=number,
+                    weight=progress.suggested_weight,
+                    reps=(previous.reps if previous else top),
+                    seconds=previous.seconds if previous else None,
+                    done=False,
+                )
+            )
+    await db.flush()
+    await db.refresh(session)
+
+
+async def _get_set(db: AsyncSession, user_id: UUID, set_id: UUID) -> WorkoutSet:
+    row = await db.scalar(
+        select(WorkoutSet).where(WorkoutSet.id == set_id, WorkoutSet.user_id == user_id)
+    )
+    if row is None:
+        raise NotFoundError("Série não encontrada.")
+    return row
+
+
+async def add_set(
+    db: AsyncSession, user_id: UUID, timezone: str, session_id: UUID, data: SetIn
+) -> WorkoutSet:
+    session = await _get_session(db, user_id, session_id)
+    ensure_recordable_day(session.date, timezone)
+    exercise = await _get_exercise(db, user_id, data.exercise_id)
+    if exercise.workout_id != session.workout_id:
+        raise ConflictError("Esse exercício não pertence a este treino.")
+    last_number = max(
+        (s.set_number for s in session.sets if s.exercise_id == exercise.id), default=0
+    )
+    row = WorkoutSet(
+        user_id=user_id,
+        session_id=session.id,
+        exercise_id=exercise.id,
+        exercise_sort=exercise.sort_order,
+        set_number=last_number + 1,
+        weight=Decimal(str(data.weight)) if data.weight is not None else None,
+        reps=data.reps,
+        seconds=data.seconds,
+        done=False,
+    )
+    db.add(row)
+    await db.flush()
+    return row
+
+
+async def update_set(
+    db: AsyncSession, user_id: UUID, timezone: str, set_id: UUID, data: SetUpdate
+) -> WorkoutSet:
+    row = await _get_set(db, user_id, set_id)
+    session = await _get_session(db, user_id, row.session_id)
+    ensure_recordable_day(session.date, timezone)
+    if data.weight is not None:
+        row.weight = Decimal(str(data.weight))
+    if data.clear_weight:
+        row.weight = None
+    if data.reps is not None:
+        row.reps = data.reps
+    if data.seconds is not None:
+        row.seconds = data.seconds
+    if data.done is not None:
+        row.done = data.done
+        row.completed_at = now_utc() if data.done else None
+        # Marcar série mantém a sessão viva (o dia conta o treino como feito no fechamento).
+        if data.done and session.status != SessionStatus.in_progress:
+            session.status = SessionStatus.in_progress
+            session.completed_at = None
+        await _sync_exercise_flag(db, session, row.exercise_id)
+    await db.flush()
+    return row
+
+
+async def _sync_exercise_flag(db: AsyncSession, session: WorkoutSession, exercise_id: UUID) -> None:
+    """Exercício com todas as séries feitas conta como concluído na visão do dia.
+
+    Sem isso, a tela Hoje e a tela do treino contariam coisas diferentes — e o número do dia
+    deixaria de bater com o que a pessoa fez.
+    """
+    await db.flush()
+    sets = [s for s in session.sets if s.exercise_id == exercise_id]
+    complete = bool(sets) and all(s.done for s in sets)
+    row = next((x for x in session.exercises if x.exercise_id == exercise_id), None)
+    if row is None:
+        row = WorkoutSessionExercise(
+            session_id=session.id, exercise_id=exercise_id, completed=False
+        )
+        db.add(row)
+        session.exercises.append(row)
+    if row.completed != complete:
+        row.completed = complete
+        row.completed_at = now_utc() if complete else None
+
+
+async def delete_set(db: AsyncSession, user_id: UUID, timezone: str, set_id: UUID) -> None:
+    row = await _get_set(db, user_id, set_id)
+    session = await _get_session(db, user_id, row.session_id)
+    ensure_recordable_day(session.date, timezone)
+    await db.delete(row)
+    await db.flush()
+
+
+async def session_detail(
+    db: AsyncSession, user_id: UUID, timezone: str, session_id: UUID
+) -> SessionDetailOut:
+    session = await _get_session(db, user_id, session_id)
+    workout = await get_workout(db, user_id, session.workout_id)
+    await ensure_sets(db, user_id, session)
+    by_exercise: dict[UUID, list[WorkoutSet]] = {}
+    for row in session.sets:
+        by_exercise.setdefault(row.exercise_id, []).append(row)
+
+    items: list[SessionExerciseOut] = []
+    volume = Decimal(0)
+    done = planned = 0
+    for exercise in workout.exercises:
+        if exercise.deleted_at is not None:
+            continue
+        rows = sorted(by_exercise.get(exercise.id, []), key=lambda r: r.set_number)
+        planned += len(rows)
+        for row in rows:
+            if row.done:
+                done += 1
+                if row.weight is not None and row.reps:
+                    volume += row.weight * row.reps
+        items.append(
+            SessionExerciseOut(
+                exercise=ExerciseOut.model_validate(exercise),
+                sets=[SetOut.model_validate(r) for r in rows],
+                progress=await exercise_progress(db, user_id, exercise, session.date),
+            )
+        )
+
+    return SessionDetailOut(
+        id=session.id,
+        workout_id=workout.id,
+        workout_name=workout.name,
+        date=session.date,
+        status=session.status,
+        started_at=session.started_at,
+        completed_at=session.completed_at,
+        duration_seconds=session.duration_seconds,
+        notes=session.notes,
+        editable=is_day_open(session.date, timezone),
+        exercises=items,
+        total_volume=volume,
+        done_sets=done,
+        planned_sets=planned,
+    )
+
+
+async def exercise_history(
+    db: AsyncSession, user_id: UUID, exercise_id: UUID, limit: int = 12
+) -> ExerciseHistoryOut:
+    exercise = await _get_exercise(db, user_id, exercise_id)
+    rows = list(
+        await db.execute(
+            select(WorkoutSet, WorkoutSession.date)
+            .join(WorkoutSession, WorkoutSession.id == WorkoutSet.session_id)
+            .where(
+                WorkoutSet.user_id == user_id,
+                WorkoutSet.exercise_id == exercise_id,
+                WorkoutSet.done.is_(True),
+            )
+            .order_by(WorkoutSession.date.desc(), WorkoutSet.set_number)
+        )
+    )
+    by_day: dict[date, list[WorkoutSet]] = {}
+    for row, day in rows:
+        by_day.setdefault(day, []).append(row)
+    points = []
+    for day in sorted(by_day)[-limit:]:
+        sets = by_day[day]
+        best = max((s.weight for s in sets if s.weight is not None), default=None)
+        total = sum(
+            (s.weight * s.reps for s in sets if s.weight is not None and s.reps), Decimal(0)
+        )
+        points.append(
+            ExerciseHistoryPointOut(
+                date=day,
+                best_weight=best,
+                total_volume=total,
+                sets=[
+                    PreviousSetOut(weight=s.weight, reps=s.reps, seconds=s.seconds) for s in sets
+                ],
+            )
+        )
+    return ExerciseHistoryOut(exercise_id=exercise.id, name=exercise.name, points=points)
+
+
+# --- Peso corporal -----------------------------------------------------------------------
+
+
+async def set_body_weight(
+    db: AsyncSession, user_id: UUID, timezone: str, data: BodyWeightIn
+) -> BodyWeight:
+    day = data.date or user_today(timezone)
+    row = await db.scalar(
+        select(BodyWeight).where(BodyWeight.user_id == user_id, BodyWeight.date == day)
+    )
+    if row is None:
+        row = BodyWeight(user_id=user_id, date=day, weight=Decimal(str(data.weight)))
+        db.add(row)
+    else:
+        row.weight = Decimal(str(data.weight))
+    await db.flush()
+    return row
+
+
+async def body_weight_history(
+    db: AsyncSession, user_id: UUID, timezone: str, days: int = 180
+) -> BodyWeightHistoryOut:
+    today = user_today(timezone)
+    start = today - timedelta(days=days)
+    rows = list(
+        await db.scalars(
+            select(BodyWeight)
+            .where(BodyWeight.user_id == user_id, BodyWeight.date >= start)
+            .order_by(BodyWeight.date)
+        )
+    )
+    latest = rows[-1].weight if rows else None
+    change = None
+    if latest is not None:
+        target = today - timedelta(days=30)
+        older = [r for r in rows if r.date <= target]
+        reference = older[-1] if older else (rows[0] if len(rows) > 1 else None)
+        if reference is not None and reference.date != rows[-1].date:
+            change = latest - reference.weight
+    return BodyWeightHistoryOut(
+        entries=[BodyWeightOut.model_validate(r) for r in rows],
+        latest=latest,
+        change_30d=change,
+    )
+
+
+async def delete_body_weight(db: AsyncSession, user_id: UUID, day: date) -> None:
+    row = await db.scalar(
+        select(BodyWeight).where(BodyWeight.user_id == user_id, BodyWeight.date == day)
+    )
+    if row is not None:
+        await db.delete(row)
+        await db.flush()
+
+
+def library() -> LibraryOut:
+    groups = []
+    for muscle, label in MUSCLES:
+        items = [
+            LibraryExerciseOut(
+                key=e.key,
+                name=e.name,
+                muscle=e.muscle,
+                icon=e.icon,
+                load_mode=LoadMode(e.load_mode),
+                bar_weight=e.bar_weight,
+                increment=e.increment,
+                rest=e.rest,
+            )
+            for e in CATALOG
+            if e.muscle == muscle
+        ]
+        groups.append(LibraryGroupOut(muscle=muscle, label=label, exercises=items))
+    return LibraryOut(groups=groups)

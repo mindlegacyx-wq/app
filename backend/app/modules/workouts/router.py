@@ -9,15 +9,24 @@ from app.core.deps import DB, CurrentUser
 from app.core.errors import AppError
 from app.modules.workouts import service
 from app.modules.workouts.schemas import (
+    BodyWeightHistoryOut,
+    BodyWeightIn,
+    BodyWeightOut,
+    ExerciseHistoryOut,
     ExerciseIn,
     ExerciseOut,
     ExerciseUpdate,
     HistoryOut,
+    LibraryOut,
     ReorderIn,
+    SessionDetailOut,
     SessionExerciseIn,
     SessionOut,
     SessionStartIn,
     SessionStatusIn,
+    SetIn,
+    SetOut,
+    SetUpdate,
     WorkoutIn,
     WorkoutOut,
     WorkoutsDayOut,
@@ -25,6 +34,31 @@ from app.modules.workouts.schemas import (
 )
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
+
+# Rotas de um segmento só vêm ANTES de /{workout_id}, senão o FastAPI tenta ler
+# "library" como UUID do plano.
+
+
+@router.get("/library", response_model=LibraryOut)
+async def library(user: CurrentUser) -> LibraryOut:
+    """Catálogo de exercícios prontos, agrupado por músculo."""
+    return service.library()
+
+
+@router.get("/body-weight", response_model=BodyWeightHistoryOut)
+async def body_weight(
+    user: CurrentUser,
+    db: DB,
+    days: Annotated[int, Query(ge=7, le=1095)] = 180,
+) -> BodyWeightHistoryOut:
+    return await service.body_weight_history(db, user.id, user.timezone, days)
+
+
+@router.post("/body-weight", response_model=BodyWeightOut, status_code=status.HTTP_201_CREATED)
+async def set_body_weight(data: BodyWeightIn, user: CurrentUser, db: DB) -> BodyWeightOut:
+    row = await service.set_body_weight(db, user.id, user.timezone, data)
+    await db.commit()
+    return BodyWeightOut.model_validate(row)
 
 
 # --- Dia, histórico, exercícios e sessões (antes de /{workout_id}) ------------------------
@@ -87,7 +121,7 @@ async def set_session_status(
     session_id: UUID, data: SessionStatusIn, user: CurrentUser, db: DB
 ) -> SessionOut:
     s = await service.set_session_status(
-        db, user.id, user.timezone, session_id, data.status, data.notes
+        db, user.id, user.timezone, session_id, data.status, data.notes, data.duration_seconds
     )
     await db.commit()
     return SessionOut.model_validate(s)
@@ -155,3 +189,49 @@ async def start_session(
     s = await service.start_session(db, user.id, user.timezone, workout_id, data.date)
     await db.commit()
     return SessionOut.model_validate(s)
+
+
+# --- Carga por série, biblioteca e peso corporal (Fase 16) -------------------------------
+@router.get("/sessions/{session_id}", response_model=SessionDetailOut)
+async def session_detail(session_id: UUID, user: CurrentUser, db: DB) -> SessionDetailOut:
+    out = await service.session_detail(db, user.id, user.timezone, session_id)
+    await db.commit()
+    return out
+
+
+@router.post(
+    "/sessions/{session_id}/sets", response_model=SetOut, status_code=status.HTTP_201_CREATED
+)
+async def add_set(session_id: UUID, data: SetIn, user: CurrentUser, db: DB) -> SetOut:
+    row = await service.add_set(db, user.id, user.timezone, session_id, data)
+    await db.commit()
+    return SetOut.model_validate(row)
+
+
+@router.patch("/sets/{set_id}", response_model=SetOut)
+async def update_set(set_id: UUID, data: SetUpdate, user: CurrentUser, db: DB) -> SetOut:
+    row = await service.update_set(db, user.id, user.timezone, set_id, data)
+    await db.commit()
+    return SetOut.model_validate(row)
+
+
+@router.delete("/sets/{set_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_set(set_id: UUID, user: CurrentUser, db: DB) -> None:
+    await service.delete_set(db, user.id, user.timezone, set_id)
+    await db.commit()
+
+
+@router.get("/exercises/{exercise_id}/history", response_model=ExerciseHistoryOut)
+async def exercise_history(
+    exercise_id: UUID,
+    user: CurrentUser,
+    db: DB,
+    limit: Annotated[int, Query(ge=1, le=60)] = 12,
+) -> ExerciseHistoryOut:
+    return await service.exercise_history(db, user.id, exercise_id, limit)
+
+
+@router.delete("/body-weight/{day}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_body_weight(day: date, user: CurrentUser, db: DB) -> None:
+    await service.delete_body_weight(db, user.id, day)
+    await db.commit()

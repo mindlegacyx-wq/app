@@ -462,7 +462,15 @@ export interface Exercise {
   load: string | null
   rest_seconds: number | null
   sort_order: number
+  library_key: string | null
+  muscle: string | null
+  icon: string | null
+  load_mode: LoadMode
+  bar_weight: number // kg da barra quando o peso é digitado por lado
+  increment: number // degrau de carga sugerido
 }
+
+export type LoadMode = 'total' | 'per_side' | 'bodyweight'
 
 export interface Workout {
   id: string
@@ -474,6 +482,102 @@ export interface Workout {
   exercises: Exercise[]
 }
 
+// --- Carga por série, biblioteca e peso corporal (Fase 16) ---------------------------------
+
+export interface WorkoutSet {
+  id: string
+  exercise_id: string
+  set_number: number
+  weight: number | null // kg reais (a conta do "por lado" já foi feita)
+  reps: number | null
+  seconds: number | null
+  done: boolean
+}
+
+export interface PreviousSet {
+  weight: number | null
+  reps: number | null
+  seconds: number | null
+}
+
+export interface ExerciseProgress {
+  exercise_id: string
+  last_date: string | null
+  last_sets: PreviousSet[]
+  best_weight: number | null
+  best_date: string | null
+  suggested_weight: number | null
+  should_increase: boolean
+}
+
+export interface SessionExercise {
+  exercise: Exercise
+  sets: WorkoutSet[]
+  progress: ExerciseProgress
+}
+
+export interface SessionDetail {
+  id: string
+  workout_id: string
+  workout_name: string
+  date: string
+  status: SessionStatus
+  started_at: string | null
+  completed_at: string | null
+  duration_seconds: number | null
+  notes: string | null
+  editable: boolean
+  exercises: SessionExercise[]
+  total_volume: number
+  done_sets: number
+  planned_sets: number
+}
+
+export interface LibraryExercise {
+  key: string
+  name: string
+  muscle: string
+  icon: string
+  load_mode: LoadMode
+  bar_weight: number
+  increment: number
+  rest: number
+}
+
+export interface LibraryGroup {
+  muscle: string
+  label: string
+  exercises: LibraryExercise[]
+}
+
+export interface ExerciseLibrary {
+  groups: LibraryGroup[]
+}
+
+export interface BodyWeightEntry {
+  date: string
+  weight: number
+}
+
+export interface BodyWeightHistory {
+  entries: BodyWeightEntry[]
+  latest: number | null
+  change_30d: number | null
+}
+
+export interface ExerciseHistoryPoint {
+  date: string
+  best_weight: number | null
+  total_volume: number
+  sets: PreviousSet[]
+}
+
+export interface ExerciseHistory {
+  exercise_id: string
+  name: string
+  points: ExerciseHistoryPoint[]
+}
+
 export interface WorkoutSession {
   id: string
   workout_id: string
@@ -482,6 +586,7 @@ export interface WorkoutSession {
   started_at: string | null
   completed_at: string | null
   notes: string | null
+  duration_seconds: number | null
 }
 
 export interface DayExercise extends Omit<Exercise, 'sort_order'> {

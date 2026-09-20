@@ -41,6 +41,16 @@ no fechamento do dia, liga semanal com bots identificados como robôs, começand
   aviso de desbloqueio (com resumo quando vários caem juntos), transição de entrada entre telas e
   percentual do dia contando até o valor.
 
+## Pós-MVP · trilha da academia (aprovada em 20/09/2026)
+
+Decisões do fundador: carga registrada série a série e já preenchida com a do último treino; o
+peso digitado conforme o exercício (barra por lado, máquina total); cronômetro de descanso
+automático mais o tempo total; peso corporal registrado quando quiser, com gráfico.
+
+- **Fase 16 — Treinos com carga de verdade** (feita): biblioteca de 73 exercícios com ícones,
+  séries com peso e reps, carga anterior e sugestão de progressão, descanso automático, tempo
+  total, peso corporal e gráficos de evolução.
+
 ## MoSCoW
 
 **Must (MVP)**

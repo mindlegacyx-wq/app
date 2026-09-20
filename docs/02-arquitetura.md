@@ -144,6 +144,27 @@ concluídos por área), `league.lifetime_stats` e `player.state`. No banco fica 
 `achievement_unlocks` (chave, quando caiu, se o aviso foi visto). `GET /achievements` devolve a
 lista com progresso e grava os selos novos; `POST /achievements/seen` apaga os avisos pendentes.
 
+## 7.4. Treinos com carga de verdade (Fase 16)
+
+Antes o exercício tinha `load` como texto livre ("60kg") e a sessão só marcava feito/não feito —
+não dava para ver evolução. Agora:
+
+- **Biblioteca** (`library.py`, 73 exercícios em código, como o catálogo de conquistas): cada um
+  traz grupo muscular, ícone, descanso sugerido, degrau de carga e o **modo de digitar o peso**.
+- **`load_mode`**: `total` (máquina, halter), `per_side` (barra: você digita o que tem de cada
+  lado e o app soma `bar_weight`) ou `bodyweight`. `workout_sets.weight` guarda sempre o **peso
+  real total em kg**, para a evolução comparar maçã com maçã mesmo se o modo mudar depois.
+- **`workout_sets`** (migração 0015) é o registro real: uma linha por série, com peso, reps,
+  feito e quando. Ao iniciar a sessão, as séries planejadas nascem **já preenchidas com o da
+  última vez** (`ensure_sets`, idempotente — nunca sobrescreve o que o usuário digitou).
+- **Progressão** (`exercise_progress`): carga anterior, recorde e sugestão de hoje. A sugestão
+  só sobe quando **todas** as séries da última vez bateram o topo da faixa de repetições —
+  subir carga sem ter fechado o número seria como marcar item que não fez.
+- Série marcada mantém a visão do dia coerente: exercício com todas as séries feitas conta como
+  concluído (`_sync_exercise_flag`), então Hoje e a tela do treino nunca divergem.
+- **`body_weights`**: um registro por dia, com variação de 30 dias e gráfico próprio.
+- `duration_seconds` na sessão guarda o cronômetro do treino.
+
 ## 8. Infra e deploy
 
 ```

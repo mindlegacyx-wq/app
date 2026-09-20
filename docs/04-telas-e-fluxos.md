@@ -27,6 +27,8 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### HUD (todas as abas)
 | # | Tela | Conteúdo |
 |---|---|---|
+| 45 | **Evolução do exercício** (`/treinos/exercicio/:id`): gráfico da maior carga por treino e o registro de cada dia com o volume. |
+| 44 | **Treino em andamento** (`/treinos/:id/sessao`): tempo total correndo, séries com peso e repetições, "última vez" e convite a subir carga, descanso automático com som e vibração, volume do dia. |
 | 43 | **Conquistas** (`/conquistas`): vitrine de 25 selos por família, com data nos conquistados e barra de progresso nos que faltam. Aviso no rodapé quando um selo cai (três ou mais de uma vez viram um aviso só). Cartão resumo na Evolução. |
 | 42 | **Liga** (`/liga`): divisão, posição, os sete competidores com XP, zonas de subida e queda, regras. Cartão resumo no Hoje e na Evolução; ao virar a semana, tela de resultado (uma vez). |
 | 41 | **Barra de XP** fixa no topo: emblema do nível, patente colorida, progresso do nível. Ao concluir algo, o contador vira "+N XP" e a barra pulsa; ao subir de nível, abre a comemoração (anéis, faíscas, som curto e vibração). |

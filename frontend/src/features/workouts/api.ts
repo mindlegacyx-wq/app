@@ -1,7 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
-import type { Exercise, Workout, WorkoutHistory, WorkoutSession, WorkoutsDay } from '@/lib/types'
+import type {
+  BodyWeightEntry,
+  BodyWeightHistory,
+  Exercise,
+  ExerciseHistory,
+  ExerciseLibrary,
+  LoadMode,
+  SessionDetail,
+  Workout,
+  WorkoutHistory,
+  WorkoutSession,
+  WorkoutSet,
+  WorkoutsDay,
+} from '@/lib/types'
+
+export const setKeys = {
+  session: (id: string) => ['workouts', 'session', id] as const,
+  library: ['workouts', 'library'] as const,
+  body: ['workouts', 'body-weight'] as const,
+  exercise: (id: string) => ['workouts', 'exercise-history', id] as const,
+}
 
 export const workoutKeys = {
   all: ['workouts'] as const,
@@ -66,6 +86,13 @@ export interface ExerciseBody {
   reps?: string | null
   load?: string | null
   rest_seconds?: number | null
+  // Fase 16: vindos da biblioteca ou escolhidos à mão
+  library_key?: string | null
+  muscle?: string | null
+  icon?: string | null
+  load_mode?: LoadMode
+  bar_weight?: number | null
+  increment?: number | null
 }
 
 export function useAddExercise(workoutId: string) {
@@ -159,9 +186,114 @@ export function useToggleExercise(date: string) {
 export function useSetSessionStatus(date: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ sessionId, status, notes }: { sessionId: string; status: WorkoutSession['status']; notes?: string }) =>
-      api<WorkoutSession>(`/workouts/sessions/${sessionId}`, { method: 'PATCH', body: { status, notes } }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: workoutKeys.all }),
+    mutationFn: ({
+      sessionId,
+      ...body
+    }: {
+      sessionId: string
+      status?: WorkoutSession['status']
+      notes?: string
+      duration_seconds?: number
+    }) => api<WorkoutSession>(`/workouts/sessions/${sessionId}`, { method: 'PATCH', body }),
+    onSuccess: (_d, { sessionId }) => {
+      void qc.invalidateQueries({ queryKey: workoutKeys.all })
+      void qc.invalidateQueries({ queryKey: setKeys.session(sessionId) })
+    },
     onSettled: () => void qc.invalidateQueries({ queryKey: workoutKeys.day(date) }),
+  })
+}
+
+// --- Carga por série, biblioteca e peso corporal (Fase 16) --------------------------------
+
+/** Sessão com séries, carga anterior e sugestão. É a tela de execução inteira. */
+export function useSessionDetail(sessionId: string | undefined) {
+  return useQuery({
+    queryKey: setKeys.session(sessionId ?? ''),
+    queryFn: () => api<SessionDetail>(`/workouts/sessions/${sessionId}`),
+    enabled: !!sessionId,
+    staleTime: 10_000,
+  })
+}
+
+/** Salva peso/reps/feito de uma série, com atualização otimista (o toque não pode esperar). */
+export function useUpdateSet(sessionId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    networkMode: 'always',
+    mutationFn: ({ setId, ...body }: { setId: string; weight?: number; reps?: number; seconds?: number; done?: boolean }) =>
+      api<WorkoutSet>(`/workouts/sets/${setId}`, { method: 'PATCH', body, queue: true }),
+    onMutate: async ({ setId, ...body }) => {
+      const key = setKeys.session(sessionId)
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<SessionDetail>(key)
+      if (previous) {
+        qc.setQueryData<SessionDetail>(key, {
+          ...previous,
+          exercises: previous.exercises.map((item) => ({
+            ...item,
+            sets: item.sets.map((s) => (s.id === setId ? { ...s, ...body } : s)),
+          })),
+        })
+      }
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(setKeys.session(sessionId), ctx.previous)
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: setKeys.session(sessionId) })
+      void qc.invalidateQueries({ queryKey: workoutKeys.all })
+    },
+  })
+}
+
+export function useAddSet(sessionId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { exercise_id: string; weight?: number | null; reps?: number | null }) =>
+      api<WorkoutSet>(`/workouts/sessions/${sessionId}/sets`, { method: 'POST', body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: setKeys.session(sessionId) }),
+  })
+}
+
+export function useDeleteSet(sessionId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (setId: string) => api<void>(`/workouts/sets/${setId}`, { method: 'DELETE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: setKeys.session(sessionId) }),
+  })
+}
+
+export function useExerciseLibrary() {
+  return useQuery({
+    queryKey: setKeys.library,
+    queryFn: () => api<ExerciseLibrary>('/workouts/library'),
+    staleTime: 24 * 60 * 60_000, // catálogo fixo: não muda enquanto o app está aberto
+  })
+}
+
+export function useBodyWeight(days = 180) {
+  return useQuery({
+    queryKey: [...setKeys.body, days],
+    queryFn: () => api<BodyWeightHistory>(`/workouts/body-weight?days=${days}`),
+    staleTime: 60_000,
+  })
+}
+
+export function useSetBodyWeight() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { weight: number; date?: string }) =>
+      api<BodyWeightEntry>('/workouts/body-weight', { method: 'POST', body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: setKeys.body }),
+  })
+}
+
+export function useExerciseHistory(exerciseId: string | undefined) {
+  return useQuery({
+    queryKey: setKeys.exercise(exerciseId ?? ''),
+    queryFn: () => api<ExerciseHistory>(`/workouts/exercises/${exerciseId}/history`),
+    enabled: !!exerciseId,
+    staleTime: 60_000,
   })
 }

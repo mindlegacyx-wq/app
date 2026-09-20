@@ -42,6 +42,7 @@ const WakeHistoryPage = lazy(() =>
 const AlarmScreen = lazy(() => import('@/features/alarms/AlarmScreen').then((m) => ({ default: m.AlarmScreen })))
 const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
 const AchievementsPage = lazy(() => import('@/features/achievements/AchievementsPage').then((m) => ({ default: m.AchievementsPage })))
+const ExerciseDetailPage = lazy(() => import('@/features/workouts/ExerciseDetailPage').then((m) => ({ default: m.ExerciseDetailPage })))
 const LeaguePage = lazy(() => import('@/features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })))
 const EvolutionPage = lazy(() => import('@/features/progress/EvolutionPage').then((m) => ({ default: m.EvolutionPage })))
 const DayDetailPage = lazy(() => import('@/features/progress/DayDetailPage').then((m) => ({ default: m.DayDetailPage })))
@@ -102,6 +103,7 @@ export const router = createBrowserRouter([
           { path: '/treinos/historico', element: <Lazy><HistoryPage /></Lazy> },
           { path: '/treinos/:id', element: <Lazy><WorkoutEditorPage /></Lazy> },
           { path: '/treinos/:id/sessao', element: <Lazy><SessionPage /></Lazy> },
+          { path: '/treinos/exercicio/:id', element: <Lazy><ExerciseDetailPage /></Lazy> },
         ],
       },
       {

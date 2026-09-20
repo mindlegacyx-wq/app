@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-store'
 import { cn, describeDays, pluralize, todayIn } from '@/lib/format'
 import type { DayWorkout, Workout } from '@/lib/types'
 
+import { BodyWeightCard } from './BodyWeightCard'
 import { WorkoutSheet } from './WorkoutSheet'
 import { useWorkouts, useWorkoutsDay } from './api'
 
@@ -38,6 +39,7 @@ export function WorkoutsPage() {
         />
       ) : (
         <div className="mt-2 flex flex-col gap-3">
+          <BodyWeightCard />
           {day.data && day.data.workouts.length > 0 && (
             <>
               <h2 className="px-0.5 text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Hoje</h2>

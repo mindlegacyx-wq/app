@@ -1,16 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, m, useReducedMotion } from 'motion/react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { Button, Card, Checkbox, Dialog, EmptyState, Spinner } from '@/components/ui'
+import { Button, Card, Dialog, EmptyState, Spinner } from '@/components/ui'
 import { useDayScore } from '@/features/progress/api'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
-import { cn, timeIn, todayIn } from '@/lib/format'
+import { cn, todayIn } from '@/lib/format'
+import { useWakeLock } from '@/lib/wake-lock'
+import type { SessionExercise, SessionDetail } from '@/lib/types'
 
-import { useSetSessionStatus, useStartSession, useToggleExercise, useWorkoutsDay } from './api'
-import { exerciseMeta } from './shared'
+import { useAddSet, useDeleteSet, useSessionDetail, useSetSessionStatus, useStartSession, useUpdateSet, useWorkoutsDay } from './api'
+import { ExerciseIcon } from './ExerciseIcon'
+import { describeLastSets, describeWeight, fmtDuration, fmtKg, loadLabel } from './load'
+import { RestTimer } from './RestTimer'
+import { SetRow } from './SetRow'
 
-/** Tela 21: sessão de hoje com check por exercício, cronômetro de descanso, concluir / pular. */
+/** Tela 21: o treino sendo feito — carga por série, descanso automático e tempo total. */
 export function SessionPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
@@ -20,198 +26,312 @@ export function SessionPage() {
   const day = useWorkoutsDay(today)
   const score = useDayScore(today)
   const start = useStartSession(today)
-  const toggle = useToggleExercise(today)
   const setStatus = useSetSessionStatus(today)
-  const [rest, setRest] = useState<{ total: number; left: number } | null>(null)
-  const [confirmSkip, setConfirmSkip] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmSkip, setConfirmSkip] = useState(false)
 
   const w = day.data?.workouts.find((x) => x.workout_id === id)
-  const dayClosed = Boolean(score.data && !score.data.is_open && score.data.closed_at)
-  const editable = !dayClosed
+  const sessionId = w?.session?.id
+  const detail = useSessionDetail(sessionId)
 
-  // Cronômetro de descanso: conta até zero e vibra ao terminar.
+  // Sem sessão ainda: começa uma ao abrir a tela (é o que o usuário veio fazer).
+  const started = useRef(false)
   useEffect(() => {
-    if (!rest || rest.left <= 0) return
-    const t = window.setTimeout(() => setRest((r) => (r ? { ...r, left: r.left - 1 } : r)), 1000)
-    return () => window.clearTimeout(t)
-  }, [rest])
-  const vibrated = useRef(false)
-  useEffect(() => {
-    if (rest && rest.left === 0 && !vibrated.current) {
-      vibrated.current = true
-      if ('vibrate' in navigator) navigator.vibrate?.([120, 60, 120])
-    }
-    if (!rest || rest.left > 0) vibrated.current = false
-  }, [rest])
-
-  async function ensureSession(): Promise<string | null> {
-    if (w?.session) return w.session.id
-    try {
-      const s = await start.mutateAsync(id)
-      return s.id
-    } catch (err) {
-      setError(errorMessage(err))
-      return null
-    }
-  }
-
-  async function onToggle(exerciseId: string, completed: boolean, restSeconds: number | null) {
-    const sessionId = await ensureSession()
-    if (!sessionId) return
-    toggle.mutate({ sessionId, exerciseId, completed }, { onError: (e) => setError(errorMessage(e)) })
-    if (completed && restSeconds) setRest({ total: restSeconds, left: restSeconds })
-    if (!completed) setRest(null)
-  }
-
-  async function finish(status: 'completed' | 'skipped') {
-    const sessionId = await ensureSession()
-    if (!sessionId) return
-    setRest(null)
-    setStatus.mutate({ sessionId, status }, { onError: (e) => setError(errorMessage(e)), onSuccess: () => setConfirmSkip(false) })
-  }
+    if (!w || w.session || started.current || !day.data) return
+    started.current = true
+    start.mutate(id, { onError: (e) => setError(errorMessage(e)) })
+  }, [w, day.data, id, start])
 
   if (day.isPending) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <div className="flex justify-center py-16">
         <Spinner className="size-6 text-ink-faint" />
       </div>
     )
   }
   if (!w) {
     return (
-      <div className="safe-top pt-2">
-        <Header title="Sessão" />
-        <EmptyState
-          className="mt-6"
-          title="Este treino não está planejado para hoje"
-          description="Sessões só podem ser registradas no dia. Abra o plano para editar os dias da semana."
-          action={<Link to={`/treinos/${id}`} className="text-accent">Abrir plano</Link>}
-        />
-      </div>
+      <EmptyState
+        className="mt-10"
+        title="Treino não encontrado"
+        description="Ele pode ter sido apagado ou não está marcado para hoje."
+        action={<Button onClick={() => navigate('/treinos')}>Voltar</Button>}
+      />
     )
   }
 
-  const total = w.exercises.length
-  const status = w.session?.status
-  const done = status === 'completed'
-  const skipped = status === 'skipped'
+  const dayClosed = Boolean(score.data && !score.data.is_open && score.data.closed_at)
+  const editable = !dayClosed && (detail.data?.editable ?? true)
 
   return (
-    <div className="safe-top flex min-h-dvh flex-col pt-2 pb-28">
-      <Header title={w.name} right={<span className="tabular text-[15px] font-semibold text-ink-muted">{w.exercises_done}/{total}</span>} />
-
+    <>
+      <Header name={w.name} onBack={() => navigate('/treinos')} />
       {error && (
-        <p role="alert" className="mt-3 rounded-md border border-danger/30 bg-danger-soft px-3 py-2.5 text-[14px] text-danger">
+        <p role="alert" className="mt-3 rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-[14px] text-danger">
           {error}
         </p>
       )}
-
-      {(done || skipped) && (
-        <Card className={cn('mt-3 flex items-center justify-between', done && 'border-accent/30 bg-accent-soft')}>
-          <p className="text-[15px]">
-            {done ? (
-              <>
-                <span className="font-semibold text-accent">Treino concluído</span>
-                {w.session?.completed_at && <span className="text-ink-muted"> às {timeIn(w.session.completed_at, user.timezone)}</span>}
-              </>
-            ) : (
-              <span className="text-ink-muted">Você pulou este treino hoje.</span>
-            )}
-          </p>
-          {editable && (
-            <Button size="sm" variant="ghost" loading={setStatus.isPending} onClick={() => finish('completed')} className={cn(done && 'hidden')}>
-              Retomar
-            </Button>
-          )}
-        </Card>
-      )}
-
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/8">
-        <div className={cn('h-full rounded-full transition-[width] duration-500 ease-out-quart', done ? 'bg-accent' : 'bg-ink-muted')} style={{ width: `${total ? (w.exercises_done / total) * 100 : 0}%` }} />
-      </div>
-
-      <Card padded={false} className="mt-4 divide-y divide-line overflow-hidden">
-        {w.exercises.map((e, i) => {
-          const meta = exerciseMeta(e)
-          return (
-            <label key={e.id} className={cn('flex cursor-pointer items-center gap-3 px-4 py-3.5 select-none', !editable && 'cursor-default')}>
-              <span className="tabular w-5 shrink-0 text-[12px] text-ink-faint">{i + 1}</span>
-              <span className="min-w-0 flex-1">
-                <span className={cn('block text-[16px]', e.completed && 'text-ink-faint line-through')}>{e.name}</span>
-                {meta && <span className="tabular mt-0.5 block text-[12px] text-ink-faint">{meta}</span>}
-              </span>
-              <Checkbox label={e.name} checked={e.completed} disabled={!editable || toggle.isPending} onChange={(v) => onToggle(e.id, v, e.rest_seconds)} />
-            </label>
-          )
-        })}
-      </Card>
-
-      {rest && (
-        <Card className="mt-4 flex items-center gap-4 border-accent/30">
-          <div className="relative size-14 shrink-0">
-            <svg viewBox="0 0 56 56" className="-rotate-90">
-              <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="5" className="text-white/8" />
-              <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" className={cn('transition-[stroke-dashoffset] duration-1000 linear', rest.left === 0 ? 'text-accent' : 'text-ink-muted')} strokeDasharray={2 * Math.PI * 24} strokeDashoffset={2 * Math.PI * 24 * (1 - rest.left / rest.total)} />
-            </svg>
-            <span className="tabular absolute inset-0 flex items-center justify-center text-[15px] font-semibold">{rest.left}</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold">{rest.left === 0 ? 'Descanso encerrado' : 'Descanso'}</p>
-            <p className="text-[13px] text-ink-muted">{rest.left === 0 ? 'Próximo exercício.' : `${rest.total}s entre séries`}</p>
-          </div>
-          <Button size="sm" variant="ghost" onClick={() => setRest(null)}>
-            {rest.left === 0 ? 'Ok' : 'Encerrar'}
-          </Button>
-        </Card>
-      )}
-
-      {editable && !done && !skipped && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-canvas/85 backdrop-blur-xl">
-          <div className="safe-bottom mx-auto flex max-w-lg gap-2 px-5 py-3">
-            <Button variant="secondary" className="shrink-0 whitespace-nowrap" onClick={() => setConfirmSkip(true)}>
-              Pular treino
-            </Button>
-            <Button full loading={setStatus.isPending} onClick={() => finish('completed')} variant={w.exercises_done === total ? 'primary' : 'secondary'}>
-              Concluir treino
-            </Button>
-          </div>
+      {!detail.data ? (
+        <div className="flex justify-center py-16">
+          <Spinner className="size-6 text-ink-faint" />
         </div>
-      )}
-      {(done || skipped) && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-canvas/85 backdrop-blur-xl">
-          <div className="safe-bottom mx-auto flex max-w-lg gap-2 px-5 py-3">
-            <Button full variant="secondary" onClick={() => navigate('/hoje')}>
-              Voltar para Hoje
-            </Button>
-          </div>
-        </div>
+      ) : (
+        <Running
+          detail={detail.data}
+          editable={editable}
+          onFinish={(duration) => {
+            setStatus.mutate(
+              { sessionId: detail.data.id, status: 'completed', duration_seconds: duration },
+              { onSuccess: () => navigate('/treinos'), onError: (e) => setError(errorMessage(e)) },
+            )
+          }}
+          onSkip={() => setConfirmSkip(true)}
+        />
       )}
 
       <Dialog
         open={confirmSkip}
-        title="Pular o treino de hoje?"
-        description="Fica registrado como pulado. Continua contando como planejado e não feito no seu percentual."
+        onCancel={() => setConfirmSkip(false)}
+        title="Pular este treino?"
+        description="Fica registrado como planejado e não feito. O número do dia continua honesto."
         confirmLabel="Pular"
         danger
-        loading={setStatus.isPending}
-        onCancel={() => setConfirmSkip(false)}
-        onConfirm={() => finish('skipped')}
+        onConfirm={() => {
+          setConfirmSkip(false)
+          if (!sessionId) return
+          setStatus.mutate({ sessionId, status: 'skipped' }, { onSuccess: () => navigate('/treinos') })
+        }}
       />
+    </>
+  )
+}
+
+function Header({ name, onBack }: { name: string; onBack: () => void }) {
+  return (
+    <div className="safe-top flex items-center gap-3 pt-2">
+      <button type="button" onClick={onBack} aria-label="Voltar" className="-ml-1 p-1 text-ink-muted active:text-ink">
+        <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <h1 className="truncate text-[20px] font-semibold tracking-[-0.02em]">{name}</h1>
     </div>
   )
 }
 
-function Header({ title, right }: { title: string; right?: React.ReactNode }) {
+function Running({
+  detail,
+  editable,
+  onFinish,
+  onSkip,
+}: {
+  detail: SessionDetail
+  editable: boolean
+  onFinish: (duration: number) => void
+  onSkip: () => void
+}) {
+  const reduced = useReducedMotion()
+  const update = useUpdateSet(detail.id)
+  const addSet = useAddSet(detail.id)
+  const removeSet = useDeleteSet(detail.id)
+  const [rest, setRest] = useState<{ seconds: number; label: string } | null>(null)
+
+  // Tempo total: conta desde o início da sessão, pelo relógio.
+  const startedAt = useMemo(() => (detail.started_at ? new Date(detail.started_at).getTime() : Date.now()), [detail.started_at])
+  const [elapsed, setElapsed] = useState(() => Math.floor((Date.now() - startedAt) / 1000))
+  const running = detail.status === 'in_progress'
+  useEffect(() => {
+    if (!running) return
+    const id = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000)
+    return () => window.clearInterval(id)
+  }, [running, startedAt])
+
+  // Tela acesa enquanto o treino corre: ninguém quer destravar o celular entre séries.
+  useWakeLock(running && editable)
+
+  const pct = detail.planned_sets > 0 ? (detail.done_sets / detail.planned_sets) * 100 : 0
+
   return (
-    <header className="flex h-12 items-center gap-3">
-      <Link to="/hoje" aria-label="Voltar" className="-ml-2 flex size-9 items-center justify-center rounded-full text-ink-muted hover:bg-white/5 hover:text-ink">
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
-      </Link>
-      <h1 className="min-w-0 flex-1 truncate text-[20px] font-semibold tracking-[-0.02em]">{title}</h1>
-      {right}
-    </header>
+    <>
+      <Card className="mt-3 flex items-center gap-4 p-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] tracking-[0.14em] text-ink-faint uppercase">Tempo</p>
+          <p className="text-[28px] leading-none font-semibold tabular-nums">{fmtDuration(elapsed)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[11px] tracking-[0.14em] text-ink-faint uppercase">Séries</p>
+          <p className="text-[28px] leading-none font-semibold tabular-nums">
+            {detail.done_sets}
+            <span className="text-[15px] font-normal text-ink-faint">/{detail.planned_sets}</span>
+          </p>
+        </div>
+      </Card>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/8">
+        <m.div
+          className="h-full rounded-full bg-accent"
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 140, damping: 22 }}
+        />
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3">
+        {detail.exercises.map((item) => (
+          <ExerciseCard
+            key={item.exercise.id}
+            item={item}
+            editable={editable}
+            onSet={(setId, patch) => {
+              update.mutate({ setId, ...patch })
+              if (patch.done) {
+                const seconds = item.exercise.rest_seconds
+                if (seconds) setRest({ seconds, label: item.exercise.name })
+              }
+            }}
+            onAdd={() =>
+              addSet.mutate({
+                exercise_id: item.exercise.id,
+                weight: item.sets.at(-1)?.weight ?? null,
+                reps: item.sets.at(-1)?.reps ?? null,
+              })
+            }
+            onRemove={(setId) => removeSet.mutate(setId)}
+          />
+        ))}
+      </div>
+
+      {detail.total_volume > 0 && (
+        <p className="mt-4 text-center text-[13px] text-ink-muted">
+          Volume de hoje: <span className="font-semibold text-ink tabular-nums">{fmtKg(detail.total_volume)}</span> levantados
+        </p>
+      )}
+
+      {editable && (
+        <div className="mt-6 flex flex-col gap-2">
+          <Button size="lg" full onClick={() => onFinish(elapsed)} disabled={detail.done_sets === 0}>
+            {detail.status === 'completed' ? 'Treino concluído' : 'Concluir treino'}
+          </Button>
+          <Button size="lg" full variant="ghost" onClick={onSkip}>
+            Pular hoje
+          </Button>
+        </div>
+      )}
+      {!editable && (
+        <p className="mt-6 text-center text-[13px] text-ink-faint">Este dia já foi fechado. O registro está guardado como está.</p>
+      )}
+
+      <RestTimer
+        seconds={rest?.seconds ?? null}
+        label={rest?.label}
+        onDone={() => setRest(null)}
+        onSkip={() => setRest(null)}
+        onAdd={(extra) => setRest((r) => (r ? { ...r, seconds: r.seconds + extra } : r))}
+      />
+    </>
+  )
+}
+
+function ExerciseCard({
+  item,
+  editable,
+  onSet,
+  onAdd,
+  onRemove,
+}: {
+  item: SessionExercise
+  editable: boolean
+  onSet: (setId: string, patch: { weight?: number; reps?: number; done?: boolean }) => void
+  onAdd: () => void
+  onRemove: (setId: string) => void
+}) {
+  const { exercise, sets, progress } = item
+  const done = sets.filter((s) => s.done).length
+  const complete = done > 0 && done === sets.length
+
+  return (
+    <Card className={cn('p-3.5 transition-colors', complete && 'border-accent/30')}>
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            'grid size-9 shrink-0 place-items-center rounded-full',
+            complete ? 'bg-accent text-on-accent' : 'bg-white/6 text-ink-muted',
+          )}
+        >
+          <ExerciseIcon icon={exercise.icon} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <Link to={`/treinos/exercicio/${exercise.id}`} className="truncate text-[16px] font-semibold">
+              {exercise.name}
+            </Link>
+            <span className="shrink-0 text-[12px] text-ink-faint tabular-nums">
+              {done}/{sets.length}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[12px] text-ink-faint">
+            {[exercise.reps ? `alvo ${exercise.reps} reps` : null, loadLabel(exercise.load_mode)].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+      </div>
+
+      <PreviousLine item={item} />
+
+      <div className="mt-2.5 flex flex-col gap-1">
+        <AnimatePresence initial={false}>
+          {sets.map((s) => (
+            <SetRow
+              key={s.id}
+              set={s}
+              exercise={exercise}
+              editable={editable}
+              onChange={(patch) => onSet(s.id, patch)}
+              onRemove={sets.length > 1 ? () => onRemove(s.id) : undefined}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {editable && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="mt-2 w-full rounded-md border border-dashed border-line-strong py-2 text-[13px] font-medium text-ink-muted active:bg-surface"
+        >
+          + série
+        </button>
+      )}
+
+      {progress.best_weight !== null && (
+        <p className="mt-2 text-[11px] text-ink-faint">Recorde: {describeWeight(exercise, progress.best_weight)}</p>
+      )}
+    </Card>
+  )
+}
+
+/** A linha que faz o trabalho de motivar: o que você fez da última vez e o convite a subir. */
+function PreviousLine({ item }: { item: SessionExercise }) {
+  const { exercise, progress } = item
+  if (progress.last_sets.length === 0) {
+    return (
+      <p className="mt-2 rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink-faint">
+        Primeira vez com este exercício. O peso de hoje vira a sua referência.
+      </p>
+    )
+  }
+  return (
+    <div
+      className={cn(
+        'mt-2 rounded-md px-2.5 py-1.5 text-[12px]',
+        progress.should_increase ? 'bg-accent-soft text-accent' : 'bg-surface text-ink-muted',
+      )}
+    >
+      <span className="font-medium">Última vez: </span>
+      {describeLastSets(progress.last_sets)}
+      {progress.should_increase && progress.suggested_weight !== null && (
+        <span className="mt-0.5 block font-semibold">
+          Fechou todas. Hoje sobe para {describeWeight(exercise, progress.suggested_weight)}.
+        </span>
+      )}
+    </div>
   )
 }
