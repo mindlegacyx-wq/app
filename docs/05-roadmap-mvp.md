@@ -73,6 +73,10 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   um guia de como deixar alto com o app fechado. Link do YouTube não entra: extrair áudio de lá
   é contra os termos do serviço.
 
+- **Fase 20 — Formato de PC** (feita): o mesmo app se reorganiza a partir de 1024 px — menu
+  lateral no lugar da barra de abas, conteúdo mais largo, tela Hoje em duas colunas e
+  formulários como janela. Decidido por largura de janela, não por aparelho.
+
 ## MoSCoW
 
 **Must (MVP)**

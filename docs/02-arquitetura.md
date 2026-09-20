@@ -223,6 +223,26 @@ O que dá, e é o que o app faz:
 - **Guia dentro do app**: como deixar a notificação alta no Android (canal + ignorar o Não
   perturbe) e no iPhone.
 
+## 7.8. Um app, dois formatos (Fase 20)
+
+O mesmo endereço e o mesmo código servem celular e PC; quem decide o formato é a **largura da
+janela**, não o aparelho. O corte é 1024 px (`lg:` do Tailwind):
+
+- **abaixo**: HUD no topo, conteúdo numa coluna, barra de abas embaixo, formulário subindo de
+  baixo (bottom sheet);
+- **acima**: menu lateral fixo de 240 px com as abas escritas, conteúdo mais largo
+  (`max-w-4xl`), tela Hoje em duas colunas (`columns-2` com `break-inside-avoid`, que mantém a
+  ordem de leitura e não parte um bloco ao meio), formulário como janela centralizada.
+
+Layout é decidido por classe CSS — funciona antes de o JavaScript rodar e acompanha o
+redimensionamento da janela na hora. O `useIsDesktop` (media query em JS) só existe para o que
+CSS não resolve: escolher a animação do formulário (subir x aparecer). Nada de detectar
+aparelho pelo user agent, que erra em tablet, em janela dividida e em PC com tela sensível ao
+toque.
+
+As telas internas (despertador, configurações, detalhe de treino) também ficam com o menu
+lateral no PC; no celular continuam de página cheia com o botão voltar.
+
 ## 8. Infra e deploy
 
 ```

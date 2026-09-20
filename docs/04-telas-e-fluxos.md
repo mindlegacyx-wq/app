@@ -27,6 +27,7 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### HUD (todas as abas)
 | # | Tela | Conteúdo |
 |---|---|---|
+| 52 | **Formato de PC** (a partir de 1024 px): menu lateral com as seis abas, conteúdo mais largo, Hoje em duas colunas e formulários em janela centralizada. Abaixo disso, tudo como era no celular. |
 | 51 | **Modo cabeceira** (`/despertador/cabeceira`): relógio grande, tela acesa, escurece sozinho. O alarme toca aí mesmo, com o áudio escolhido, sem depender de notificação. |
 | 50 | **Áudio próprio do alarme**: subir o arquivo (até 5 MB, até 5 guardados), ouvir a prévia, escolher por alarme; "Insistir até eu desligar" repete a notificação a cada minuto. |
 | 49 | **Treinar em qualquer dia**: "Treinar agora" em cada plano e "Começar treino" dentro do plano. Fora do dia marcado, a sessão entra como **treino extra** do dia. |

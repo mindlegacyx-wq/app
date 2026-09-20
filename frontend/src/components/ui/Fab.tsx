@@ -16,7 +16,7 @@ export function Fab({ label, onClick, className }: FabProps) {
       className={cn(
         'fixed right-5 z-30 flex size-14 items-center justify-center rounded-full bg-accent text-on-accent shadow-[0_10px_30px_rgb(198_241_53/25%)]',
         'transition-transform duration-150 ease-out-quart hover:brightness-105 active:scale-95',
-        'bottom-[calc(env(safe-area-inset-bottom)+5rem)]',
+        'bottom-[calc(env(safe-area-inset-bottom)+5rem)] lg:bottom-8',
         className,
       )}
     >

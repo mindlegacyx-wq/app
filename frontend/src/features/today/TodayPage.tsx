@@ -99,7 +99,9 @@ export function TodayPage() {
 
       <LeagueCard className="mt-3" />
 
-      <div className="mt-7 flex flex-col gap-7">
+      {/* No PC o dia vira duas colunas: uma coluna só num monitor deixaria metade da tela vazia.
+          `columns` mantém a ordem de leitura de cima para baixo e nenhum bloco é partido ao meio. */}
+      <div className="mt-7 flex flex-col gap-7 lg:block lg:columns-2 lg:gap-x-8 lg:[&>*]:mb-7 lg:[&>*]:break-inside-avoid">
         <WakeBlock date={date} timezone={tz} editable={editable} />
 
         {morning ? (

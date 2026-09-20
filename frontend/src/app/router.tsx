@@ -83,7 +83,7 @@ export const router = createBrowserRouter([
       // Tela cheia, sem layout: o fundo do alarme ocupa a janela inteira.
       { path: '/alarme', element: <Lazy><AlarmScreen /></Lazy> },
       {
-        element: <PlainLayout />,
+        element: <PlainLayout nav />,
         children: [
           { path: '/setup', element: <Lazy><SetupPage /></Lazy> },
           { path: '/instalar', element: <Lazy><InstallPage /></Lazy> },

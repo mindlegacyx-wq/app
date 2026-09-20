@@ -46,7 +46,7 @@ export function BedsideScreen() {
   return (
     <div
       onPointerDown={() => setDim(false)}
-      className="safe-top fixed inset-0 z-30 flex flex-col items-center justify-center bg-black px-6 text-center"
+      className="safe-top fixed inset-0 z-40 flex flex-col items-center justify-center bg-black px-6 text-center"
     >
       <m.div
         animate={{ opacity: dim ? 0.35 : 1 }}

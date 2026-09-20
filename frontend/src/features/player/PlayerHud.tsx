@@ -54,7 +54,7 @@ export function PlayerHud() {
   return (
     <>
       <div className="safe-top sticky top-0 z-20 border-b border-line bg-canvas/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-lg items-center gap-3 px-5 py-2">
+        <div className="mx-auto flex max-w-lg items-center gap-3 px-5 py-2 lg:max-w-4xl lg:px-8">
           <LevelBadge level={data.level} title={data.title} />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2 text-[11px] leading-none">

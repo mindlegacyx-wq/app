@@ -16,7 +16,14 @@ export function TopBar({ title, subtitle, hero = false }: TopBarProps) {
 
   return (
     <header className="safe-top sticky top-0 z-20 bg-canvas/85 backdrop-blur-xl">
-      <div className={cn('mx-auto flex max-w-lg items-center justify-between px-5', hero ? 'pt-2 pb-3' : 'h-14')}>
+      {/* No PC o cabeçalho acompanha a largura do conteúdo (o `main` já dá o respiro das bordas);
+          no celular continua com a margem própria. */}
+      <div
+        className={cn(
+          'mx-auto flex max-w-lg items-center justify-between px-5 lg:max-w-none lg:px-0',
+          hero ? 'pt-2 pb-3' : 'h-14',
+        )}
+      >
         <div className="min-w-0">
           {subtitle && <p className="truncate text-[13px] text-ink-muted first-letter:uppercase">{subtitle}</p>}
           {title && (
