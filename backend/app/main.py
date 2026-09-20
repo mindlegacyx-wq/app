@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import APP_NAME, APP_VERSION
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.modules.achievements.router import router as achievements_router
 from app.modules.alarms.router import alarms_router, wake_router
 from app.modules.auth.router import router as auth_router
 from app.modules.goals.router import router as goals_router
@@ -97,6 +98,7 @@ app.include_router(grades_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(player_router, prefix="/api/v1")
 app.include_router(league_router, prefix="/api/v1")
+app.include_router(achievements_router, prefix="/api/v1")
 
 # Deploy em um container só (Render etc.): a API também entrega o PWA compilado.
 # Fica por último para a rota coringa não engolir as rotas da API.

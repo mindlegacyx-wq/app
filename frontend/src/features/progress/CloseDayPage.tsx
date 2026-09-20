@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { Button, Card, Ring, Spinner } from '@/components/ui'
+import { Button, Card, CountUp, Ring, Spinner } from '@/components/ui'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
 import { cn, longDate, timeIn, todayIn } from '@/lib/format'
@@ -48,7 +48,9 @@ export function CloseDayPage() {
       <div className="mt-6 flex flex-col items-center text-center">
         <p className="text-[13px] text-ink-muted first-letter:uppercase">{longDate()}</p>
         <Ring value={d.pct} size={196} stroke={14} muted={d.planned === 0} className="mt-5">
-          <span className="tabular text-[52px] leading-none font-semibold tracking-[-0.04em]">{d.pct}%</span>
+          <span className="tabular text-[52px] leading-none font-semibold tracking-[-0.04em]">
+            <CountUp value={d.pct} duration={900} />%
+          </span>
           <span className="mt-1.5 text-[12px] text-ink-muted">
             {d.completed} de {d.planned}
           </span>

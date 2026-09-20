@@ -25,6 +25,7 @@ const queryClient: QueryClient = new QueryClient({
       void queryClient.invalidateQueries({ queryKey: ['progress'] })
       void queryClient.invalidateQueries({ queryKey: ['player'] })
       void queryClient.invalidateQueries({ queryKey: ['league'] })
+      void queryClient.invalidateQueries({ queryKey: ['achievements'] })
     },
   }),
 })

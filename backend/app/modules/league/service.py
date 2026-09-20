@@ -6,6 +6,7 @@ uma semente determinística (`bots.py`). Só o **resultado das semanas encerrada
 banco: a semana corrente é calculada na hora, então nada precisa rodar em segundo plano.
 """
 
+from dataclasses import dataclass
 from datetime import date, timedelta
 from zoneinfo import ZoneInfo
 
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dates import now_utc, user_today
 from app.modules.league import bots as bots_mod
 from app.modules.league.models import (
+    ORDER,
     LeagueWeek,
     Outcome,
     Tier,
@@ -165,6 +167,31 @@ async def current(db: AsyncSession, user: User) -> LeagueOut:
             if last
             else None
         ),
+    )
+
+
+@dataclass
+class LeagueStats:
+    """O que a liga já rendeu na vida da conta (alimenta as conquistas)."""
+
+    weeks_played: int
+    promotions: int
+    wins: int  # semanas terminadas em 1º
+    best_tier: Tier
+
+
+async def lifetime_stats(db: AsyncSession, user: User) -> LeagueStats:
+    rows = list(await db.scalars(select(LeagueWeek).where(LeagueWeek.user_id == user.id)))
+    last = await _last_closed(db, user.id)
+    reached = [r.tier for r in rows] + [r.next_tier for r in rows]
+    if last is not None:
+        reached.append(last.next_tier)
+    best = max(reached, key=ORDER.index) if reached else Tier.bronze
+    return LeagueStats(
+        weeks_played=len(rows),
+        promotions=sum(1 for r in rows if r.outcome == Outcome.promoted),
+        wins=sum(1 for r in rows if r.rank == 1),
+        best_tier=best,
     )
 
 

@@ -7,6 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Importa todos os models para que o autogenerate enxergue as tabelas.
+import app.modules.achievements.models  # noqa: F401
 import app.modules.alarms.models  # noqa: F401
 import app.modules.auth.models  # noqa: F401
 import app.modules.goals.models  # noqa: F401

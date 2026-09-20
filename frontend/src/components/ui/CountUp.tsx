@@ -1,0 +1,33 @@
+import { useReducedMotion } from 'motion/react'
+import { useEffect, useRef, useState } from 'react'
+
+/**
+ * Número que conta até o valor. Usado no percentual do dia: ver 0 → 67 subindo dá a sensação
+ * de "o número é seu". Respeita reduced motion (aí o valor aparece direto).
+ */
+export function CountUp({ value, duration = 700 }: { value: number; duration?: number }) {
+  const reduced = useReducedMotion()
+  const [shown, setShown] = useState(reduced ? value : 0)
+  const from = useRef(0)
+
+  useEffect(() => {
+    if (reduced) {
+      setShown(value)
+      return
+    }
+    const start = performance.now()
+    const origin = from.current
+    let raf = 0
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 4) // ease-out-quart, igual ao resto do app
+      setShown(Math.round(origin + (value - origin) * eased))
+      if (t < 1) raf = requestAnimationFrame(tick)
+      else from.current = value
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value, duration, reduced])
+
+  return <>{shown}</>
+}

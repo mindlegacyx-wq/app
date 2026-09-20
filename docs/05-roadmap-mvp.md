@@ -37,8 +37,9 @@ no fechamento do dia, liga semanal com bots identificados como robôs, começand
 - **Fase 14 — Liga semanal com robôs** (feita): cinco divisões, seis robôs determinísticos com
   ritmo próprio, virada na segunda com 2 subindo e 2 caindo, tela da liga, cartão no Hoje e na
   Evolução, comemoração do resultado. Robôs sempre marcados como robôs.
-- **Fase 15 — Conquistas e polimento visual**: selos por marco (primeira semana cheia, 30 dias de
-  sequência), transições entre telas, revisão fina de espaçamento e tipografia.
+- **Fase 15 — Conquistas e polimento** (feita): 25 selos derivados do histórico, vitrine própria,
+  aviso de desbloqueio (com resumo quando vários caem juntos), transição de entrada entre telas e
+  percentual do dia contando até o valor.
 
 ## MoSCoW
 

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { TopBar } from '@/app/shell/TopBar'
-import { Button, Card, Fab, Ring } from '@/components/ui'
+import { Button, Card, CountUp, Fab, Ring } from '@/components/ui'
 import { GoalsBlock } from '@/features/goals/GoalsBlock'
 import { useDayScore, useReopenDay } from '@/features/progress/api'
 import { LeagueCard } from '@/features/league/LeagueCard'
@@ -65,7 +65,9 @@ export function TodayPage() {
       <Card className={cn('mt-2 p-5', closed && 'border-accent/30')}>
         <div className="flex items-center gap-5">
           <Ring value={s?.pct ?? 0} size={124} stroke={10} muted={!s || s.planned === 0}>
-            <span className="tabular text-[34px] leading-none font-semibold tracking-[-0.03em]">{s?.pct ?? 0}%</span>
+            <span className="tabular text-[34px] leading-none font-semibold tracking-[-0.03em]">
+              <CountUp value={s?.pct ?? 0} />%
+            </span>
             <span className="mt-1 text-[11px] text-ink-faint">
               {s?.completed ?? 0} de {s?.planned ?? 0}
             </span>

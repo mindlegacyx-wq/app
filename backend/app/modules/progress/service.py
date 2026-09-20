@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dates import (
@@ -362,6 +362,40 @@ async def xp_totals(db: AsyncSession, user: User) -> XpTotals:
             today_xp = int(row.xp or 0) if row else 0
         cursor += timedelta(days=1)
     return XpTotals(total=total, today=today_xp)
+
+
+@dataclass
+class LifetimeStats:
+    """Números de toda a vida da conta, tirados dos dias já fechados (uma consulta só)."""
+
+    closed_days: int
+    perfect_days: int  # dias com 100%
+    best_streak: int
+    completed: dict[str, int]  # itens concluídos por área, somando todos os dias
+
+
+async def lifetime_stats(db: AsyncSession, user: User) -> LifetimeStats:
+    def area(kind: str):
+        return func.coalesce(
+            func.sum(func.cast(DailyScore.breakdown[kind]["completed"].astext, Integer)), 0
+        )
+
+    row = (
+        await db.execute(
+            select(
+                func.count(),
+                func.count().filter(DailyScore.discipline_pct >= 100),
+                func.coalesce(func.max(DailyScore.streak_day), 0),
+                *(area(kind) for kind in AREA_KINDS),
+            ).where(DailyScore.user_id == user.id)
+        )
+    ).one()
+    return LifetimeStats(
+        closed_days=int(row[0] or 0),
+        perfect_days=int(row[1] or 0),
+        best_streak=int(row[2] or 0),
+        completed={kind: int(row[3 + i] or 0) for i, kind in enumerate(AREA_KINDS)},
+    )
 
 
 async def xp_in_range(db: AsyncSession, user: User, start: date, end: date) -> int:

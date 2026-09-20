@@ -22,6 +22,7 @@ from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker  # noqa: E402
 
+import app.modules.achievements.models  # noqa: F401,E402
 import app.modules.alarms.models  # noqa: F401,E402
 import app.modules.auth.models  # noqa: F401,E402
 import app.modules.goals.models  # noqa: F401,E402

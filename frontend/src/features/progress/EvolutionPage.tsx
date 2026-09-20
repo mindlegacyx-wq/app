@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-store'
 import { addDays, cn, todayIn } from '@/lib/format'
 import type { AreaStat, HistoryDay, ProgressSummary } from '@/lib/types'
 
+import { AchievementsCard } from '@/features/achievements/AchievementsCard'
 import { LeagueCard } from '@/features/league/LeagueCard'
 import { LevelCard } from '@/features/player/LevelCard'
 
@@ -33,6 +34,7 @@ export function EvolutionPage() {
         <div className="mt-2 flex flex-col gap-3">
           <LevelCard />
           <LeagueCard />
+          <AchievementsCard />
           <StreakCard s={summary.data} />
           <div className="grid grid-cols-2 gap-3">
             <WindowCard

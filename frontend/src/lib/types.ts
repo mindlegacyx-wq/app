@@ -274,6 +274,29 @@ export interface Player {
   max_level: boolean
 }
 
+// --- Conquistas (Fase 15) ------------------------------------------------------------------
+
+export type AchievementFamily = 'streak' | 'perfect' | 'level' | 'league' | 'area'
+
+export interface Achievement {
+  key: string
+  name: string
+  hint: string
+  family: AchievementFamily
+  icon: string
+  target: number
+  progress: number
+  unlocked: boolean
+  unlocked_at: string | null
+  seen: boolean
+}
+
+export interface Achievements {
+  unlocked: number
+  total: number
+  items: Achievement[]
+}
+
 // --- Liga (Fase 14) ----------------------------------------------------------------------
 
 export type Tier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'

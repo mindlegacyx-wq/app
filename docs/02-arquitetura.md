@@ -19,7 +19,7 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress · player · league · trash · schedule · studies · grades
+auth · users · routines · alarms · goals · workouts · tasks · progress · player · league · achievements · trash · schedule · studies · grades
 ```
 
 `trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
@@ -133,6 +133,16 @@ fechamento de dias). Cinco divisões (Bronze → Diamante); os 2 primeiros sobem
 caem, sem queda no Bronze nem subida no Diamante. Empate com robô é do usuário.
 `GET /league` devolve a tabela ao vivo + o resultado da última semana; `POST /league/seen`
 marca a comemoração como vista.
+
+## 7.3. Conquistas (Fase 15)
+
+`achievements` é um catálogo em código (25 selos em cinco famílias: sequência, dias, nível, liga
+e hábitos). Cada selo é uma **regra sobre números que já existem** — nada é contado à parte, então
+nenhum selo pode divergir do histórico: apagar um dia mexe no progresso junto. Os números saem de
+`progress.lifetime_stats` (uma consulta agregada sobre `daily_scores`, incluindo os itens
+concluídos por área), `league.lifetime_stats` e `player.state`. No banco fica só
+`achievement_unlocks` (chave, quando caiu, se o aviso foi visto). `GET /achievements` devolve a
+lista com progresso e grava os selos novos; `POST /achievements/seen` apaga os avisos pendentes.
 
 ## 8. Infra e deploy
 

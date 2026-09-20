@@ -1,6 +1,8 @@
+import { m, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
+import { AchievementToast } from '@/features/achievements/AchievementToast'
 import { LeagueResultOverlay } from '@/features/league/LeagueResult'
 import { PlayerHud } from '@/features/player/PlayerHud'
 
@@ -15,6 +17,22 @@ function useScrollToTop() {
   }, [pathname])
 }
 
+/** Cada tela entra com um fade curto: dá continuidade sem atrasar o toque. */
+function Fade({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation()
+  const reduced = useReducedMotion()
+  return (
+    <m.div
+      key={pathname}
+      initial={reduced ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0 : 0.22, ease: [0.25, 1, 0.5, 1] }}
+    >
+      {children}
+    </m.div>
+  )
+}
+
 /** Layout das abas: HUD de XP no topo, conteúdo rolável e barra inferior fixa. */
 export function AppShell() {
   useScrollToTop()
@@ -23,9 +41,12 @@ export function AppShell() {
       <OfflineBanner />
       <PlayerHud />
       <main className="mx-auto max-w-lg px-5 pt-4 pb-28">
-        <Outlet />
+        <Fade>
+          <Outlet />
+        </Fade>
       </main>
       <BottomNav />
+      <AchievementToast />
       <LeagueResultOverlay />
     </div>
   )
@@ -38,7 +59,9 @@ export function PlainLayout() {
     <div className="min-h-dvh">
       <OfflineBanner />
       <main className="mx-auto max-w-lg px-5 pb-10">
-        <Outlet />
+        <Fade>
+          <Outlet />
+        </Fade>
       </main>
     </div>
   )
