@@ -274,6 +274,47 @@ export interface Player {
   max_level: boolean
 }
 
+// --- Liga (Fase 14) ----------------------------------------------------------------------
+
+export type Tier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
+export type LeagueOutcome = 'promoted' | 'stayed' | 'relegated'
+
+export interface LeagueMember {
+  key: string
+  name: string
+  is_bot: boolean
+  tagline: string | null
+  xp: number
+  rank: number
+  is_you: boolean
+}
+
+export interface LeagueResult {
+  week_start: string
+  tier: Tier
+  rank: number
+  xp: number
+  outcome: LeagueOutcome
+  next_tier: Tier
+  seen: boolean
+}
+
+export interface League {
+  tier: Tier
+  week_start: string
+  week_end: string
+  days_left: number
+  members: LeagueMember[]
+  your_rank: number
+  your_xp: number
+  promotion_slots: number
+  relegation_slots: number
+  can_promote: boolean
+  can_relegate: boolean
+  to_next_rank: number | null
+  last_result: LeagueResult | null
+}
+
 export interface HistoryDay {
   date: string
   planned: number

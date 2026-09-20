@@ -5,6 +5,7 @@ import { TopBar } from '@/app/shell/TopBar'
 import { Button, Card, Fab, Ring } from '@/components/ui'
 import { GoalsBlock } from '@/features/goals/GoalsBlock'
 import { useDayScore, useReopenDay } from '@/features/progress/api'
+import { LeagueCard } from '@/features/league/LeagueCard'
 import { AgendaBlock } from '@/features/schedule/AgendaBlock'
 import { StudyBlock } from '@/features/studies/StudyBlock'
 import { WorkoutBlock } from '@/features/workouts/WorkoutBlock'
@@ -93,6 +94,8 @@ export function TodayPage() {
           </div>
         )}
       </Card>
+
+      <LeagueCard className="mt-3" />
 
       <div className="mt-7 flex flex-col gap-7">
         <WakeBlock date={date} timezone={tz} editable={editable} />

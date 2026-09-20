@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
 
+import { LeagueResultOverlay } from '@/features/league/LeagueResult'
 import { PlayerHud } from '@/features/player/PlayerHud'
 
 import { BottomNav } from './BottomNav'
@@ -25,6 +26,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <BottomNav />
+      <LeagueResultOverlay />
     </div>
   )
 }

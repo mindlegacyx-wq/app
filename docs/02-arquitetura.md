@@ -19,7 +19,7 @@
 Um único deploy do backend, dividido em **módulos com fronteira clara**:
 
 ```
-auth · users · routines · alarms · goals · workouts · tasks · progress · player · trash · schedule · studies · grades
+auth · users · routines · alarms · goals · workouts · tasks · progress · player · league · trash · schedule · studies · grades
 ```
 
 `trash` (Fase 8) é um orquestrador sem regra própria: cada módulo dono declara o que pode ir para a lixeira (`TrashKind` em `app/core/softdelete.py`) e a lixeira só lista, restaura e apaga em definitivo com essas descrições.
@@ -116,6 +116,23 @@ e, antes das 03:00, ontem) são calculados na hora — é o que faz a barra subi
 Nível e patente saem de uma curva progressiva (`level_for`), sem estado no banco. `GET /player`
 devolve nível, patente, XP total, progresso no nível e XP do dia; `GET /progress/day` passou a
 incluir o `xp` do dia.
+
+## 7.2. Liga semanal com robôs (Fase 14)
+
+`league` põe sete competidores na mesma tabela: você e seis robôs. Decisão central: **os robôs
+não existem no banco**. Cada um é sorteado por uma semente determinística `(usuário, semana,
+divisão, posição)` e o XP dele num instante é função do relógio — cada robô tem um alvo por dia
+e um ritmo (`early` · `steady` · `night` · `burst`), então o placar sobe ao longo do dia sem job
+nenhum e a mesma semana recalculada dá sempre o mesmo resultado. Eles são robôs assumidos: nome
+de máquina e etiqueta "robô" na tela.
+
+Só o **resultado das semanas encerradas** vai para o banco (`league_weeks`): divisão, posição,
+XP, desfecho e a divisão seguinte. A divisão atual é a que saiu do último encerramento (Bronze
+para quem nunca jogou), e as semanas atrasadas são encerradas na leitura (autocura, como o
+fechamento de dias). Cinco divisões (Bronze → Diamante); os 2 primeiros sobem, os 2 últimos
+caem, sem queda no Bronze nem subida no Diamante. Empate com robô é do usuário.
+`GET /league` devolve a tabela ao vivo + o resultado da última semana; `POST /league/seen`
+marca a comemoração como vista.
 
 ## 8. Infra e deploy
 

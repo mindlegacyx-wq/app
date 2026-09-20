@@ -41,6 +41,7 @@ const WakeHistoryPage = lazy(() =>
 )
 const AlarmScreen = lazy(() => import('@/features/alarms/AlarmScreen').then((m) => ({ default: m.AlarmScreen })))
 const CloseDayPage = lazy(() => import('@/features/progress/CloseDayPage').then((m) => ({ default: m.CloseDayPage })))
+const LeaguePage = lazy(() => import('@/features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })))
 const EvolutionPage = lazy(() => import('@/features/progress/EvolutionPage').then((m) => ({ default: m.EvolutionPage })))
 const DayDetailPage = lazy(() => import('@/features/progress/DayDetailPage').then((m) => ({ default: m.DayDetailPage })))
 
@@ -111,6 +112,7 @@ export const router = createBrowserRouter([
           { path: '/metas', element: <Lazy><GoalsPage /></Lazy> },
           { path: '/treinos', element: <Lazy><WorkoutsPage /></Lazy> },
           { path: '/evolucao', element: <Lazy><EvolutionPage /></Lazy> },
+          { path: '/liga', element: <Lazy><LeaguePage /></Lazy> },
         ],
       },
     ],

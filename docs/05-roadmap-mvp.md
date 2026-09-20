@@ -34,8 +34,9 @@ no fechamento do dia, liga semanal com bots identificados como robôs, começand
 
 - **Fase 13 — XP, níveis e animações** (feita): XP derivado do dia, curva de níveis com patentes,
   HUD fixo com barra de XP, comemoração de nível, check com mola/estouro, cartão de nível na Evolução.
-- **Fase 14 — Liga semanal com bots**: divisões (Bronze→Diamante), 6 bots com ritmo e personalidade,
-  sobe/desce na segunda-feira, tela de classificação. Bots sempre marcados como robôs.
+- **Fase 14 — Liga semanal com robôs** (feita): cinco divisões, seis robôs determinísticos com
+  ritmo próprio, virada na segunda com 2 subindo e 2 caindo, tela da liga, cartão no Hoje e na
+  Evolução, comemoração do resultado. Robôs sempre marcados como robôs.
 - **Fase 15 — Conquistas e polimento visual**: selos por marco (primeira semana cheia, 30 dias de
   sequência), transições entre telas, revisão fina de espaçamento e tipografia.
 

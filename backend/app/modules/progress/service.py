@@ -190,6 +190,18 @@ async def _streak_before(db: AsyncSession, user: User, day: date) -> int:
     return (await _streak_before(db, user, prev)) + 1 if snap.hit_target else 0
 
 
+def first_day(user: User) -> date:
+    """Primeiro dia com registro possível: o dia em que a conta nasceu."""
+    return _first_day(user)
+
+
+async def _day_xp_live(db: AsyncSession, user: User, day: date) -> int:
+    """XP de um dia ainda aberto (sem linha em daily_scores)."""
+    snap = await compute_snapshot(db, user, day)
+    streak = (await _streak_before(db, user, day)) + 1 if snap.hit_target else 0
+    return xp_for_day(snap.breakdown, snap.pct, snap.hit_target, streak)
+
+
 async def ensure_finalized_through(db: AsyncSession, user: User, through: date) -> int:
     """Cria (ou finaliza) as linhas de todos os dias até `through`. Idempotente.
 
@@ -341,9 +353,7 @@ async def xp_totals(db: AsyncSession, user: User) -> XpTotals:
     cursor = max(_first_day(user), today - timedelta(days=2))
     while cursor <= today:
         if await _get_row(db, user.id, cursor) is None:
-            snap = await compute_snapshot(db, user, cursor)
-            streak = (await _streak_before(db, user, cursor)) + 1 if snap.hit_target else 0
-            live = xp_for_day(snap.breakdown, snap.pct, snap.hit_target, streak)
+            live = await _day_xp_live(db, user, cursor)
             total += live
             if cursor == today:
                 today_xp = live
@@ -352,6 +362,27 @@ async def xp_totals(db: AsyncSession, user: User) -> XpTotals:
             today_xp = int(row.xp or 0) if row else 0
         cursor += timedelta(days=1)
     return XpTotals(total=total, today=today_xp)
+
+
+async def xp_in_range(db: AsyncSession, user: User, start: date, end: date) -> int:
+    """XP somado num intervalo de dias (usado pela liga semanal)."""
+    today = user_today(user.timezone)
+    end = min(end, today)
+    if end < start:
+        return 0
+    await ensure_finalized_through(db, user, min(end, last_finalizable_day(user.timezone)))
+    stored = await db.scalar(
+        select(func.coalesce(func.sum(DailyScore.xp), 0)).where(
+            DailyScore.user_id == user.id, DailyScore.date >= start, DailyScore.date <= end
+        )
+    )
+    total = int(stored or 0)
+    cursor = max(start, today - timedelta(days=2))  # só hoje e ontem podem estar abertos
+    while cursor <= end:
+        if await _get_row(db, user.id, cursor) is None:
+            total += await _day_xp_live(db, user, cursor)
+        cursor += timedelta(days=1)
+    return total
 
 
 # --- Evolução (Fase 7) -------------------------------------------------------------------
