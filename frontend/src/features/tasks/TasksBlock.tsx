@@ -6,7 +6,8 @@ import { cn, relativeDay } from '@/lib/format'
 import type { Task, TaskCategory } from '@/lib/types'
 
 import { PriorityIcon } from './PriorityIcon'
-import { useCategories, useTasksDay, useToggleTask, useUpdateTask } from './api'
+import { RecurrencesSheet, RepeatIcon } from './RecurrencesSheet'
+import { useCategories, useRecurrences, useTasksDay, useToggleTask, useUpdateTask } from './api'
 
 interface Props {
   date: string
@@ -22,8 +23,10 @@ export function TasksBlock({ date, today, editable, onAdd, onEdit }: Props) {
   const cats = useCategories()
   const toggle = useToggleTask(date)
   const update = useUpdateTask()
+  const recurrences = useRecurrences()
   const [error, setError] = useState<string | null>(null)
   const [showCancelled, setShowCancelled] = useState(false)
+  const [fixedOpen, setFixedOpen] = useState(false)
 
   const byId = new Map((cats.data ?? []).map((c) => [c.id, c]))
   const tasks = day.data?.tasks ?? []
@@ -98,18 +101,31 @@ export function TasksBlock({ date, today, editable, onAdd, onEdit }: Props) {
             </Card>
           ) : null}
 
-          {cancelledCount > 0 && (
+          <div className="flex items-center justify-between gap-3 px-0.5">
             <button
               type="button"
-              onClick={() => setShowCancelled((s) => !s)}
-              className="self-start px-0.5 text-[12px] text-ink-faint hover:text-ink-muted"
+              onClick={() => setFixedOpen(true)}
+              className="inline-flex items-center gap-1.5 text-[12px] text-ink-faint hover:text-ink-muted"
             >
-              {showCancelled ? 'Ocultar canceladas' : `${cancelledCount} cancelada${cancelledCount > 1 ? 's' : ''}`}
+              <RepeatIcon className="size-3.5" />
+              Tarefas fixas
+              {(recurrences.data?.length ?? 0) > 0 && ` · ${recurrences.data?.length}`}
             </button>
-          )}
+            {cancelledCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowCancelled((s) => !s)}
+                className="text-[12px] text-ink-faint hover:text-ink-muted"
+              >
+                {showCancelled ? 'Ocultar canceladas' : `${cancelledCount} cancelada${cancelledCount > 1 ? 's' : ''}`}
+              </button>
+            )}
+          </div>
           {error && <p className="text-[13px] text-danger">{error}</p>}
         </>
       )}
+
+      <RecurrencesSheet open={fixedOpen} onClose={() => setFixedOpen(false)} />
     </Section>
   )
 }
@@ -144,7 +160,10 @@ function TaskRow({
       )}
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
         <span className={cn('min-w-0 flex-1', done && 'text-ink-faint line-through', cancelled && 'line-through')}>
-          <span className="block truncate text-[15px]">{task.title}</span>
+          <span className="flex items-center gap-1.5">
+            {task.recurrence_id && <RepeatIcon className="size-3.5 shrink-0 text-accent/70" />}
+            <span className="min-w-0 flex-1 truncate text-[15px]">{task.title}</span>
+          </span>
           {(category || meta) && (
             <span className="mt-0.5 flex items-center gap-2 text-[12px] text-ink-faint">
               {meta && <span className="first-letter:uppercase">{meta}</span>}

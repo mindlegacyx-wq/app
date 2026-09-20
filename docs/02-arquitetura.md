@@ -184,6 +184,24 @@ séries e descanso — força 4-6/180s, hipertrofia 8-12/90s, resistência 15-20
 - A sessão **não começa sozinha**: a tela mostra o treino do dia e um botão "Começar treino"; o
   cronômetro e o registro só nascem daí (antes, abrir a tela já criava a sessão).
 
+## 7.6. Tarefas fixas (Fase 18)
+
+Uma tarefa que se repete ("beber 3 L de água, de segunda a sexta") é uma **regra**
+(`task_recurrences`), e a tarefa de cada dia continua sendo uma linha comum em `tasks`,
+criada sob demanda quando o dia é consultado (`ensure_recurring`, idempotente).
+
+Por que não deixar a tarefa fixa ser um tipo especial de tarefa: o percentual do dia, a
+lixeira, a ordenação por prioridade, o offline e o fechamento do dia já funcionam sobre
+`tasks`. Materializar mantém tudo isso de graça e deixa o histórico honesto — mudar a regra
+hoje não reescreve o que aconteceu na semana passada.
+
+Três regras seguram o histórico:
+
+- só gera a partir de `start_date` (o dia em que a regra nasceu) e só em **dia aberto ou
+  futuro** — dia fechado não ganha tarefa nova;
+- editar a regra altera só as tarefas **pendentes de hoje em diante**;
+- tarefa fixa **não entra em "atrasadas"**: ela já contou (ou não) no dia dela.
+
 ## 8. Infra e deploy
 
 ```

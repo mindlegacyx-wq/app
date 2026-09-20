@@ -80,6 +80,7 @@ class TaskOut(BaseModel):
     priority: TaskPriority
     status: TaskStatus
     category_id: UUID | None
+    recurrence_id: UUID | None  # veio de uma tarefa fixa
     completed_at: dt.datetime | None
     sort_order: int
 
@@ -90,3 +91,58 @@ class TasksDayOut(BaseModel):
     overdue: list[TaskOut]  # pendentes de dias anteriores
     planned: int  # exclui canceladas
     completed: int
+
+
+# --- Tarefas fixas (a regra, não a tarefa do dia) -----------------------------------------
+
+
+def _validate_days(value: list[int]) -> list[int]:
+    if not value:
+        raise ValueError("Escolha pelo menos um dia da semana.")
+    days = sorted(set(value))
+    if any(d < 0 or d > 6 for d in days):
+        raise ValueError("Dia da semana inválido.")
+    return days
+
+
+class RecurrenceIn(BaseModel):
+    title: str = Field(min_length=1, max_length=140)
+    notes: str | None = Field(default=None, max_length=2000)
+    days_of_week: list[int]
+    priority: TaskPriority = TaskPriority.medium
+    category_id: UUID | None = None
+
+    @field_validator("days_of_week")
+    @classmethod
+    def _days(cls, v: list[int]) -> list[int]:
+        return _validate_days(v)
+
+
+class RecurrenceUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=140)
+    notes: str | None = Field(default=None, max_length=2000)
+    days_of_week: list[int] | None = None
+    priority: TaskPriority | None = None
+    category_id: UUID | None = None
+    is_active: bool | None = None
+    clear_category: bool = False
+    clear_notes: bool = False
+
+    @field_validator("days_of_week")
+    @classmethod
+    def _days(cls, v: list[int] | None) -> list[int] | None:
+        return _validate_days(v) if v is not None else None
+
+
+class RecurrenceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str
+    notes: str | None
+    days_of_week: list[int]
+    priority: TaskPriority
+    category_id: UUID | None
+    is_active: bool
+    start_date: dt.date
+    sort_order: int

@@ -1,12 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
-import type { Task, TaskCategory, TaskIn, TasksDay, TaskUpdate } from '@/lib/types'
+import type {
+  RecurrenceIn,
+  RecurrenceUpdate,
+  Task,
+  TaskCategory,
+  TaskIn,
+  TaskRecurrence,
+  TasksDay,
+  TaskUpdate,
+} from '@/lib/types'
 
 export const taskKeys = {
   all: ['tasks'] as const,
   day: (date: string) => ['tasks', 'day', date] as const,
   categories: ['tasks', 'categories'] as const,
+  recurrences: ['tasks', 'recurrences'] as const,
 }
 
 export function useTasksDay(date: string) {
@@ -109,6 +119,43 @@ export function useDeleteCategory() {
   const invalidate = useInvalidateTasks()
   return useMutation({
     mutationFn: (id: string) => api<void>(`/tasks/categories/${id}`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  })
+}
+
+
+// --- Tarefas fixas ------------------------------------------------------------------------
+
+export function useRecurrences() {
+  return useQuery({
+    queryKey: taskKeys.recurrences,
+    queryFn: () => api<TaskRecurrence[]>('/tasks/recurrences'),
+    staleTime: 60_000,
+  })
+}
+
+export function useCreateRecurrence() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({
+    mutationFn: (body: RecurrenceIn) =>
+      api<TaskRecurrence>('/tasks/recurrences', { method: 'POST', body }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateRecurrence() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({
+    mutationFn: ({ id, ...body }: RecurrenceUpdate & { id: string }) =>
+      api<TaskRecurrence>(`/tasks/recurrences/${id}`, { method: 'PATCH', body }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteRecurrence() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({
+    mutationFn: (id: string) => api<void>(`/tasks/recurrences/${id}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })
 }

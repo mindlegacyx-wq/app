@@ -11,6 +11,9 @@ from app.modules.tasks.schemas import (
     CategoryIn,
     CategoryOut,
     CategoryUpdate,
+    RecurrenceIn,
+    RecurrenceOut,
+    RecurrenceUpdate,
     TaskIn,
     TaskOut,
     TasksDayOut,
@@ -29,7 +32,11 @@ async def day(
     db: DB,
     on: Annotated[date | None, Query(alias="date")] = None,
 ) -> TasksDayOut:
-    return await service.day_overview(db, user.id, on or user_today(user.timezone))
+    day_out = await service.day_overview(
+        db, user.id, on or user_today(user.timezone), user.timezone
+    )
+    await db.commit()  # as tarefas fixas do dia podem ter acabado de nascer
+    return day_out
 
 
 # --- Categorias (antes de /{task_id}) ----------------------------------------------------
@@ -59,6 +66,36 @@ async def update_category(
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(category_id: UUID, user: CurrentUser, db: DB) -> None:
     await service.delete_category(db, user.id, category_id)
+    await db.commit()
+
+
+# --- Tarefas fixas (antes de /{task_id}) -------------------------------------------------
+
+
+@router.get("/recurrences", response_model=list[RecurrenceOut])
+async def list_recurrences(user: CurrentUser, db: DB) -> list[RecurrenceOut]:
+    return [RecurrenceOut.model_validate(r) for r in await service.list_recurrences(db, user.id)]
+
+
+@router.post("/recurrences", response_model=RecurrenceOut, status_code=status.HTTP_201_CREATED)
+async def create_recurrence(data: RecurrenceIn, user: CurrentUser, db: DB) -> RecurrenceOut:
+    rec = await service.create_recurrence(db, user.id, user.timezone, data)
+    await db.commit()
+    return RecurrenceOut.model_validate(rec)
+
+
+@router.patch("/recurrences/{rec_id}", response_model=RecurrenceOut)
+async def update_recurrence(
+    rec_id: UUID, data: RecurrenceUpdate, user: CurrentUser, db: DB
+) -> RecurrenceOut:
+    rec = await service.update_recurrence(db, user.id, user.timezone, rec_id, data)
+    await db.commit()
+    return RecurrenceOut.model_validate(rec)
+
+
+@router.delete("/recurrences/{rec_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_recurrence(rec_id: UUID, user: CurrentUser, db: DB) -> None:
+    await service.delete_recurrence(db, user.id, user.timezone, rec_id)
     await db.commit()
 
 

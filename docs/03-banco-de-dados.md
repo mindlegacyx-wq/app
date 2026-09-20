@@ -21,7 +21,7 @@ users ─┬─ user_settings (1:1)
        ├─ goals ─────── goal_actions
        ├─ workouts ──── workout_exercises
        │      └────── workout_sessions ─── workout_session_exercises
-       ├─ task_categories ── tasks
+       ├─ task_categories ── tasks ─── task_recurrences
        └─ daily_scores
 ```
 
@@ -271,6 +271,7 @@ Regras:
 | id | uuid PK | |
 | user_id | uuid FK | |
 | category_id | uuid FK NULL | |
+| recurrence_id | uuid FK NULL | veio de uma tarefa fixa (`task_recurrences`) |
 | title | varchar(140) | |
 | notes | text NULL | |
 | date | date | dia em que está planejada |
@@ -280,12 +281,39 @@ Regras:
 | sort_order | int | |
 | created_at / updated_at / deleted_at | | |
 | INDEX (user_id, date, status) | | |
+| UNIQUE (recurrence_id, date) | | uma tarefa por regra por dia |
 
 Regras:
 
 - **Atrasada** = pendente com `date` anterior ao dia consultado. Aparece em Hoje num grupo próprio e não conta no planejado do dia até ser movida.
 - **Crédito da conclusão**: concluir uma tarefa planejada para hoje ou ontem mantém a data; planejada para dias anteriores ou futuros, a data passa a ser hoje (o dia em que o trabalho aconteceu).
 - **Cancelada** sai do planejado sem apagar o registro; **excluída** vai para a lixeira (soft delete).
+- **Tarefa fixa não vira atrasada**: ela contou (ou não) no dia dela e recomeça no dia seguinte. Água não bebida ontem não se acumula em hoje.
+
+### `task_recurrences`
+
+A **regra** da tarefa fixa ("beber 3 L de água, de segunda a sexta"), não a tarefa de um dia.
+
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | |
+| category_id | uuid FK NULL | |
+| title | varchar(140) | |
+| notes | text NULL | |
+| days_of_week | smallint[] | 0 = segunda … 6 = domingo |
+| priority | enum(`low`,`medium`,`high`) | |
+| start_date | date | o dia em que a regra foi criada |
+| is_active | bool | pausada não gera tarefa |
+| sort_order | int | |
+| created_at / updated_at / deleted_at | | |
+
+Regras:
+
+- A tarefa de cada dia continua sendo uma linha em `tasks`, criada sob demanda (`ensure_recurring`) quando o dia é consultado. Assim o percentual do dia, a lixeira e a ordenação funcionam sem saber que a tarefa é fixa.
+- **Nunca gera para trás**: só a partir de `start_date` e só em dia **aberto ou futuro**. Um dia que já fechou fica exatamente como foi vivido.
+- Mudar a regra atualiza as tarefas **pendentes de hoje em diante**; as já concluídas e as dos dias anteriores ficam como estão.
+- Pausar ou desmarcar um dia tira a tarefa pendente daquele dia; religar devolve **a mesma linha** (`UNIQUE (recurrence_id, date)`).
 
 ---
 

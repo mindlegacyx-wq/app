@@ -27,6 +27,8 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### HUD (todas as abas)
 | # | Tela | Conteúdo |
 |---|---|---|
+| 49 | **Treinar em qualquer dia**: "Treinar agora" em cada plano e "Começar treino" dentro do plano. Fora do dia marcado, a sessão entra como **treino extra** do dia. |
+| 48 | **Tarefa fixa**: em Nova tarefa, "Repetir" + os dias da semana. Ela aparece sozinha todo dia marcado, com o ícone de repetição, e a lista "Tarefas fixas" (no rodapé do bloco Tarefas) edita, pausa ou exclui a regra. |
 | 47 | **Objetivo do treino** (no plano e em cada exercício): força 4-6 · hipertrofia 8-12 · resistência 15-20 · potência 3-5, cada um com séries e descanso próprios. Escolher preenche os campos; tudo continua editável. |
 | 46 | **Aquecimento** (`/treinos/:id/sessao`, antes de começar): o treino do dia com os exercícios e o botão **Começar treino**. O cronômetro só corre depois disso. |
 | 45 | **Evolução do exercício** (`/treinos/exercicio/:id`): gráfico da maior carga por treino e o registro de cada dia com o volume. |

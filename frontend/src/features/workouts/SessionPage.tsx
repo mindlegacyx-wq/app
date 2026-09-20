@@ -10,7 +10,16 @@ import { cn, todayIn } from '@/lib/format'
 import { useWakeLock } from '@/lib/wake-lock'
 import type { DayWorkout, SessionDetail, SessionExercise } from '@/lib/types'
 
-import { useAddSet, useDeleteSet, useSessionDetail, useSetSessionStatus, useStartSession, useUpdateSet, useWorkoutsDay } from './api'
+import {
+  useAddSet,
+  useDeleteSet,
+  useSessionDetail,
+  useSetSessionStatus,
+  useStartSession,
+  useUpdateSet,
+  useWorkout,
+  useWorkoutsDay,
+} from './api'
 import { ExerciseIcon } from './ExerciseIcon'
 import { describeLastSets, describeWeight, fmtDuration, fmtKg, loadLabel } from './load'
 import { RestTimer } from './RestTimer'
@@ -30,11 +39,25 @@ export function SessionPage() {
   const [error, setError] = useState<string | null>(null)
   const [confirmSkip, setConfirmSkip] = useState(false)
 
-  const w = day.data?.workouts.find((x) => x.workout_id === id)
+  // O treino do dia vem da visão do dia; fora do dia marcado, o plano serve de base — dá
+  // para treinar em qualquer dia e a sessão entra como treino extra.
+  const planned = day.data?.workouts.find((x) => x.workout_id === id)
+  const plan = useWorkout(id)
+  const extra: DayWorkout | null =
+    !planned && plan.data
+      ? {
+          workout_id: plan.data.id,
+          name: plan.data.name,
+          exercises: plan.data.exercises.map((e) => ({ ...e, completed: false })),
+          exercises_done: 0,
+          session: null,
+        }
+      : null
+  const w = planned ?? extra
   const sessionId = w?.session?.id
   const detail = useSessionDetail(sessionId)
 
-  if (day.isPending) {
+  if (day.isPending || (!planned && plan.isPending)) {
     return (
       <div className="flex justify-center py-16">
         <Spinner className="size-6 text-ink-faint" />
@@ -46,7 +69,7 @@ export function SessionPage() {
       <EmptyState
         className="mt-10"
         title="Treino não encontrado"
-        description="Ele pode ter sido apagado ou não está marcado para hoje."
+        description="Ele pode ter sido apagado."
         action={<Button onClick={() => navigate('/treinos')}>Voltar</Button>}
       />
     )
@@ -66,6 +89,7 @@ export function SessionPage() {
       {!sessionId ? (
         <Warmup
           workout={w}
+          extra={Boolean(extra)}
           starting={start.isPending}
           onStart={() => start.mutate(id, { onError: (e) => setError(errorMessage(e)) })}
         />
@@ -110,10 +134,12 @@ export function SessionPage() {
  */
 function Warmup({
   workout,
+  extra,
   starting,
   onStart,
 }: {
   workout: DayWorkout
+  extra: boolean // plano que não é do dia da semana: treino extra
   starting: boolean
   onStart: () => void
 }) {
@@ -123,11 +149,16 @@ function Warmup({
   return (
     <>
       <Card className="mt-4 p-4">
-        <p className="text-[12px] tracking-[0.14em] text-ink-faint uppercase">Hoje</p>
+        <p className="text-[12px] tracking-[0.14em] text-ink-faint uppercase">{extra ? 'Treino extra' : 'Hoje'}</p>
         <p className="mt-1 text-[22px] leading-tight font-semibold tracking-[-0.02em]">{workout.name}</p>
         <p className="mt-1 text-[13px] text-ink-muted">
           {workout.exercises.length} exercícios · {totalSets} séries previstas
         </p>
+        {extra && (
+          <p className="mt-2 text-[12px] text-ink-faint">
+            Hoje não é dia deste treino. Fazer assim mesmo conta como treino extra do dia.
+          </p>
+        )}
       </Card>
 
       <ul className="mt-3 flex flex-col gap-2">

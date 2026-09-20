@@ -89,7 +89,7 @@ async def compute_snapshot(db: AsyncSession, user: User, day: date) -> Snapshot:
     """Compõe o dia a partir dos serviços dos módulos. Nunca consulta tabelas alheias."""
     wake = await alarms_service.day_status(db, user.id, user.timezone, user.settings.wake_time, day)
     routines = await routines_service.day_overview(db, user.id, day)
-    tasks = await tasks_service.day_overview(db, user.id, day)
+    tasks = await tasks_service.day_overview(db, user.id, day, user.timezone)
     goals = await goals_service.day_overview(db, user.id, day)
     workouts = await workouts_service.day_overview(db, user.id, day)
     study = await studies_service.day_overview(db, user.id, user.timezone, day)

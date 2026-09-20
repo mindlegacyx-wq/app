@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
-import { Button, Dialog, Field, Sheet } from '@/components/ui'
+import { Button, DayPicker, Dialog, Field, Sheet } from '@/components/ui'
 import { errorMessage } from '@/lib/api'
-import { addDays, cn, relativeDay } from '@/lib/format'
-import type { Task, TaskPriority } from '@/lib/types'
+import { addDays, cn, describeDays, relativeDay } from '@/lib/format'
+import type { Task, TaskPriority, TaskRecurrence } from '@/lib/types'
 
 import { PriorityIcon, priorityLabel } from './PriorityIcon'
-import { useCategories, useCreateTask, useDeleteTask, useUpdateTask } from './api'
+import { RecurrenceForm } from './RecurrenceForm'
+import { RepeatIcon } from './RecurrencesSheet'
+import { useCategories, useCreateRecurrence, useCreateTask, useDeleteTask, useRecurrences, useUpdateTask } from './api'
 
 interface Props {
   open: boolean
@@ -18,20 +20,54 @@ interface Props {
   onManageCategories: () => void
 }
 
-/** Tela 6: nova tarefa / editar tarefa. */
+/** Tela 6: nova tarefa (uma vez ou fixa) / editar tarefa. */
 export function TaskSheet({ open, onClose, today, task, onManageCategories }: Props) {
+  const [editingRule, setEditingRule] = useState(false)
+  // Só busca a regra quando a tarefa aberta veio de uma.
+  const recurrences = useRecurrences()
+  const rule = task?.recurrence_id
+    ? (recurrences.data?.find((r) => r.id === task.recurrence_id) ?? null)
+    : null
+
+  useEffect(() => {
+    if (open) setEditingRule(false)
+  }, [open, task?.id])
+
   return (
-    <Sheet open={open} onClose={onClose} title={task ? 'Editar tarefa' : 'Nova tarefa'}>
-      <TaskForm today={today} task={task} onClose={onClose} onManageCategories={onManageCategories} />
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editingRule ? 'Editar tarefa fixa' : task ? 'Editar tarefa' : 'Nova tarefa'}
+    >
+      {editingRule && rule ? (
+        <RecurrenceForm recurrence={rule} onClose={onClose} />
+      ) : (
+        <TaskForm
+          today={today}
+          task={task}
+          rule={rule}
+          onEditRule={() => setEditingRule(true)}
+          onClose={onClose}
+          onManageCategories={onManageCategories}
+        />
+      )}
     </Sheet>
   )
 }
 
 const priorities: TaskPriority[] = ['low', 'medium', 'high']
 
-function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'open'>) {
+function TaskForm({
+  today,
+  task,
+  rule,
+  onEditRule,
+  onClose,
+  onManageCategories,
+}: Omit<Props, 'open'> & { rule: TaskRecurrence | null; onEditRule: () => void }) {
   const cats = useCategories()
   const create = useCreateTask()
+  const createRule = useCreateRecurrence()
   const update = useUpdateTask()
   const remove = useDeleteTask()
 
@@ -41,6 +77,9 @@ function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'ope
   const [categoryId, setCategoryId] = useState<string | null>(task?.category_id ?? null)
   const [notes, setNotes] = useState(task?.notes ?? '')
   const [customDate, setCustomDate] = useState(false)
+  // Tarefa fixa: em vez de um dia, uma regra de dias da semana.
+  const [repeat, setRepeat] = useState(false)
+  const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4])
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -51,6 +90,21 @@ function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'ope
     e.preventDefault()
     setError(null)
     try {
+      if (!task && repeat) {
+        if (days.length === 0) {
+          setError('Escolha pelo menos um dia da semana.')
+          return
+        }
+        await createRule.mutateAsync({
+          title: title.trim(),
+          days_of_week: days,
+          priority,
+          category_id: categoryId,
+          notes: notes.trim() || null,
+        })
+        onClose()
+        return
+      }
       if (task) {
         await update.mutateAsync({
           id: task.id,
@@ -89,6 +143,23 @@ function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'ope
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
+      {rule && (
+        <button
+          type="button"
+          onClick={onEditRule}
+          className="flex items-center gap-2.5 rounded-md border border-accent/30 bg-accent-soft px-3 py-2.5 text-left"
+        >
+          <RepeatIcon className="size-4 shrink-0 text-accent" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-semibold text-accent">Tarefa fixa</span>
+            <span className="block text-[12px] text-ink-muted first-letter:uppercase">
+              {describeDays(rule.days_of_week)} · o que você mudar aqui vale só para hoje
+            </span>
+          </span>
+          <span className="shrink-0 text-[13px] font-semibold text-accent">Editar a fixa</span>
+        </button>
+      )}
+
       <Field
         label="O que precisa ser feito"
         value={title}
@@ -101,17 +172,27 @@ function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'ope
 
       <div className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-ink-muted">Quando</span>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {quickDates.map((d) => (
-            <Chip key={d} active={date === d && !customDate} onClick={() => { setDate(d); setCustomDate(false) }}>
+            <Chip
+              key={d}
+              active={!repeat && date === d && !customDate}
+              onClick={() => { setRepeat(false); setDate(d); setCustomDate(false) }}
+            >
               {relativeDay(d, today)}
             </Chip>
           ))}
-          <Chip active={customDate || !isQuick} onClick={() => setCustomDate(true)}>
-            {customDate || !isQuick ? relativeDay(date, today) : 'Outro dia'}
+          <Chip active={!repeat && (customDate || !isQuick)} onClick={() => { setRepeat(false); setCustomDate(true) }}>
+            {!repeat && (customDate || !isQuick) ? relativeDay(date, today) : 'Outro dia'}
           </Chip>
+          {!task && (
+            <Chip active={repeat} onClick={() => setRepeat(true)}>
+              <RepeatIcon className="size-3.5" />
+              Repetir
+            </Chip>
+          )}
         </div>
-        {(customDate || !isQuick) && (
+        {!repeat && (customDate || !isQuick) && (
           <input
             type="date"
             aria-label="Data"
@@ -119,6 +200,15 @@ function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'ope
             onChange={(e) => e.target.value && setDate(e.target.value)}
             className="tabular mt-1 h-11 rounded-md border border-line-strong bg-elevated px-3 text-[15px]"
           />
+        )}
+        {repeat && (
+          <div className="mt-1 flex flex-col gap-1.5">
+            <DayPicker value={days} onChange={setDays} label="Repete nestes dias" />
+            <p className="text-[12px] text-ink-faint">
+              Ela aparece sozinha todo dia marcado, com a caixinha para riscar. Não fez num dia? Não vira atrasada —
+              conta zero naquele dia e recomeça no próximo.
+            </p>
+          </div>
         )}
       </div>
 
@@ -180,8 +270,14 @@ function TaskForm({ today, task, onClose, onManageCategories }: Omit<Props, 'ope
 
       {error && <p className="text-[14px] text-danger">{error}</p>}
 
-      <Button type="submit" size="lg" full loading={create.isPending || update.isPending} disabled={!title.trim()}>
-        {task ? 'Salvar' : 'Adicionar'}
+      <Button
+        type="submit"
+        size="lg"
+        full
+        loading={create.isPending || update.isPending || createRule.isPending}
+        disabled={!title.trim()}
+      >
+        {task ? 'Salvar' : repeat ? 'Criar tarefa fixa' : 'Adicionar'}
       </Button>
 
       {task && (

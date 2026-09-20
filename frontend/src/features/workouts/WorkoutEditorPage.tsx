@@ -77,6 +77,14 @@ export function WorkoutEditorPage() {
         </div>
       </Card>
 
+      {w.exercises.length > 0 && (
+        <Link to={`/treinos/${w.id}/sessao`} className="mt-3 block">
+          <Button size="lg" full>
+            Começar treino
+          </Button>
+        </Link>
+      )}
+
       <div className="mt-7 flex items-baseline justify-between px-0.5">
         <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">
           Exercícios {w.exercises.length > 0 && `· ${w.exercises.length}`}

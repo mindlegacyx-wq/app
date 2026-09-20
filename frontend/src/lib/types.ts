@@ -207,8 +207,41 @@ export interface Task {
   priority: TaskPriority
   status: TaskStatus
   category_id: string | null
+  recurrence_id: string | null // nasceu de uma tarefa fixa
   completed_at: string | null
   sort_order: number
+}
+
+/** Tarefa fixa: a regra ("beber 3 L de água, seg a sex"), não a tarefa de um dia. */
+export interface TaskRecurrence {
+  id: string
+  title: string
+  notes: string | null
+  days_of_week: number[]
+  priority: TaskPriority
+  category_id: string | null
+  is_active: boolean
+  start_date: string
+  sort_order: number
+}
+
+export interface RecurrenceIn {
+  title: string
+  notes?: string | null
+  days_of_week: number[]
+  priority?: TaskPriority
+  category_id?: string | null
+}
+
+export interface RecurrenceUpdate {
+  title?: string
+  notes?: string | null
+  days_of_week?: number[]
+  priority?: TaskPriority
+  category_id?: string | null
+  is_active?: boolean
+  clear_category?: boolean
+  clear_notes?: boolean
 }
 
 export interface TaskIn {

@@ -61,6 +61,12 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   repetições para força, faixa intermediária para hipertrofia, muitas repetições com descanso
   curto para resistência/definição — e ir à falha não é requisito.
 
+- **Fase 18 — Tarefas fixas e treino em qualquer dia** (feita): tarefa que se repete nos dias
+  da semana escolhidos (a regra fica separada da tarefa de cada dia, o histórico não muda e ela
+  não vira atrasada), lista para editar/pausar/excluir, e "Treinar agora" em qualquer plano —
+  fora do dia marcado a sessão entra como treino extra. Teste novo comparando as migrações com
+  os modelos, depois de uma coluna sem default quebrar a criação da tarefa fixa.
+
 ## MoSCoW
 
 **Must (MVP)**

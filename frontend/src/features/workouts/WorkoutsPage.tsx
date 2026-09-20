@@ -43,7 +43,7 @@ export function WorkoutsPage() {
       ) : (
         <div className="mt-2 flex flex-col gap-3">
           <BodyWeightCard />
-          {day.data && day.data.workouts.length > 0 && (
+          {day.data && day.data.workouts.length > 0 ? (
             <>
               <h2 className="px-0.5 text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Hoje</h2>
               {day.data.workouts.map((w) => (
@@ -51,6 +51,10 @@ export function WorkoutsPage() {
               ))}
               <h2 className="mt-3 px-0.5 text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Todos os planos</h2>
             </>
+          ) : (
+            <p className="px-0.5 text-[13px] text-ink-faint">
+              Nenhum treino marcado para hoje. Dá para treinar qualquer plano da lista em “Treinar agora”.
+            </p>
           )}
           {workouts.data.map((w, i) => (
             <PlanCard key={w.id} w={w} goals={goals} index={i} />
@@ -143,8 +147,8 @@ function PlanCard({ w, goals, index }: { w: Workout; goals: TrainingGoal[]; inde
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 6) * 0.04, duration: 0.24, ease: 'easeOut' }}
     >
-      <Link to={`/treinos/${w.id}`} className="block">
-        <Card className={cn('transition-colors hover:bg-elevated', !w.is_active && 'opacity-60')}>
+      <Card className={cn('transition-colors', !w.is_active && 'opacity-60')}>
+        <Link to={`/treinos/${w.id}`} className="block">
           <div className="flex items-start justify-between gap-3">
             <h3 className="min-w-0 truncate text-[17px] font-semibold tracking-[-0.01em]">{w.name}</h3>
             <span className="shrink-0 text-[13px] text-ink-muted first-letter:uppercase">{describeDays(w.days_of_week)}</span>
@@ -164,8 +168,16 @@ function PlanCard({ w, goals, index }: { w: Workout; goals: TrainingGoal[]; inde
               {w.exercises.length > 4 && <li className="px-1 py-1 text-[12px] text-ink-faint">+{w.exercises.length - 4}</li>}
             </ul>
           )}
-        </Card>
-      </Link>
+        </Link>
+        {w.exercises.length > 0 && (
+          <Link
+            to={`/treinos/${w.id}/sessao`}
+            className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-md border border-line-strong text-[14px] font-semibold text-ink-muted transition-colors active:bg-elevated"
+          >
+            Treinar agora
+          </Link>
+        )}
+      </Card>
     </m.div>
   )
 }
