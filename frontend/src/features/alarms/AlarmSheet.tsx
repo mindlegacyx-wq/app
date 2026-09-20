@@ -269,9 +269,18 @@ function AlarmForm({ alarm, onClose }: { alarm?: Alarm; onClose: () => void }) {
         <Toggle label="Confirmação obrigatória" checked={requiresConfirmation} onChange={setRequiresConfirmation} />
       </div>
 
-      {/* Uma embaixo da outra: "Nenhuma" não cabe numa coluna pela metade. */}
       <div className="flex flex-col gap-3">
-        <Segmented label="Sonecas" options={SNOOZE_COUNTS.map((n) => ({ value: n, label: n === 0 ? 'Nenhuma' : String(n) }))} value={maxSnoozes} onChange={setMaxSnoozes} />
+        <Segmented
+          label="Sonecas"
+          hint="0 = o alarme não oferece soneca."
+          options={SNOOZE_COUNTS.map((n) => ({
+            value: n,
+            label: String(n),
+            ariaLabel: n === 0 ? 'Nenhuma soneca' : `${n} soneca${n > 1 ? 's' : ''}`,
+          }))}
+          value={maxSnoozes}
+          onChange={setMaxSnoozes}
+        />
         <Segmented label="Duração" options={SNOOZE_MINUTES.map((n) => ({ value: n, label: `${n} min` }))} value={snoozeMinutes} onChange={setSnoozeMinutes} disabled={maxSnoozes === 0} />
       </div>
 
@@ -303,13 +312,15 @@ function AlarmForm({ alarm, onClose }: { alarm?: Alarm; onClose: () => void }) {
 
 function Segmented<T extends number>({
   label,
+  hint,
   options,
   value,
   onChange,
   disabled,
 }: {
   label: string
-  options: { value: T; label: string }[]
+  hint?: string
+  options: { value: T; label: string; ariaLabel?: string }[]
   value: T
   onChange: (v: T) => void
   disabled?: boolean
@@ -326,8 +337,10 @@ function Segmented<T extends number>({
             aria-checked={value === o.value}
             disabled={disabled}
             onClick={() => onChange(o.value)}
+            aria-label={o.ariaLabel}
             className={cn(
-              'tabular h-10 rounded-sm border px-1 text-[13px] font-semibold transition-colors',
+              // min-w-0 + truncate: o texto fica dentro da célula em qualquer largura de tela.
+              'tabular h-10 min-w-0 truncate rounded-sm border px-1 text-[13px] font-semibold transition-colors',
               value === o.value ? 'border-accent bg-accent-soft text-accent' : 'border-line-strong bg-elevated text-ink-muted hover:text-ink',
             )}
           >
@@ -335,6 +348,7 @@ function Segmented<T extends number>({
           </button>
         ))}
       </div>
+      {hint && <p className="text-[12px] text-ink-faint">{hint}</p>}
     </div>
   )
 }
