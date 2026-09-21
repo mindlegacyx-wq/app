@@ -464,7 +464,7 @@ Regras de cálculo:
 | title | varchar(60) NULL | "Prova 1", "Trabalho"… |
 | value | numeric(5,2) | 0..`grade_max` |
 | weight | numeric(4,2) | padrão 1 (só na média ponderada) |
-| max_points | numeric(5,2) NULL | quanto a avaliação valia (só na soma de pontos: prova 6 + trabalho 4) |
+| max_points | numeric(5,2) NULL | quanto a avaliação valia (só na soma de pontos: prova 6 + trabalho 4). Se as valias do período passam do teto da escala, a nota vira proporção (calculado na leitura, nada gravado) |
 | created_at · updated_at | timestamptz | sem soft delete (excluir pede confirmação) |
 
 `INDEX (user_id, year, subject_id)`. Médias e "quanto preciso tirar" são calculados na leitura (`/grades?year=`), nunca gravados.

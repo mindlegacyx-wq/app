@@ -47,6 +47,8 @@ class PeriodOut(BaseModel):
     grades: list[GradeOut]
     average: Num | None  # nota do período (None = sem notas)
     max_points: Num | None = None  # soma do "quanto valia" (só na soma de pontos)
+    # Passaram do teto da escala e a nota foi convertida para ele (10/10 + 10/10 = 10).
+    over_limit: bool = False
 
 
 SubjectStatus = Literal["approved", "on_track", "at_risk", "failing", "no_grades", "closed_failed"]

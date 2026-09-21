@@ -250,6 +250,12 @@ Duas escolas contam nota de jeitos diferentes, e o app precisa dos dois:
 - **Como o trimestre fecha** (`user_settings.grade_mode`): `weighted` soma as avaliações
   ponderadas pelo peso; `sum` soma os pontos (prova 5,5 + trabalho 4,0 = 9,5), e cada
   avaliação pode dizer quanto valia (`grades.max_points`), o que dá o "8,5 de 10".
+- **O teto da escala vale na soma** (Fase 24). Tem professora que lança cada atividade valendo
+  a nota inteira — duas de 10 numa escola de 0 a 10. Somar daria 20. Regra: enquanto as valias
+  somam até o teto, é soma (inclusive a nota parcial, 4 de 5 lançados); passou do teto, vira
+  proporção — tirado ÷ valia × teto (10/10 + 10/10 = 10; 6/6 + 4/4 + 10/10 = 10, e não 6,67).
+  Faltando a valia de alguma atividade, é a conta literal: soma ÷ quantidade. O período sai com
+  `over_limit = true` e `max_points` = teto, e a tela mostra a conta que levou à nota.
 - **Área de conhecimento** (`grade_areas` + `subjects.area_id`): a nota da área num período é
   a média das notas das matérias **que já têm nota** naquele período, e a tela mostra "3 de 4
   lançadas". Dividir por todas as matérias da área daria um número menor e falso enquanto o

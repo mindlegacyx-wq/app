@@ -5,7 +5,7 @@ from decimal import Decimal
 from httpx import AsyncClient
 
 from app.modules.grades.models import Grade
-from app.modules.grades.service import area_average, period_average
+from app.modules.grades.service import area_average, over_limit, period_average, period_max_points
 from tests.conftest import bearer
 from tests.test_routines import onboard
 
@@ -23,6 +23,43 @@ def g(value: str, weight: str = "1", points: str | None = None) -> Grade:
 def test_sum_mode_adds_the_points() -> None:
     # prova valendo 6 (tirou 5,5) + trabalho valendo 4 (tirou 4,0) = 9,5
     assert period_average([g("5.5", points="6"), g("4.0", points="4")], "sum") == Decimal("9.50")
+
+
+TEN = Decimal("10")
+
+
+def test_soma_que_passa_do_teto_vira_proporcao() -> None:
+    """O caso da Arte: duas atividades valendo 10 cada, numa escola de 0 a 10."""
+    arte = [g("10", points="10"), g("10", points="10")]
+    assert over_limit(arte, TEN)
+    assert period_average(arte, "sum", TEN) == Decimal("10.00")  # e não 20
+    assert period_max_points(arte, TEN) == Decimal("10.00")  # "10 de 10"
+
+    # valendo o mesmo, é o "soma e divide pela quantidade": 8 e 6 → 7
+    assert period_average([g("8", points="10"), g("6", points="10")], "sum", TEN) == Decimal("7.00")
+
+    # valias diferentes: gabaritou tudo, tem que dar 10 — dividir por 3 daria 6,67
+    tudo = [g("6", points="6"), g("4", points="4"), g("10", points="10")]
+    assert period_average(tudo, "sum", TEN) == Decimal("10.00")
+
+
+def test_soma_que_nao_passa_do_teto_continua_soma() -> None:
+    # prova vale 6 + trabalho vale 4: fecha 10 certinho, soma normal
+    assert period_average([g("5.5", points="6"), g("4", points="4")], "sum", TEN) == Decimal("9.50")
+    # nota parcial: 4 de 5 lançados continua 4 (ainda vai ter mais atividade)
+    parcial = [g("4", points="5")]
+    assert not over_limit(parcial, TEN)
+    assert period_average(parcial, "sum", TEN) == Decimal("4.00")
+    assert period_max_points(parcial, TEN) == Decimal("5.00")
+
+
+def test_sem_valia_e_soma_dividida_pela_quantidade() -> None:
+    sem_valia = [g("10"), g("9")]
+    assert period_average(sem_valia, "sum", TEN) == Decimal("9.50")
+    assert period_max_points(sem_valia, TEN) == Decimal("10.00")
+    # sem valia e sem passar do teto: soma (não dá para saber que é parcial)
+    assert period_average([g("3"), g("4")], "sum", TEN) == Decimal("7.00")
+    assert period_max_points([g("3"), g("4")], TEN) is None
 
 
 def test_weighted_mode_keeps_the_average() -> None:
@@ -249,3 +286,37 @@ async def test_ordem_das_materias_segue_a_ordem_das_areas(client: AsyncClient) -
     subjects = (await client.get("/api/v1/subjects", headers=h)).json()
     assert [s["name"] for s in subjects] == ["Matemática", "Português", "Eletiva"]
     assert livre in [s["id"] for s in subjects]
+
+
+async def test_arte_com_duas_atividades_de_dez(client: AsyncClient) -> None:
+    """Ponta a ponta: o resumo mostra 10 de 10, sinaliza a conversão e a área usa 10."""
+    h = bearer(await onboard(client))
+    await client.patch("/api/v1/users/me/settings", json={"grade_mode": "sum"}, headers=h)
+    area = (
+        await client.post("/api/v1/grades/areas", json={"name": "Linguagens"}, headers=h)
+    ).json()
+    arte = await _subject(client, h, "Arte")
+    await client.put(
+        f"/api/v1/grades/areas/{area['id']}/subjects", json={"subject_ids": [arte]}, headers=h
+    )
+    for titulo in ("Planta Baixa", "Projeto de criação Tinkercad"):
+        r = await client.post(
+            "/api/v1/grades",
+            json={
+                "subject_id": arte,
+                "year": YEAR,
+                "period": 1,
+                "title": titulo,
+                "value": 10,
+                "max_points": 10,
+            },
+            headers=h,
+        )
+        assert r.status_code == 201
+
+    out = (await client.get(f"/api/v1/grades?year={YEAR}", headers=h)).json()
+    p1 = out["subjects"][0]["periods"][0]
+    assert p1["average"] == 10 and p1["max_points"] == 10 and p1["over_limit"] is True
+    assert [x["title"] for x in p1["grades"]] == ["Planta Baixa", "Projeto de criação Tinkercad"]
+    assert out["areas"][0]["periods"][0]["average"] == 10
+    assert out["areas"][0]["year_average"] == 10

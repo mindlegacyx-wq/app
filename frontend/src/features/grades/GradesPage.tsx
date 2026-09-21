@@ -268,7 +268,12 @@ function SubjectSheet({
   const sum = gradeMode === 'sum'
   const launched = sum ? (p?.max_points ?? null) : null
   // Trimestre ainda aberto: a soma vai crescer, então nada de pintar de vermelho.
-  const parcial = launched !== null && launched < gradeMax
+  const parcial = launched !== null && launched < gradeMax && !p?.over_limit
+  // Quando as atividades passam do teto, a folha mostra a conta que levou à nota.
+  const bruto = p ? p.grades.reduce((t, g) => t + g.value, 0) : 0
+  const valiaBruta = p && p.grades.every((g) => g.max_points !== null)
+    ? p.grades.reduce((t, g) => t + (g.max_points ?? 0), 0)
+    : null
 
   return (
     <>
@@ -355,9 +360,11 @@ function SubjectSheet({
                   >
                     {p.average === null
                       ? 'sem notas'
-                      : sum
-                        ? `soma ${fmtGrade(p.average)}${launched !== null ? ` de ${fmtGrade(launched)}` : ''}`
-                        : `média ${fmtGrade(p.average)}`}
+                      : sum && p.over_limit
+                        ? `nota ${fmtGrade(p.average)} de ${fmtGrade(gradeMax)}`
+                        : sum
+                          ? `soma ${fmtGrade(p.average)}${launched !== null ? ` de ${fmtGrade(launched)}` : ''}`
+                          : `média ${fmtGrade(p.average)}`}
                   </span>
                 </div>
 
@@ -401,12 +408,22 @@ function SubjectSheet({
                   </ul>
                 </Card>
 
-                {sum && launched !== null && p.average !== null && (
-                  <p className="mt-2 px-0.5 text-[12px] text-ink-faint">
-                    {parcial
-                      ? `Lançados ${fmtGrade(launched)} pontos dos que a escola vai dar. Nos lançados, você tem ${Math.round((p.average / launched) * 100)}%.`
-                      : `Trimestre fechado em ${fmtGrade(p.average)} de ${fmtGrade(launched)}.`}
+                {sum && p.over_limit && p.average !== null ? (
+                  <p className="mt-2 px-0.5 text-[12px] leading-relaxed text-ink-faint">
+                    {valiaBruta !== null
+                      ? `As atividades somam ${fmtGrade(bruto)} de ${fmtGrade(valiaBruta)} pontos — passa do limite de ${fmtGrade(gradeMax)}, então a nota é a proporção: ${fmtGrade(p.average)}.`
+                      : `Somam ${fmtGrade(bruto)} pontos em ${p.grades.length} atividades — passa do limite de ${fmtGrade(gradeMax)}, então a nota é a média: ${fmtGrade(p.average)}.`}
                   </p>
+                ) : (
+                  sum &&
+                  launched !== null &&
+                  p.average !== null && (
+                    <p className="mt-2 px-0.5 text-[12px] text-ink-faint">
+                      {parcial
+                        ? `Lançados ${fmtGrade(launched)} pontos dos que a escola vai dar. Nos lançados, você tem ${Math.round((p.average / launched) * 100)}%.`
+                        : `Trimestre fechado em ${fmtGrade(p.average)} de ${fmtGrade(launched)}.`}
+                    </p>
+                  )
                 )}
               </section>
             )}
@@ -589,7 +606,7 @@ function GradeSettingsForm({ onClose }: { onClose: () => void }) {
         </div>
         <p className="text-[13px] text-ink-faint">
           {mode === 'sum'
-            ? 'Cada avaliação vale pontos e a nota é a soma: prova 5,5 + trabalho 4,0 = 9,5.'
+            ? 'Cada avaliação vale pontos e a nota é a soma: prova 5,5 + trabalho 4,0 = 9,5. Se passar do limite (duas atividades de 10), vira a média: 10 + 10 = 10.'
             : 'Cada avaliação tem um peso: prova 8,0 (peso 2) e trabalho 10,0 (peso 1) = 8,7.'}
         </p>
       </div>

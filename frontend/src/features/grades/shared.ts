@@ -16,6 +16,11 @@ export function fmtGrade(v: number | null | undefined): string {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(v)
 }
 
+/** Nota de atividade com duas casas, como no boletim: 10 → "10,00" · 8,5 → "8,50". */
+export function fmtScore(v: number): string {
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
+}
+
 /** Quantas casas a nota precisa mostrar: 8 → 0 · 8,5 → 1 · 8,83 → 2 */
 export function decimalsOf(v: number): number {
   if (Number.isInteger(v)) return 0

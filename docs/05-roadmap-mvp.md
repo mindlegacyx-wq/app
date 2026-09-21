@@ -95,6 +95,10 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   área. A ordem fica guardada e vale também em Estudos. Tudo responde no toque (atualização
   otimista), e o visual ganhou trilho de cor por área, barra da média e animações com mola.
 
+- **Fase 24 — Teto da escala e atividades à vista** (feita): na soma de pontos, atividades que
+  passam do limite (duas de 10 numa escola até 10) viram média proporcional em vez de somar 20;
+  e o quadro mostra cada atividade embaixo da matéria com a nota ao lado.
+
 ## MoSCoW
 
 **Must (MVP)**

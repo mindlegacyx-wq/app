@@ -813,6 +813,7 @@ export interface PeriodGrades {
   grades: Grade[]
   average: number | null
   max_points: number | null // quanto o trimestre valia (soma de pontos)
+  over_limit: boolean // as atividades passaram do teto e a nota foi convertida (10/10 + 10/10 = 10)
 }
 
 export type SubjectGradeStatus = 'approved' | 'on_track' | 'at_risk' | 'failing' | 'no_grades' | 'closed_failed'

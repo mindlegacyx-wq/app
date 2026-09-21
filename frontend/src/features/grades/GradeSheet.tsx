@@ -146,7 +146,7 @@ function GradeForm({ subjectId, year, period, grade, exam, onClose }: Omit<Props
 
       <p className="-mt-3 text-[12px] text-ink-faint">
         {sumMode
-          ? 'Quanto a avaliação valia. A nota do trimestre é a soma do que você tirou em cada uma.'
+          ? 'Quanto a avaliação valia. A nota do trimestre é a soma do que você tirou — se as atividades passarem do limite da escala, vira a proporção (duas de 10 valendo 10 cada = 10).'
           : 'O peso decide quanto a avaliação pesa na média do trimestre.'}
       </p>
 

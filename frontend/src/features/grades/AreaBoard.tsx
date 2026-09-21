@@ -16,7 +16,7 @@ import {
   useSetSubjectGradeSettings,
   useUpdateArea,
 } from './api'
-import { decimalsOf, fmtGrade, periodLabel } from './shared'
+import { decimalsOf, fmtGrade, fmtScore, periodLabel } from './shared'
 
 interface Props {
   data: GradesSummary
@@ -468,7 +468,15 @@ function SubjectRow({
   const sum = data.grade_mode === 'sum'
   // Na soma de pontos: quanto já foi lançado do total do trimestre.
   const launched = sum ? (p?.max_points ?? null) : null
-  const partial = launched !== null && launched < data.grade_max
+  const partial = launched !== null && launched < data.grade_max && !p?.over_limit
+  // As atividades do trimestre aparecem embaixo do nome, cada uma com a nota ao lado.
+  const items = subject.entry_mode === 'items' ? (p?.grades ?? []) : []
+
+  let caption: string | null = null
+  if (value !== null && p?.over_limit) caption = `média das ${items.length || p.grades.length} atividades`
+  else if (value !== null && partial && launched !== null)
+    caption = `${fmtGrade(launched)} de ${fmtGrade(data.grade_max)} lançados · ${Math.round((value / launched) * 100)}% do que valeu`
+  else if (value !== null && launched !== null && items.length === 0) caption = `${fmtGrade(value)} de ${fmtGrade(launched)}`
 
   return (
     <Reorder.Item
@@ -484,35 +492,67 @@ function SubjectRow({
       exit={{ opacity: 0, x: 10, transition: { duration: 0.15 } }}
       transition={SPRING}
       whileDrag={{ scale: 1.02, zIndex: 10, boxShadow: '0 12px 30px rgb(0 0 0 / 50%)' }}
-      className="relative flex items-center bg-surface pl-1.5"
+      className="relative flex items-start bg-surface pt-1 pl-1.5"
     >
       <Handle controls={controls} label={`Arrastar ${subject.name} para reordenar`} />
       <button
         type="button"
         onClick={onOpen}
-        className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4 pl-1 text-left transition-colors hover:bg-white/[0.03]"
+        className="block min-w-0 flex-1 py-2 pr-4 pl-1 text-left transition-colors hover:bg-white/[0.03]"
       >
-        <span className="size-2.5 shrink-0 rounded-full" style={{ background: subject.color }} aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px]">{subject.name}</span>
-          {value !== null && launched !== null && (
-            <span className="block truncate text-[11px] text-ink-faint">
-              {partial
-                ? `${fmtGrade(launched)} de ${fmtGrade(data.grade_max)} lançados · ${Math.round((value / launched) * 100)}% do que valeu`
-                : `${fmtGrade(value)} de ${fmtGrade(launched)}`}
+        <span className="flex items-start gap-3">
+          <span className="mt-[7px] size-2.5 shrink-0 rounded-full" style={{ background: subject.color }} aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] leading-6">{subject.name}</span>
+            {caption && <span className="block truncate text-[11px] text-ink-faint">{caption}</span>}
+          </span>
+          {value === null ? (
+            <span className="mt-0.5 shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-[12px] font-semibold text-accent">
+              Lançar
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'tabular shrink-0 text-right text-[17px] leading-6 font-semibold',
+                partial || value >= data.passing_grade ? 'text-ink' : 'text-danger',
+              )}
+            >
+              {fmtGrade(value)}
             </span>
           )}
         </span>
-        {value === null ? (
-          <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-[12px] font-semibold text-accent">Lançar</span>
-        ) : (
-          <span
-            className={cn(
-              'tabular shrink-0 text-[17px] font-semibold',
-              partial || value >= data.passing_grade ? 'text-ink' : 'text-danger',
-            )}
-          >
-            {fmtGrade(value)}
+        {/* As atividades ocupam a linha inteira (alinhadas ao nome), com a nota colada à direita,
+            na mesma coluna da nota da matéria. */}
+        {items.length > 0 && (
+          <span className="relative mt-1.5 mb-0.5 ml-[22px] block pl-3">
+            <span
+              className="absolute inset-y-1 left-0 w-0.5 rounded-full opacity-50"
+              style={{ background: subject.color }}
+              aria-hidden
+            />
+            {items.map((g, i) => (
+              <m.span
+                key={g.id}
+                initial={{ opacity: 0, y: -3 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.22, ease: EASE }}
+                className="flex items-baseline gap-2 py-[3px] text-[13px]"
+              >
+                <span className="min-w-0 truncate text-ink-muted" title={g.title ?? undefined}>
+                  {g.title ?? `Avaliação ${i + 1}`}
+                </span>
+                <span className="mb-[4px] min-w-3 flex-1 border-b border-dotted border-white/15" aria-hidden />
+                <span className="tabular shrink-0 font-medium text-ink">
+                  {fmtScore(g.value)}
+                  {sum && g.max_points !== null && (
+                    <span className="font-normal text-ink-faint">/{fmtGrade(g.max_points)}</span>
+                  )}
+                  {!sum && g.weight !== 1 && (
+                    <span className="font-normal text-ink-faint"> · peso {fmtGrade(g.weight)}</span>
+                  )}
+                </span>
+              </m.span>
+            ))}
           </span>
         )}
       </button>

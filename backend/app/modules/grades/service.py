@@ -50,25 +50,58 @@ def _q(v: Decimal) -> Decimal:
 # --- Cálculo puro ------------------------------------------------------------------------
 
 
-def period_average(grades: list[Grade], mode: str = "weighted") -> Decimal | None:
+def over_limit(grades: list[Grade], grade_max: Decimal) -> bool:
+    """As avaliações do período passaram do teto da escala?
+
+    Acontece quando a professora lança cada atividade valendo a nota inteira (duas de 10 numa
+    escola de 0 a 10). Somar daria 20; a escola considera 10.
+    Com todas as "valias" preenchidas, o sinal é elas somarem mais que o teto; faltando alguma,
+    é o próprio total tirado passar do teto (não há como saber quanto a atividade valia).
+    """
+    if not grades:
+        return False
+    if all(g.max_points is not None for g in grades):
+        return sum((g.max_points or Decimal(0) for g in grades), Decimal(0)) > grade_max
+    return sum((g.value for g in grades), Decimal(0)) > grade_max
+
+
+def period_average(
+    grades: list[Grade], mode: str = "weighted", grade_max: Decimal | None = None
+) -> Decimal | None:
     """Nota do período a partir das avaliações lançadas nele.
 
-    `sum`: soma o que foi tirado (prova 5,5 + trabalho 4,0 = 9,5).
+    `sum`: soma o que foi tirado (prova 5,5 + trabalho 4,0 = 9,5). Se as atividades passam do
+    teto da escala, vira proporção: o que foi tirado sobre o que valiam, na escala da escola
+    (10/10 + 10/10 = 10; prova 6/6 + trabalho 4/4 + seminário 10/10 = 10, e não 6,67). Quando
+    falta a "valia" de alguma, é a conta literal: soma dividida pela quantidade.
     `weighted`: média ponderada pelos pesos.
     """
     if not grades:
         return None
     if mode == "sum":
-        return _q(sum((g.value for g in grades), Decimal(0)))
+        total = sum((g.value for g in grades), Decimal(0))
+        if grade_max is not None and over_limit(grades, grade_max):
+            if all(g.max_points is not None for g in grades):
+                valia = sum((g.max_points or Decimal(0) for g in grades), Decimal(0))
+                return _q(total / valia * grade_max)
+            return _q(total / len(grades))
+        return _q(total)
     total_w = sum((g.weight for g in grades), Decimal(0))
     if total_w == 0:
         return None
     return _q(sum((g.value * g.weight for g in grades), Decimal(0)) / total_w)
 
 
-def period_max_points(grades: list[Grade]) -> Decimal | None:
-    """Quanto o período valia ao todo — só quando todas as avaliações dizem quanto valem."""
-    if not grades or any(g.max_points is None for g in grades):
+def period_max_points(grades: list[Grade], grade_max: Decimal | None = None) -> Decimal | None:
+    """Quanto o período valia ao todo — só quando todas as avaliações dizem quanto valem.
+
+    Passou do teto, o período está completo: vale o teto (a nota já foi convertida para ele).
+    """
+    if not grades:
+        return None
+    if grade_max is not None and over_limit(grades, grade_max):
+        return _q(grade_max)
+    if any(g.max_points is None for g in grades):
         return None
     return _q(sum((g.max_points or Decimal(0) for g in grades), Decimal(0)))
 
@@ -155,7 +188,7 @@ async def summary(db: AsyncSession, user: User, year: int | None) -> GradesSumma
         done: list[Decimal] = []
         for p in range(1, settings.periods_per_year + 1):
             in_period = [g for g in mine if g.period == p]
-            avg = period_average(in_period, mode)
+            avg = period_average(in_period, mode, settings.grade_max)
             if avg is not None:
                 done.append(avg)
                 by_period.setdefault(s.id, {})[p] = avg
@@ -164,7 +197,10 @@ async def summary(db: AsyncSession, user: User, year: int | None) -> GradesSumma
                     period=p,
                     grades=[GradeOut.model_validate(g) for g in in_period],
                     average=avg,
-                    max_points=period_max_points(in_period) if mode == "sum" else None,
+                    max_points=(
+                        period_max_points(in_period, settings.grade_max) if mode == "sum" else None
+                    ),
+                    over_limit=mode == "sum" and over_limit(in_period, settings.grade_max),
                 )
             )
         remaining, needed, projected, status = needed_average(
