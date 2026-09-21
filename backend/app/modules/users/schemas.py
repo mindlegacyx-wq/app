@@ -1,5 +1,6 @@
 from datetime import datetime, time
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -27,6 +28,8 @@ class UserSettingsOut(BaseModel):
     passing_grade: Num
     periods_per_year: int
     grade_max: Num
+    grade_mode: str  # "weighted" (média ponderada) ou "sum" (soma de pontos)
+    grades_by_area: bool
 
 
 class UserSettingsUpdate(BaseModel):
@@ -37,6 +40,8 @@ class UserSettingsUpdate(BaseModel):
     passing_grade: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
     periods_per_year: int | None = Field(default=None, ge=1, le=6)
     grade_max: Decimal | None = Field(default=None, gt=0, le=100, decimal_places=2)
+    grade_mode: Literal["weighted", "sum"] | None = None
+    grades_by_area: bool | None = None
 
     @model_validator(mode="after")
     def _passing_within_scale(self) -> "UserSettingsUpdate":

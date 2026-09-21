@@ -47,17 +47,25 @@ function GradeForm({ subjectId, year, period, grade, exam, onClose }: Omit<Props
   const [title, setTitle] = useState(grade?.title ?? exam?.title ?? '')
   const [value, setValue] = useState(grade ? fmtGrade(grade.value) : '')
   const [weight, setWeight] = useState(grade?.weight ?? 1)
+  // Na soma de pontos, o que importa é quanto a avaliação valia (prova 6 + trabalho 4).
+  const sumMode = settings.grade_mode === 'sum'
+  const [points, setPoints] = useState(grade?.max_points != null ? fmtGrade(grade.max_points) : '')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const parsed = parseGrade(value)
-  const invalid = value.trim() !== '' && (parsed === null || parsed < 0 || parsed > settings.grade_max)
+  const parsedPoints = points.trim() === '' ? null : parseGrade(points)
+  const invalid =
+    (value.trim() !== '' && (parsed === null || parsed < 0 || parsed > settings.grade_max)) ||
+    (parsed !== null && parsedPoints !== null && parsed > parsedPoints)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     if (parsed === null) return setError('Informe a nota.')
     if (parsed < 0 || parsed > settings.grade_max) return setError(`A nota vai de 0 a ${fmtGrade(settings.grade_max)}.`)
+    if (parsedPoints !== null && parsed > parsedPoints)
+      return setError(`A nota não passa dos ${fmtGrade(parsedPoints)} pontos da avaliação.`)
     try {
       if (grade) {
         await update.mutateAsync({
@@ -66,7 +74,9 @@ function GradeForm({ subjectId, year, period, grade, exam, onClose }: Omit<Props
           title: title.trim() || null,
           clear_title: title.trim() === '',
           value: parsed,
-          weight,
+          weight: sumMode ? 1 : weight,
+          max_points: sumMode ? parsedPoints : undefined,
+          clear_max_points: sumMode && parsedPoints === null,
         })
       } else {
         await create.mutateAsync({
@@ -75,7 +85,8 @@ function GradeForm({ subjectId, year, period, grade, exam, onClose }: Omit<Props
           period: p,
           title: title.trim() || null,
           value: parsed,
-          weight,
+          weight: sumMode ? 1 : weight,
+          max_points: sumMode ? parsedPoints : null,
           exam_id: exam?.id ?? null,
         })
       }
@@ -110,17 +121,34 @@ function GradeForm({ subjectId, year, period, grade, exam, onClose }: Omit<Props
           autoFocus={!grade}
           required
         />
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-ink-muted">Peso</span>
-          <div className="flex gap-1.5" role="radiogroup" aria-label="Peso">
-            {[1, 2, 3].map((w) => (
-              <Chip key={w} active={weight === w} onClick={() => setWeight(w)} className="h-12 px-3.5">
-                {w}
-              </Chip>
-            ))}
+        {sumMode ? (
+          <Field
+            label="Valia"
+            inputMode="decimal"
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            placeholder="Ex.: 6"
+            className="w-24 [&_input]:tabular [&_input]:text-[22px] [&_input]:font-semibold"
+          />
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-ink-muted">Peso</span>
+            <div className="flex gap-1.5" role="radiogroup" aria-label="Peso">
+              {[1, 2, 3].map((w) => (
+                <Chip key={w} active={weight === w} onClick={() => setWeight(w)} className="h-12 px-3.5">
+                  {w}
+                </Chip>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      <p className="-mt-3 text-[12px] text-ink-faint">
+        {sumMode
+          ? 'Quanto a avaliação valia. A nota do trimestre é a soma do que você tirou em cada uma.'
+          : 'O peso decide quanto a avaliação pesa na média do trimestre.'}
+      </p>
 
       <Field
         label="Título (opcional)"

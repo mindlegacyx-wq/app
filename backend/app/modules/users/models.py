@@ -53,6 +53,11 @@ class UserSettings(Base):
     grade_max: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), nullable=False, default=Decimal("10.00")
     )
+    # Fase 21: como as avaliações fecham o período — "weighted" (média ponderada pelos pesos)
+    # ou "sum" (cada avaliação vale pontos e a nota é a soma). E se as notas aparecem
+    # agrupadas por área de conhecimento.
+    grade_mode: Mapped[str] = mapped_column(String(8), nullable=False, default="weighted")
+    grades_by_area: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     user: Mapped[User] = relationship(back_populates="settings")
 

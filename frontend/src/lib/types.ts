@@ -9,6 +9,8 @@ export interface UserSettings {
   passing_grade: number // média mínima da escola (Fase 11)
   periods_per_year: number // 2 = semestres · 3 = trimestres · 4 = bimestres
   grade_max: number // topo da escala (10 ou 100)
+  grade_mode: 'weighted' | 'sum' // como as avaliações fecham o trimestre (Fase 21)
+  grades_by_area: boolean // mostrar as notas agrupadas por área de conhecimento
 }
 
 export interface User {
@@ -692,6 +694,8 @@ export interface Subject {
   teacher: string | null
   is_active: boolean
   sort_order: number
+  area_id: string | null // área de conhecimento nas notas (Fase 21)
+  grade_entry_mode: GradeEntryMode
 }
 
 export interface ScheduleBlock {
@@ -801,21 +805,52 @@ export interface Grade {
   title: string | null
   value: number
   weight: number
+  max_points: number | null // quanto a avaliação valia (soma de pontos)
 }
 
 export interface PeriodGrades {
   period: number
   grades: Grade[]
   average: number | null
+  max_points: number | null // quanto o trimestre valia (soma de pontos)
 }
 
 export type SubjectGradeStatus = 'approved' | 'on_track' | 'at_risk' | 'failing' | 'no_grades' | 'closed_failed'
+
+export type GradeEntryMode = 'final' | 'items'
 
 export interface SubjectGrades {
   subject_id: string
   name: string
   color: string
+  area_id: string | null
+  entry_mode: GradeEntryMode
   periods: PeriodGrades[]
+  year_average: number | null
+  projected_final: number | null
+  remaining_periods: number
+  needed_average: number | null
+  status: SubjectGradeStatus
+}
+
+/** Área de conhecimento: junta matérias (Linguagens, Matemática...). */
+export interface GradeArea {
+  id: string
+  name: string
+  color: string
+  sort_order: number
+}
+
+export interface AreaPeriodGrades {
+  period: number
+  average: number | null
+  with_grade: number // matérias já lançadas no período
+  total: number // matérias da área
+}
+
+export interface AreaGrades extends GradeArea {
+  subject_ids: string[]
+  periods: AreaPeriodGrades[]
   year_average: number | null
   projected_final: number | null
   remaining_periods: number
@@ -829,6 +864,9 @@ export interface GradesSummary {
   passing_grade: number
   periods_per_year: number
   grade_max: number
+  grade_mode: 'weighted' | 'sum'
+  by_area: boolean
+  areas: AreaGrades[]
   subjects: SubjectGrades[]
 }
 

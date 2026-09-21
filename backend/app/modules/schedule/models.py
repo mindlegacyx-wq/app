@@ -34,6 +34,13 @@ class Subject(Base, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin):
     teacher: Mapped[str | None] = mapped_column(String(60), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Notas (Fase 21). A FK vai pelo nome da tabela para o módulo da agenda não precisar
+    # importar o das notas.
+    area_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("grade_areas.id", ondelete="SET NULL"), nullable=True
+    )
+    # "final" = uma nota por trimestre; "items" = prova, trabalho… somando/compondo a nota.
+    grade_entry_mode: Mapped[str] = mapped_column(String(6), nullable=False, default="final")
 
 
 class BlockKind(enum.StrEnum):

@@ -77,6 +77,11 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   lateral no lugar da barra de abas, conteúdo mais largo, tela Hoje em duas colunas e
   formulários como janela. Decidido por largura de janela, não por aparelho.
 
+- **Fase 21 — Notas por área e soma de pontos** (feita): a escola que fecha por área agora tem
+  as quatro do ENEM prontas (editáveis) com a média sendo a das matérias lançadas; a que soma
+  pontos tem "prova vale 6, trabalho vale 4"; e cada matéria escolhe entre lançar só a nota
+  final do trimestre ou as avaliações que a compõem.
+
 ## MoSCoW
 
 **Must (MVP)**

@@ -48,6 +48,8 @@ class SubjectOut(BaseModel):
     teacher: str | None
     is_active: bool
     sort_order: int
+    area_id: UUID | None = None  # área de conhecimento nas notas (Fase 21)
+    grade_entry_mode: str = "final"
 
 
 # --- Blocos ------------------------------------------------------------------------------

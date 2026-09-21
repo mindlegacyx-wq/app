@@ -463,10 +463,28 @@ Regras de cálculo:
 | period | smallint | 1..`periods_per_year` |
 | title | varchar(60) NULL | "Prova 1", "Trabalho"… |
 | value | numeric(5,2) | 0..`grade_max` |
-| weight | numeric(4,2) | padrão 1 |
+| weight | numeric(4,2) | padrão 1 (só na média ponderada) |
+| max_points | numeric(5,2) NULL | quanto a avaliação valia (só na soma de pontos: prova 6 + trabalho 4) |
 | created_at · updated_at | timestamptz | sem soft delete (excluir pede confirmação) |
 
 `INDEX (user_id, year, subject_id)`. Médias e "quanto preciso tirar" são calculados na leitura (`/grades?year=`), nunca gravados.
+
+### `grade_areas` (Fase 21)
+
+Área de conhecimento que junta matérias (Linguagens, Matemática…). Quem lança nota continua sendo a matéria; a área só agrupa.
+
+| Coluna | Tipo | Obs |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | `CASCADE` |
+| name | varchar(40) | |
+| color | varchar(7) | |
+| sort_order | int | |
+| created_at · updated_at | timestamptz | |
+
+`INDEX (user_id, sort_order)`. `subjects.area_id` aponta para cá com `ON DELETE SET NULL` — apagar a área nunca apaga matéria nem nota. As quatro do ENEM nascem na primeira vez que o usuário liga "agrupar por área".
+
+Também na Fase 21: `subjects.grade_entry_mode` (`final` = uma nota por trimestre · `items` = prova, trabalho…) e, em `user_settings`, `grade_mode` (`weighted` · `sum`) e `grades_by_area`.
 
 ## Módulo 10 · Estudos com IA (Fase 12)
 

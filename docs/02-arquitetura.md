@@ -243,6 +243,28 @@ toque.
 As telas internas (despertador, configurações, detalhe de treino) também ficam com o menu
 lateral no PC; no celular continuam de página cheia com o botão voltar.
 
+## 7.9. Notas por área e soma de pontos (Fase 21)
+
+Duas escolas contam nota de jeitos diferentes, e o app precisa dos dois:
+
+- **Como o trimestre fecha** (`user_settings.grade_mode`): `weighted` soma as avaliações
+  ponderadas pelo peso; `sum` soma os pontos (prova 5,5 + trabalho 4,0 = 9,5), e cada
+  avaliação pode dizer quanto valia (`grades.max_points`), o que dá o "8,5 de 10".
+- **Área de conhecimento** (`grade_areas` + `subjects.area_id`): a nota da área num período é
+  a média das notas das matérias **que já têm nota** naquele período, e a tela mostra "3 de 4
+  lançadas". Dividir por todas as matérias da área daria um número menor e falso enquanto o
+  trimestre não fechou.
+
+Quem lança nota continua sendo a matéria — a área é agrupamento, não um lugar onde se digita.
+Assim o histórico não muda quando o usuário mexe nas áreas, e desligar o agrupamento devolve a
+tela antiga sem perder nada.
+
+Cada matéria também escolhe **como lança** (`subjects.grade_entry_mode`): `final`, uma nota por
+trimestre, ou `items`, as avaliações que a compõem — que é o que deixa ver o desempenho antes
+de a escola fechar a nota.
+
+Tudo continua calculado na leitura: nenhuma média é gravada.
+
 ## 8. Infra e deploy
 
 ```

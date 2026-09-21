@@ -14,6 +14,7 @@ class GradeIn(BaseModel):
     title: str | None = Field(default=None, max_length=60)
     value: Decimal = Field(ge=0, le=100, decimal_places=2)
     weight: Decimal = Field(default=Decimal("1"), gt=0, le=10, decimal_places=2)
+    max_points: Decimal | None = Field(default=None, gt=0, le=100, decimal_places=2)
     exam_id: UUID | None = None
 
 
@@ -23,6 +24,8 @@ class GradeUpdate(BaseModel):
     clear_title: bool = False
     value: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
     weight: Decimal | None = Field(default=None, gt=0, le=10, decimal_places=2)
+    max_points: Decimal | None = Field(default=None, gt=0, le=100, decimal_places=2)
+    clear_max_points: bool = False
 
 
 class GradeOut(BaseModel):
@@ -36,12 +39,14 @@ class GradeOut(BaseModel):
     title: str | None
     value: Num
     weight: Num
+    max_points: Num | None
 
 
 class PeriodOut(BaseModel):
     period: int
     grades: list[GradeOut]
-    average: Num | None  # média ponderada do período (None = sem notas)
+    average: Num | None  # nota do período (None = sem notas)
+    max_points: Num | None = None  # soma do "quanto valia" (só na soma de pontos)
 
 
 SubjectStatus = Literal["approved", "on_track", "at_risk", "failing", "no_grades", "closed_failed"]
@@ -51,6 +56,8 @@ class SubjectGradesOut(BaseModel):
     subject_id: UUID
     name: str
     color: str
+    area_id: UUID | None = None
+    entry_mode: Literal["final", "items"] = "final"
     periods: list[PeriodOut]
     year_average: Num | None  # média simples dos períodos com nota
     projected_final: Num | None  # média final se os períodos restantes repetirem a média atual
@@ -59,10 +66,45 @@ class SubjectGradesOut(BaseModel):
     status: SubjectStatus
 
 
+class AreaPeriodOut(BaseModel):
+    period: int
+    average: Num | None  # média das médias das matérias com nota no período
+    with_grade: int  # quantas matérias já têm nota
+    total: int  # quantas matérias a área tem
+
+
+class AreaOut(BaseModel):
+    id: UUID
+    name: str
+    color: str
+    sort_order: int
+    subject_ids: list[UUID]
+    periods: list[AreaPeriodOut]
+    year_average: Num | None
+    projected_final: Num | None
+    remaining_periods: int
+    needed_average: Num | None
+    status: SubjectStatus
+
+
+class AreaIn(BaseModel):
+    name: str = Field(min_length=1, max_length=40)
+    color: str = Field(default="#4F8CFF", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class AreaUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    sort_order: int | None = Field(default=None, ge=0, le=100)
+
+
 class GradesSummaryOut(BaseModel):
     year: int
     years: list[int]  # anos com notas lançadas (para navegar)
     passing_grade: Num
     periods_per_year: int
     grade_max: Num
+    grade_mode: Literal["weighted", "sum"]
+    by_area: bool  # o usuário pediu para ver agrupado por área
+    areas: list[AreaOut]
     subjects: list[SubjectGradesOut]

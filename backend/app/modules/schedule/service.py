@@ -72,6 +72,31 @@ async def create_subject(db: AsyncSession, user_id: UUID, data: SubjectIn) -> Su
     return s
 
 
+async def set_grade_settings(
+    db: AsyncSession,
+    user_id: UUID,
+    subject_id: UUID,
+    *,
+    area_id: UUID | None = None,
+    clear_area: bool = False,
+    entry_mode: str | None = None,
+) -> Subject:
+    """Ajustes que pertencem às notas (área e modo de lançamento) numa matéria.
+
+    Fica aqui porque quem mexe na tabela `subjects` é este módulo; o módulo de notas chama
+    este serviço em vez de escrever direto.
+    """
+    s = await get_subject(db, user_id, subject_id)
+    if clear_area:
+        s.area_id = None
+    elif area_id is not None:
+        s.area_id = area_id
+    if entry_mode in ("final", "items"):
+        s.grade_entry_mode = entry_mode
+    await db.flush()
+    return s
+
+
 async def update_subject(
     db: AsyncSession, user_id: UUID, subject_id: UUID, data: SubjectUpdate
 ) -> Subject:
