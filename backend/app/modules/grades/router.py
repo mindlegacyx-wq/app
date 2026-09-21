@@ -8,6 +8,8 @@ from app.core.deps import DB, CurrentUser
 from app.modules.grades import service
 from app.modules.grades.schemas import (
     AreaIn,
+    AreaOrderIn,
+    AreaSubjectsIn,
     AreaUpdate,
     GradeIn,
     GradeOut,
@@ -56,6 +58,26 @@ async def list_areas(user: CurrentUser, db: DB) -> list[AreaSimpleOut]:
 @router.post("/areas", response_model=AreaSimpleOut, status_code=status.HTTP_201_CREATED)
 async def create_area(data: AreaIn, user: CurrentUser, db: DB) -> AreaSimpleOut:
     a = await service.create_area(db, user.id, data)
+    await db.commit()
+    return AreaSimpleOut(id=a.id, name=a.name, color=a.color, sort_order=a.sort_order)
+
+
+# Antes de "/areas/{area_id}": senão "order" viraria um id de área inválido.
+@router.put("/areas/order", response_model=list[AreaSimpleOut])
+async def reorder_areas(data: AreaOrderIn, user: CurrentUser, db: DB) -> list[AreaSimpleOut]:
+    areas = await service.reorder_areas(db, user.id, data.area_ids)
+    await db.commit()
+    return [
+        AreaSimpleOut(id=a.id, name=a.name, color=a.color, sort_order=a.sort_order) for a in areas
+    ]
+
+
+@router.put("/areas/{area_id}/subjects", response_model=AreaSimpleOut)
+async def set_area_subjects(
+    area_id: UUID, data: AreaSubjectsIn, user: CurrentUser, db: DB
+) -> AreaSimpleOut:
+    """A área passa a ter exatamente estas matérias, nesta ordem."""
+    a = await service.set_area_subjects(db, user.id, area_id, data.subject_ids)
     await db.commit()
     return AreaSimpleOut(id=a.id, name=a.name, color=a.color, sort_order=a.sort_order)
 

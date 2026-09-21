@@ -93,6 +93,18 @@ class AreaIn(BaseModel):
     color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
 
 
+class AreaOrderIn(BaseModel):
+    """A ordem das áreas na tela, de cima para baixo. Precisa trazer todas."""
+
+    area_ids: list[UUID]
+
+
+class AreaSubjectsIn(BaseModel):
+    """As matérias que ficam nesta área, na ordem em que aparecem."""
+
+    subject_ids: list[UUID]
+
+
 class AreaUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=40)
     color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")

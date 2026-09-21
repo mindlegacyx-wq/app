@@ -97,6 +97,40 @@ async def set_grade_settings(
     return s
 
 
+async def assign_area(
+    db: AsyncSession, user_id: UUID, area_id: UUID, subject_ids: list[UUID]
+) -> list[Subject]:
+    """Deixa a área com exatamente estas matérias.
+
+    Quem estava na área e não veio na lista sai dela (fica sem área, com as notas intactas).
+    O módulo de notas chama este serviço porque a tabela `subjects` é deste módulo.
+    """
+    todas = await list_subjects(db, user_id)
+    por_id = {s.id: s for s in todas}
+    faltando = [sid for sid in subject_ids if sid not in por_id]
+    if faltando:
+        raise NotFoundError("Matéria não encontrada.")
+    escolhidas = set(subject_ids)
+    for s in todas:
+        if s.id in escolhidas:
+            s.area_id = area_id
+        elif s.area_id == area_id:
+            s.area_id = None
+    await db.flush()
+    return todas
+
+
+async def set_subject_order(db: AsyncSession, user_id: UUID, subject_ids: list[UUID]) -> None:
+    """Renumera a ordem das matérias. A lista precisa trazer todas, sem repetir."""
+    todas = await list_subjects(db, user_id)
+    por_id = {s.id: s for s in todas}
+    if len(set(subject_ids)) != len(subject_ids) or set(subject_ids) != set(por_id):
+        raise ConflictError("A lista de matérias está desatualizada. Recarregue e tente de novo.")
+    for posicao, sid in enumerate(subject_ids):
+        por_id[sid].sort_order = posicao
+    await db.flush()
+
+
 async def update_subject(
     db: AsyncSession, user_id: UUID, subject_id: UUID, data: SubjectUpdate
 ) -> Subject:

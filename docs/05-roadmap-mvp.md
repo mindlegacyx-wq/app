@@ -89,6 +89,12 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   "parcial" em vez de vermelho. Animações de reposição ligadas de verdade (o app carregava um
   pacote do motion que não incluía arrastar nem `layout`).
 
+- **Fase 23 — Quadro de áreas prático** (feita): arrastar a matéria de longe até a área deu
+  lugar a três gestos simples — alça ⠿ para ordenar (áreas e matérias, igual aos treinos),
+  "+ Adicionar matéria" com seleção múltipla e busca, e tocar na matéria solta para escolher a
+  área. A ordem fica guardada e vale também em Estudos. Tudo responde no toque (atualização
+  otimista), e o visual ganhou trilho de cor por área, barra da média e animações com mola.
+
 ## MoSCoW
 
 **Must (MVP)**

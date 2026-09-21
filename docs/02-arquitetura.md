@@ -275,13 +275,22 @@ entre telas. A Fase 22 junta tudo numa tela só:
 - **Nada vem pronto.** Cada escola divide as áreas do seu jeito; uma lista errada dá mais
   trabalho para apagar do que para criar. O usuário cria as áreas dele, e o servidor escolhe a
   cor rodando uma paleta fixa (`AREA_COLORS`) para que duas áreas seguidas nunca saiam iguais.
-- **As matérias sem área ficam numa faixa no topo** e vão para dentro de uma área arrastando.
-  O alvo é calculado comparando o ponto do dedo com o retângulo de cada área; como o motion
-  entrega o ponto contando a rolagem da página, a rolagem é descontada antes da comparação.
-  Segurar a matéria perto da borda rola a lista, então dá para alcançar uma área longe.
-- **Arrastar não é o único caminho.** Tocar na matéria abre uma folha com a lista de áreas —
-  é o que o dedo acerta em tela pequena, e é o caminho que sobra quando o aparelho está com
-  "reduzir animações" ligado.
+- **Cada gesto tem um significado só** (Fase 23). A primeira tentativa (Fase 22) pedia para
+  arrastar cada matéria lá do topo até a área; com vinte matérias isso virou mira de precisão.
+  Agora: a **alça ⠿** ordena — as áreas entre si e as matérias dentro da área, o mesmo gesto da
+  lista de exercícios; **"+ Adicionar matéria"**, dentro da área, marca várias de uma vez; e
+  **tocar** numa matéria sem área abre a lista de áreas. O arraste fica preso dentro da própria
+  lista (`dragConstraints`), então a linha nunca passa por cima do cabeçalho.
+- **A ordem é uma só.** `PUT /grades/areas/{id}/subjects` diz exatamente quais matérias ficam na
+  área e em que ordem (quem ficou de fora sai dela); `PUT /grades/areas/order` ordena as áreas.
+  Os dois renumeram `subjects.sort_order` na ordem da tela — área por área, soltas no fim —, então
+  arrumar em Notas também arruma a lista em Estudos. Quem escreve em `subjects` continua sendo o
+  módulo de horários (`assign_area`, `set_subject_order`); o de notas só decide a ordem.
+- **Resposta no toque** (atualização otimista). As mutações do quadro escrevem no cache na hora
+  e refazem a média da área no aparelho (`board-cache.ts`, com as mesmas regras do backend); se o
+  servidor recusar, a tela volta como estava. O recarregamento de verdade só acontece quando a
+  última mutação da fila termina — assim uma resposta antiga nunca desfaz um toque mais novo.
+  Medido com o servidor atrasado em 2,5 s: a matéria aparece na área em ~100 ms.
 - **A nota parcial não é nota ruim.** Com 4 de 5 pontos lançados numa prova que ainda vai ter
   mais avaliações, a média aparece em branco (não em vermelho) com "parcial" do lado, e a
   matéria explica "5 de 10 lançados · 80% do que valeu". Vermelho só quando o trimestre fechou.

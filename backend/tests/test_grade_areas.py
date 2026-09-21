@@ -170,3 +170,82 @@ async def test_entry_mode_per_subject(client: AsyncClient) -> None:
     assert r.status_code == 200 and r.json()["grade_entry_mode"] == "items"
     out = (await client.get(f"/api/v1/grades?year={YEAR}", headers=h)).json()
     assert out["subjects"][0]["entry_mode"] == "items"
+
+
+async def test_area_recebe_varias_materias_de_uma_vez(client: AsyncClient) -> None:
+    """O caminho que substitui arrastar uma por uma: marcar várias e mandar de uma vez."""
+    h = bearer(await onboard(client))
+    a = (await client.post("/api/v1/grades/areas", json={"name": "Exatas"}, headers=h)).json()
+    fis = await _subject(client, h, "Física")
+    qui = await _subject(client, h, "Química")
+    bio = await _subject(client, h, "Biologia")
+
+    r = await client.put(
+        f"/api/v1/grades/areas/{a['id']}/subjects",
+        json={"subject_ids": [qui, fis, bio]},
+        headers=h,
+    )
+    assert r.status_code == 200
+
+    out = (await client.get(f"/api/v1/grades?year={YEAR}", headers=h)).json()
+    assert out["areas"][0]["subject_ids"] == [qui, fis, bio]  # a ordem pedida é a ordem guardada
+    assert [s["name"] for s in out["subjects"]] == ["Química", "Física", "Biologia"]
+
+    # mandar a lista sem a Biologia tira ela da área — e a matéria continua existindo
+    await client.put(
+        f"/api/v1/grades/areas/{a['id']}/subjects", json={"subject_ids": [fis, qui]}, headers=h
+    )
+    out = (await client.get(f"/api/v1/grades?year={YEAR}", headers=h)).json()
+    assert out["areas"][0]["subject_ids"] == [fis, qui]
+    solta = next(s for s in out["subjects"] if s["name"] == "Biologia")
+    assert solta["area_id"] is None
+
+
+async def test_ordem_das_areas(client: AsyncClient) -> None:
+    h = bearer(await onboard(client))
+    ids = [
+        (await client.post("/api/v1/grades/areas", json={"name": n}, headers=h)).json()["id"]
+        for n in ("Linguagens", "Exatas", "Humanas")
+    ]
+    r = await client.put(
+        "/api/v1/grades/areas/order", json={"area_ids": [ids[2], ids[0], ids[1]]}, headers=h
+    )
+    assert r.status_code == 200
+    assert [a["name"] for a in r.json()] == ["Humanas", "Linguagens", "Exatas"]
+
+    out = (await client.get(f"/api/v1/grades?year={YEAR}", headers=h)).json()
+    assert [a["name"] for a in out["areas"]] == ["Humanas", "Linguagens", "Exatas"]
+
+    # lista incompleta não passa: sinal de tela desatualizada
+    r = await client.put("/api/v1/grades/areas/order", json={"area_ids": [ids[0]]}, headers=h)
+    assert r.status_code == 409
+
+
+async def test_ordem_das_materias_segue_a_ordem_das_areas(client: AsyncClient) -> None:
+    """Arrastar em Notas também arruma a lista de matérias em Estudos."""
+    h = bearer(await onboard(client))
+    linguagens = (
+        await client.post("/api/v1/grades/areas", json={"name": "Linguagens"}, headers=h)
+    ).json()["id"]
+    exatas = (await client.post("/api/v1/grades/areas", json={"name": "Exatas"}, headers=h)).json()[
+        "id"
+    ]
+    port = await _subject(client, h, "Português")
+    mat = await _subject(client, h, "Matemática")
+    livre = await _subject(client, h, "Eletiva")
+
+    await client.put(
+        f"/api/v1/grades/areas/{linguagens}/subjects", json={"subject_ids": [port]}, headers=h
+    )
+    await client.put(
+        f"/api/v1/grades/areas/{exatas}/subjects", json={"subject_ids": [mat]}, headers=h
+    )
+    subjects = (await client.get("/api/v1/subjects", headers=h)).json()
+    assert [s["name"] for s in subjects] == ["Português", "Matemática", "Eletiva"]
+
+    await client.put(
+        "/api/v1/grades/areas/order", json={"area_ids": [exatas, linguagens]}, headers=h
+    )
+    subjects = (await client.get("/api/v1/subjects", headers=h)).json()
+    assert [s["name"] for s in subjects] == ["Matemática", "Português", "Eletiva"]
+    assert livre in [s["id"] for s in subjects]

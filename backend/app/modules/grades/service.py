@@ -273,6 +273,59 @@ async def update_area(
     return a
 
 
+async def _renumber_subjects(db: AsyncSession, user_id: UUID) -> None:
+    """Deixa a ordem das matérias igual à da tela: área por área, e as sem área no fim.
+
+    A ordem é uma coisa só (`subjects.sort_order`), então quem arrasta em Notas também
+    arruma a lista em Estudos — que é o que o usuário espera de uma lista de matérias.
+    """
+    areas = await list_areas(db, user_id)
+    materias = await schedule_service.list_subjects(db, user_id)
+    por_area: dict[UUID | None, list[UUID]] = {}
+    for s in materias:
+        por_area.setdefault(s.area_id, []).append(s.id)
+    ordem: list[UUID] = []
+    for a in areas:
+        ordem.extend(por_area.get(a.id, []))
+    ordem.extend(por_area.get(None, []))
+    await schedule_service.set_subject_order(db, user_id, ordem)
+
+
+async def set_area_subjects(
+    db: AsyncSession, user_id: UUID, area_id: UUID, subject_ids: list[UUID]
+) -> GradeArea:
+    """A área passa a ter exatamente estas matérias, nesta ordem."""
+    a = await get_area(db, user_id, area_id)
+    if len(set(subject_ids)) != len(subject_ids):
+        raise ConflictError("A mesma matéria apareceu duas vezes na lista.")
+    await schedule_service.assign_area(db, user_id, area_id, subject_ids)
+    # A ordem pedida vale dentro da área; o resto continua como está.
+    materias = await schedule_service.list_subjects(db, user_id)
+    escolhidas = set(subject_ids)
+    ordem: list[UUID] = []
+    for outra in await list_areas(db, user_id):
+        if outra.id == area_id:
+            ordem.extend(subject_ids)
+        else:
+            ordem.extend(s.id for s in materias if s.area_id == outra.id)
+    ordem.extend(s.id for s in materias if s.area_id is None and s.id not in escolhidas)
+    await schedule_service.set_subject_order(db, user_id, ordem)
+    return a
+
+
+async def reorder_areas(db: AsyncSession, user_id: UUID, area_ids: list[UUID]) -> list[GradeArea]:
+    """Muda a ordem das áreas na tela. A lista precisa trazer todas, sem repetir."""
+    areas = await list_areas(db, user_id)
+    por_id = {a.id: a for a in areas}
+    if len(set(area_ids)) != len(area_ids) or set(area_ids) != set(por_id):
+        raise ConflictError("A lista de áreas está desatualizada. Recarregue e tente de novo.")
+    for posicao, aid in enumerate(area_ids):
+        por_id[aid].sort_order = posicao
+    await db.flush()
+    await _renumber_subjects(db, user_id)
+    return [por_id[aid] for aid in area_ids]
+
+
 async def delete_area(db: AsyncSession, user_id: UUID, area_id: UUID) -> None:
     """As matérias ficam; só perdem a área (FK com ON DELETE SET NULL)."""
     a = await get_area(db, user_id, area_id)

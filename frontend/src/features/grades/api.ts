@@ -4,6 +4,8 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
 import type { GradeArea, GradeEntryMode, Grade, GradesSummary, Subject, User } from '@/lib/types'
 
+import { isSummary, withAreaOrder, withEntryMode, withSubjectArea, withSubjectsInArea } from './board-cache'
+
 export const gradeKeys = {
   all: ['grades'] as const,
   year: (year: number | null) => ['grades', year ?? 'current'] as const,
@@ -120,12 +122,67 @@ export function useDeleteArea() {
   })
 }
 
-/** Em qual área a matéria entra e como ela lança nota (final do trimestre ou por avaliações). */
-export function useSetSubjectGradeSettings() {
-  const invalidate = useInvalidate()
+// --- Quadro de áreas: a tela muda no toque, o servidor confirma depois ----------------------
+
+const BOARD = ['grades-board'] as const
+
+/**
+ * Mutação do quadro com resposta imediata.
+ *
+ * Antes, mover uma matéria esperava o servidor responder e o resumo inteiro recarregar — no
+ * plano grátis isso dava segundos de espera. Agora: escreve no cache na hora, e se o servidor
+ * recusar, volta como estava. O recarregamento de verdade só acontece quando a última mutação
+ * da fila termina, para uma resposta antiga não desfazer um toque mais novo.
+ */
+function useBoardMutation<V>(
+  mutationFn: (vars: V) => Promise<unknown>,
+  optimistic: (s: GradesSummary, vars: V) => GradesSummary,
+  alsoInvalidate: readonly (readonly unknown[])[] = [],
+) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
+    mutationKey: BOARD,
+    mutationFn,
+    onMutate: async (vars: V) => {
+      await qc.cancelQueries({ queryKey: gradeKeys.all })
+      const before = qc.getQueriesData({ queryKey: gradeKeys.all })
+      qc.setQueriesData({ queryKey: gradeKeys.all }, (d: unknown) => (isSummary(d) ? optimistic(d, vars) : d))
+      return { before }
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.before.forEach(([key, data]) => qc.setQueryData(key, data))
+    },
+    onSettled: () => {
+      if (qc.isMutating({ mutationKey: BOARD }) <= 1) {
+        void qc.invalidateQueries({ queryKey: gradeKeys.all })
+        alsoInvalidate.forEach((k) => void qc.invalidateQueries({ queryKey: k }))
+      }
+    },
+  })
+}
+
+/** A área passa a ter exatamente estas matérias, nesta ordem: adicionar várias, tirar, reordenar. */
+export function useSetAreaSubjects() {
+  return useBoardMutation(
+    ({ areaId, subjectIds }: { areaId: string; subjectIds: string[] }) =>
+      api(`/grades/areas/${areaId}/subjects`, { method: 'PUT', body: { subject_ids: subjectIds } }),
+    (s, v) => withSubjectsInArea(s, v.areaId, v.subjectIds),
+    [['subjects']],
+  )
+}
+
+export function useReorderAreas() {
+  return useBoardMutation(
+    (areaIds: string[]) => api('/grades/areas/order', { method: 'PUT', body: { area_ids: areaIds } }),
+    (s, ids) => withAreaOrder(s, ids),
+    [['subjects']],
+  )
+}
+
+/** Em qual área a matéria entra e como ela lança nota (final do trimestre ou por avaliações). */
+export function useSetSubjectGradeSettings() {
+  return useBoardMutation(
+    ({
       id,
       ...body
     }: {
@@ -134,9 +191,13 @@ export function useSetSubjectGradeSettings() {
       clear_area?: boolean
       entry_mode?: GradeEntryMode
     }) => api<Subject>(`/grades/subjects/${id}`, { method: 'PATCH', body }),
-    onSuccess: () => {
-      invalidate()
-      void qc.invalidateQueries({ queryKey: ['subjects'] })
+    (s, v) => {
+      let out = s
+      if (v.clear_area) out = withSubjectArea(out, v.id, null)
+      else if (v.area_id) out = withSubjectArea(out, v.id, v.area_id)
+      if (v.entry_mode) out = withEntryMode(out, v.id, v.entry_mode)
+      return out
     },
-  })
+    [['subjects']],
+  )
 }

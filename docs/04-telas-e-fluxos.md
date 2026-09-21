@@ -27,6 +27,7 @@ Barra inferior com **6 abas** (5 no MVP; **Estudos** entrou na Fase 10). Tudo o 
 ### HUD (todas as abas)
 | # | Tela | Conteúdo |
 |---|---|---|
+| 56 | **Quadro de áreas, versão prática** (Fase 23): faixa "Sem área" com as matérias soltas (tocar abre a lista de áreas) · cartão por área com trilho colorido, média do trimestre, barra de progresso com o risquinho da média mínima, e as matérias dentro, cada uma com alça ⠿ para ordenar · alça no cabeçalho para ordenar as áreas · "+ Adicionar matéria" abre a lista com busca, seções "Nesta área / Sem área / Em outras áreas" e seleção múltipla · "+ Nova área" no fim, vira campo ao tocar. Tudo muda na hora, sem esperar o servidor. |
 | 55 | **Quadro de áreas** (Fase 22): uma tela só. Trimestre em cima, faixa "Sem área" com as matérias soltas (arrasta para dentro de uma área ou toca e escolhe na lista), cartão por área com a média do trimestre e as matérias dentro, e o campo "Nova área" no fim. Nome da área edita no toque, × exclui (as notas ficam). Enquanto falta fechar pontos, a média sai em branco com "parcial". |
 | 54 | **Notas por área**: cada área com a média do ano e por trimestre, "3 de 4 lançadas" quando ainda falta matéria, e as matérias dentro ao tocar. |
 | 53 | **Como lançar, por matéria**: "Nota final" (uma por trimestre) ou "Por avaliações" (prova, trabalho…). Na soma de pontos cada avaliação mostra "5 de 6" e o trimestre, "soma 8,5 de 10". |
