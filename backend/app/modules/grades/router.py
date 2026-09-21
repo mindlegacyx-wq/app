@@ -26,10 +26,6 @@ async def grades_summary(
     db: DB,
     year: Annotated[int | None, Query(ge=2000, le=2100)] = None,
 ) -> GradesSummaryOut:
-    # Ligou "agrupar por área" e ainda não tem nenhuma: já entrega as quatro do ENEM.
-    if user.settings.grades_by_area:
-        await service.ensure_default_areas(db, user.id)
-        await db.commit()
     return await service.summary(db, user, year)
 
 
@@ -54,16 +50,6 @@ async def list_areas(user: CurrentUser, db: DB) -> list[AreaSimpleOut]:
     return [
         AreaSimpleOut(id=a.id, name=a.name, color=a.color, sort_order=a.sort_order)
         for a in await service.list_areas(db, user.id)
-    ]
-
-
-@router.post("/areas/defaults", response_model=list[AreaSimpleOut])
-async def create_default_areas(user: CurrentUser, db: DB) -> list[AreaSimpleOut]:
-    """As quatro do ENEM, se o usuário ainda não tiver nenhuma área."""
-    areas = await service.ensure_default_areas(db, user.id)
-    await db.commit()
-    return [
-        AreaSimpleOut(id=a.id, name=a.name, color=a.color, sort_order=a.sort_order) for a in areas
     ]
 
 

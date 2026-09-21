@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dates import now_utc, user_today
 from app.core.errors import ConflictError, NotFoundError
-from app.modules.grades.models import DEFAULT_AREAS, Grade, GradeArea
+from app.modules.grades.models import AREA_COLORS, Grade, GradeArea
 from app.modules.grades.schemas import (
     AreaIn,
     AreaOut,
@@ -252,20 +252,10 @@ async def get_area(db: AsyncSession, user_id: UUID, area_id: UUID) -> GradeArea:
     return a
 
 
-async def ensure_default_areas(db: AsyncSession, user_id: UUID) -> list[GradeArea]:
-    """Primeira vez agrupando por área: já entrega as quatro do ENEM, prontas para editar."""
-    existing = await list_areas(db, user_id)
-    if existing:
-        return existing
-    for i, (name, color) in enumerate(DEFAULT_AREAS):
-        db.add(GradeArea(user_id=user_id, name=name, color=color, sort_order=i))
-    await db.flush()
-    return await list_areas(db, user_id)
-
-
 async def create_area(db: AsyncSession, user_id: UUID, data: AreaIn) -> GradeArea:
     nxt = len(await list_areas(db, user_id))
-    a = GradeArea(user_id=user_id, name=data.name, color=data.color.upper(), sort_order=nxt)
+    color = (data.color or AREA_COLORS[nxt % len(AREA_COLORS)]).upper()
+    a = GradeArea(user_id=user_id, name=data.name, color=color, sort_order=nxt)
     db.add(a)
     await db.flush()
     return a

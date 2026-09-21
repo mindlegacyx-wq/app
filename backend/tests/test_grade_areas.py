@@ -76,29 +76,34 @@ async def test_grade_cannot_pass_the_points_of_the_assessment(client: AsyncClien
     assert r.status_code == 409 and "pontos" in r.json()["error"]["message"]
 
 
-async def test_default_areas_show_up_when_grouping_is_on(client: AsyncClient) -> None:
+async def test_no_area_comes_ready_made(client: AsyncClient) -> None:
+    """Cada escola divide as áreas do seu jeito: o app não inventa nenhuma."""
     h = bearer(await onboard(client))
-    assert (await client.get("/api/v1/grades/areas", headers=h)).json() == []
-
     await client.patch("/api/v1/users/me/settings", json={"grades_by_area": True}, headers=h)
     out = (await client.get(f"/api/v1/grades?year={YEAR}", headers=h)).json()
     assert out["by_area"] is True
-    assert [a["name"] for a in out["areas"]] == [
-        "Linguagens",
-        "Matemática",
-        "Ciências da Natureza",
-        "Ciências Humanas",
-    ]
-    # não duplica em cada visita
-    await client.get(f"/api/v1/grades?year={YEAR}", headers=h)
-    assert len((await client.get("/api/v1/grades/areas", headers=h)).json()) == 4
+    assert out["areas"] == []
+    assert (await client.get("/api/v1/grades/areas", headers=h)).json() == []
+
+
+async def test_new_areas_get_different_colors(client: AsyncClient) -> None:
+    h = bearer(await onboard(client))
+    cores = []
+    for name in ("Linguagens", "Exatas", "Humanas"):
+        cores.append(
+            (await client.post("/api/v1/grades/areas", json={"name": name}, headers=h)).json()[
+                "color"
+            ]
+        )
+    assert len(set(cores)) == 3
 
 
 async def test_area_average_divides_by_the_subjects_with_grade(client: AsyncClient) -> None:
     h = bearer(await onboard(client))
     await client.patch("/api/v1/users/me/settings", json={"grades_by_area": True}, headers=h)
-    areas = (await client.post("/api/v1/grades/areas/defaults", headers=h)).json()
-    linguagens = next(a for a in areas if a["name"] == "Linguagens")["id"]
+    linguagens = (
+        await client.post("/api/v1/grades/areas", json={"name": "Linguagens"}, headers=h)
+    ).json()["id"]
 
     port = await _subject(client, h, "Português")
     ing = await _subject(client, h, "Inglês")

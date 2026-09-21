@@ -5,7 +5,16 @@ import { useEffect, useRef, useState } from 'react'
  * Número que conta até o valor. Usado no percentual do dia: ver 0 → 67 subindo dá a sensação
  * de "o número é seu". Respeita reduced motion (aí o valor aparece direto).
  */
-export function CountUp({ value, duration = 700 }: { value: number; duration?: number }) {
+export function CountUp({
+  value,
+  duration = 700,
+  decimals = 0,
+}: {
+  value: number
+  duration?: number
+  /** Casas decimais (notas usam 1 ou 2; percentuais, nenhuma). */
+  decimals?: number
+}) {
   const reduced = useReducedMotion()
   const [shown, setShown] = useState(reduced ? value : 0)
   const from = useRef(0)
@@ -21,13 +30,20 @@ export function CountUp({ value, duration = 700 }: { value: number; duration?: n
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration)
       const eased = 1 - Math.pow(1 - t, 4) // ease-out-quart, igual ao resto do app
-      setShown(Math.round(origin + (value - origin) * eased))
+      const step = origin + (value - origin) * eased
+      setShown(decimals > 0 ? Number(step.toFixed(decimals)) : Math.round(step))
       if (t < 1) raf = requestAnimationFrame(tick)
       else from.current = value
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [value, duration, reduced])
+  }, [value, duration, reduced, decimals])
 
-  return <>{shown}</>
+  return (
+    <>
+      {decimals > 0
+        ? shown.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+        : shown}
+    </>
+  )
 }

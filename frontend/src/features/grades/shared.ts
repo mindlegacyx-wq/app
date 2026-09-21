@@ -16,6 +16,12 @@ export function fmtGrade(v: number | null | undefined): string {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(v)
 }
 
+/** Quantas casas a nota precisa mostrar: 8 → 0 · 8,5 → 1 · 8,83 → 2 */
+export function decimalsOf(v: number): number {
+  if (Number.isInteger(v)) return 0
+  return Math.abs(v * 10 - Math.round(v * 10)) < 1e-9 ? 1 : 2
+}
+
 /** "7,5" ou "7.5" → 7.5 (null se inválido) */
 export function parseGrade(text: string): number | null {
   const n = Number(text.trim().replace(',', '.'))

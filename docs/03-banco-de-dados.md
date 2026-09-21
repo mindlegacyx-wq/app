@@ -482,7 +482,7 @@ Regras de cálculo:
 | sort_order | int | |
 | created_at · updated_at | timestamptz | |
 
-`INDEX (user_id, sort_order)`. `subjects.area_id` aponta para cá com `ON DELETE SET NULL` — apagar a área nunca apaga matéria nem nota. As quatro do ENEM nascem na primeira vez que o usuário liga "agrupar por área".
+`INDEX (user_id, sort_order)`. `subjects.area_id` aponta para cá com `ON DELETE SET NULL` — apagar a área nunca apaga matéria nem nota. Nenhuma área vem pronta (Fase 22): o usuário cria as dele e a cor sai de uma paleta fixa, rodando na ordem de criação.
 
 Também na Fase 21: `subjects.grade_entry_mode` (`final` = uma nota por trimestre · `items` = prova, trabalho…) e, em `user_settings`, `grade_mode` (`weighted` · `sum`) e `grades_by_area`.
 

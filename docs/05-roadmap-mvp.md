@@ -77,10 +77,17 @@ automático mais o tempo total; peso corporal registrado quando quiser, com grá
   lateral no lugar da barra de abas, conteúdo mais largo, tela Hoje em duas colunas e
   formulários como janela. Decidido por largura de janela, não por aparelho.
 
-- **Fase 21 — Notas por área e soma de pontos** (feita): a escola que fecha por área agora tem
-  as quatro do ENEM prontas (editáveis) com a média sendo a das matérias lançadas; a que soma
-  pontos tem "prova vale 6, trabalho vale 4"; e cada matéria escolhe entre lançar só a nota
-  final do trimestre ou as avaliações que a compõem.
+- **Fase 21 — Notas por área e soma de pontos** (feita): a escola que fecha por área agora
+  agrupa as matérias e tira a média das que já têm nota; a que soma pontos tem "prova vale 6,
+  trabalho vale 4"; e cada matéria escolhe entre lançar só a nota final do trimestre ou as
+  avaliações que a compõem.
+
+- **Fase 22 — O quadro de áreas** (feita): a tela de notas virou uma só. Nenhuma área vem
+  pronta — o usuário cria as dele e leva as matérias para dentro arrastando (ou tocando, que
+  abre a lista de áreas). Tocar na matéria lança prova, trabalho e o que mais tiver ali mesmo,
+  e a média da área já conta o que existe: com 4 de 5 pontos de uma prova, ela aparece com
+  "parcial" em vez de vermelho. Animações de reposição ligadas de verdade (o app carregava um
+  pacote do motion que não incluía arrastar nem `layout`).
 
 ## MoSCoW
 

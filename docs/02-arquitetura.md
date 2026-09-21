@@ -265,6 +265,32 @@ de a escola fechar a nota.
 
 Tudo continua calculado na leitura: nenhuma média é gravada.
 
+## 7.10. O quadro de áreas (Fase 22)
+
+A primeira versão separava "ver notas" de "organizar áreas" em duas telas, e vinha com as
+quatro áreas do ENEM prontas. Na prática deu o contrário do esperado: quem não estuda por
+aquelas quatro gastava tempo apagando, e quem queria só lançar uma prova tinha que passear
+entre telas. A Fase 22 junta tudo numa tela só:
+
+- **Nada vem pronto.** Cada escola divide as áreas do seu jeito; uma lista errada dá mais
+  trabalho para apagar do que para criar. O usuário cria as áreas dele, e o servidor escolhe a
+  cor rodando uma paleta fixa (`AREA_COLORS`) para que duas áreas seguidas nunca saiam iguais.
+- **As matérias sem área ficam numa faixa no topo** e vão para dentro de uma área arrastando.
+  O alvo é calculado comparando o ponto do dedo com o retângulo de cada área; como o motion
+  entrega o ponto contando a rolagem da página, a rolagem é descontada antes da comparação.
+  Segurar a matéria perto da borda rola a lista, então dá para alcançar uma área longe.
+- **Arrastar não é o único caminho.** Tocar na matéria abre uma folha com a lista de áreas —
+  é o que o dedo acerta em tela pequena, e é o caminho que sobra quando o aparelho está com
+  "reduzir animações" ligado.
+- **A nota parcial não é nota ruim.** Com 4 de 5 pontos lançados numa prova que ainda vai ter
+  mais avaliações, a média aparece em branco (não em vermelho) com "parcial" do lado, e a
+  matéria explica "5 de 10 lançados · 80% do que valeu". Vermelho só quando o trimestre fechou.
+
+Decisão de biblioteca: o app passou a carregar o pacote `domMax` do motion em vez do
+`domAnimation`. O `domAnimation` não traz arrastar nem animação de reposição — os `layout` que
+já existiam no código simplesmente não rodavam. Custo: ~13 kB gzip no bundle, que o service
+worker já guarda no primeiro acesso.
+
 ## 8. Infra e deploy
 
 ```

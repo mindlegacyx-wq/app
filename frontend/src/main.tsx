@@ -1,7 +1,7 @@
 import { MutationCache, QueryClient } from '@tanstack/react-query'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { domAnimation, LazyMotion, MotionConfig } from 'motion/react'
+import { domMax, LazyMotion, MotionConfig } from 'motion/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router'
@@ -65,7 +65,9 @@ void useAuth
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <LazyMotion features={domAnimation}>
+    {/* domMax e não domAnimation: é o pacote que traz arrastar (notas por área) e as
+        animações de reposição, que o domAnimation não inclui. */}
+    <LazyMotion features={domMax}>
       <MotionConfig reducedMotion="user">
         <PersistQueryClientProvider
           client={queryClient}

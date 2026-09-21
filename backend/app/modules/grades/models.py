@@ -39,20 +39,18 @@ class Grade(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     subject: Mapped[Subject] = relationship(lazy="joined")
 
 
-# As quatro áreas do ENEM, criadas na primeira vez que o usuário agrupa as notas por área.
-DEFAULT_AREAS = (
-    ("Linguagens", "#4F8CFF"),
-    ("Matemática", "#C6F135"),
-    ("Ciências da Natureza", "#43D9A3"),
-    ("Ciências Humanas", "#FF9F45"),
-)
+# Cores das áreas novas, em rodízio, para cada uma nascer diferente da anterior.
+AREA_COLORS = ("#4F8CFF", "#C6F135", "#43D9A3", "#FF9F45", "#B98CFF", "#FF6B8A")
 
 
 class GradeArea(Base, UUIDPrimaryKeyMixin, TimestampMixin):
-    """Área de conhecimento que junta matérias (Linguagens, Matemática...).
+    """Área de conhecimento que junta matérias (Linguagens, Exatas, Técnico...).
 
-    Existe porque muita escola fecha a nota por área: a média da área é a média das médias
+    Existe porque muita escola fecha a nota por área: a média da área é a média das notas
     das matérias que ela agrupa. Quem lança nota continua sendo a matéria.
+
+    Nada vem pronto: cada escola divide as áreas do seu jeito, e uma lista pronta errada dá
+    mais trabalho para apagar do que para criar.
     """
 
     __tablename__ = "grade_areas"
@@ -62,5 +60,5 @@ class GradeArea(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(40), nullable=False)
-    color: Mapped[str] = mapped_column(String(7), nullable=False, default="#4F8CFF")
+    color: Mapped[str] = mapped_column(String(7), nullable=False, default=AREA_COLORS[0])
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

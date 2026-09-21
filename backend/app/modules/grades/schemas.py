@@ -89,7 +89,8 @@ class AreaOut(BaseModel):
 
 class AreaIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
-    color: str = Field(default="#4F8CFF", pattern=r"^#[0-9a-fA-F]{6}$")
+    # Sem cor, o servidor escolhe a próxima do rodízio.
+    color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
 
 
 class AreaUpdate(BaseModel):

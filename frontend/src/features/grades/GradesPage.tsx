@@ -1,14 +1,14 @@
 import { AnimatePresence, m } from 'motion/react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 
 import { Button, Card, Chip, EmptyState, Field, Sheet, Spinner, Toggle } from '@/components/ui'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth-store'
 import { cn, pluralize } from '@/lib/format'
-import type { Grade, GradeEntryMode, GradesSummary, PeriodGrades, SubjectGrades } from '@/lib/types'
+import type { AreaGrades, Grade, GradeEntryMode, PeriodGrades, SubjectGrades } from '@/lib/types'
 
-import { AreasSheet } from './AreasSheet'
+import { AreaBoard } from './AreaBoard'
 import { GradeSheet } from './GradeSheet'
 import { useCreateGrade, useGrades, useSetSubjectGradeSettings, useUpdateGrade, useUpdateGradeSettings } from './api'
 import { fmtGrade, parseGrade, periodLabel, periodsName, statusLabel, statusTone } from './shared'
@@ -18,12 +18,17 @@ export function GradesPage() {
   const [year, setYear] = useState<number | null>(null)
   const grades = useGrades(year)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [areasOpen, setAreasOpen] = useState(false)
   const [detail, setDetail] = useState<SubjectGrades | null>(null)
+  const [period, setPeriod] = useState<number | null>(null)
 
   const data = grades.data
+  // Trimestre em foco: o último com alguma nota, até o usuário escolher outro.
+  const lastWithGrades = data
+    ? Math.max(1, ...data.subjects.flatMap((s) => s.periods.filter((p) => p.average !== null).map((p) => p.period)))
+    : 1
+  const current = period ?? lastWithGrades
   // Mantém o detalhe aberto sincronizado com a última leitura.
-  const current = detail ? (data?.subjects.find((s) => s.subject_id === detail.subject_id) ?? null) : null
+  const openSubject = detail ? (data?.subjects.find((s) => s.subject_id === detail.subject_id) ?? null) : null
 
   return (
     <div className="safe-top pt-2 pb-10">
@@ -60,9 +65,17 @@ export function GradesPage() {
       ) : (
         <>
           <p className="mt-2 px-0.5 text-[13px] text-ink-faint">
-            Média mínima <span className="font-semibold text-ink-muted">{fmtGrade(data!.passing_grade)}</span> · {data!.periods_per_year}{' '}
-            {periodsName(data!.periods_per_year)} · escala até {fmtGrade(data!.grade_max)}
+            Média mínima <span className="font-semibold text-ink-muted">{fmtGrade(data!.passing_grade)}</span> · escala até{' '}
+            {fmtGrade(data!.grade_max)} · {data!.grade_mode === 'sum' ? 'soma de pontos' : 'média ponderada'}
           </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Array.from({ length: data!.periods_per_year }, (_, i) => i + 1).map((n) => (
+              <Chip key={n} active={n === current} onClick={() => setPeriod(n)}>
+                {periodLabel(n, data!.periods_per_year)}
+              </Chip>
+            ))}
+          </div>
 
           {data!.years.length > 1 && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -86,7 +99,7 @@ export function GradesPage() {
               }
             />
           ) : data!.by_area ? (
-            <ByArea data={data!} onOpenSubject={setDetail} onManageAreas={() => setAreasOpen(true)} />
+            <AreaBoard data={data!} period={current} onOpenSubject={setDetail} />
           ) : (
             <div className="mt-4 flex flex-col gap-3">
               {data!.subjects.map((s) => (
@@ -105,201 +118,19 @@ export function GradesPage() {
 
       {data && (
         <SubjectSheet
-          open={current !== null}
-          subject={current}
+          open={openSubject !== null}
+          subject={openSubject}
           year={data.year}
           periodsPerYear={data.periods_per_year}
           passing={data.passing_grade}
+          gradeMax={data.grade_max}
           gradeMode={data.grade_mode}
+          areas={data.areas}
+          startPeriod={current}
           onClose={() => setDetail(null)}
         />
       )}
-      <GradeSettingsSheet
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onManageAreas={() => {
-          setSettingsOpen(false)
-          setAreasOpen(true)
-        }}
-      />
-      <AreasSheet
-        open={areasOpen}
-        onClose={() => setAreasOpen(false)}
-        subjects={(data?.subjects ?? []).map((s) => ({
-          subject_id: s.subject_id,
-          name: s.name,
-          color: s.color,
-          area_id: s.area_id,
-        }))}
-      />
-    </div>
-  )
-}
-
-/** Notas agrupadas por área: a média da área, e as matérias dela ao tocar. */
-function ByArea({
-  data,
-  onOpenSubject,
-  onManageAreas,
-}: {
-  data: GradesSummary
-  onOpenSubject: (s: SubjectGrades) => void
-  onManageAreas: () => void
-}) {
-  const [open, setOpen] = useState<string | null>(null)
-  const byId = new Map(data.subjects.map((s) => [s.subject_id, s]))
-  const semArea = data.subjects.filter((s) => !s.area_id)
-
-  return (
-    <div className="mt-4 flex flex-col gap-3">
-      {data.areas.map((area) => {
-        const expanded = open === area.id
-        const subjects = area.subject_ids.map((id) => byId.get(id)).filter(Boolean) as SubjectGrades[]
-        return (
-          <Card key={area.id} padded={false} className="overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpen(expanded ? null : area.id)}
-              aria-expanded={expanded}
-              className="w-full px-4 py-3.5 text-left"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="size-3 shrink-0 rounded-full" style={{ background: area.color }} aria-hidden />
-                  <h3 className="truncate text-[17px] font-semibold tracking-[-0.01em]">{area.name}</h3>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p
-                    className={cn(
-                      'tabular text-[22px] leading-none font-semibold tracking-[-0.02em]',
-                      area.year_average === null
-                        ? 'text-ink-faint'
-                        : area.year_average < data.passing_grade
-                          ? 'text-danger'
-                          : 'text-accent',
-                    )}
-                  >
-                    {fmtGrade(area.year_average)}
-                  </p>
-                  <p className="mt-1 text-[11px] text-ink-faint">média do ano</p>
-                </div>
-              </div>
-
-              <div
-                className="mt-3 grid gap-1.5"
-                style={{ gridTemplateColumns: `repeat(${data.periods_per_year}, minmax(0, 1fr))` }}
-              >
-                {area.periods.map((p) => (
-                  <div
-                    key={p.period}
-                    className={cn(
-                      'rounded-md border px-2 py-1.5 text-center',
-                      p.average === null
-                        ? 'border-dashed border-line-strong'
-                        : p.average >= data.passing_grade
-                          ? 'border-accent/30 bg-accent-soft/40'
-                          : 'border-danger/30 bg-danger-soft/40',
-                    )}
-                  >
-                    <p className="text-[10px] tracking-[0.04em] text-ink-faint uppercase">
-                      {periodLabel(p.period, data.periods_per_year, true)}
-                    </p>
-                    <p
-                      className={cn(
-                        'tabular text-[15px] font-semibold',
-                        p.average === null ? 'text-ink-faint' : p.average >= data.passing_grade ? 'text-accent' : 'text-danger',
-                      )}
-                    >
-                      {fmtGrade(p.average)}
-                    </p>
-                    {p.total > 0 && (
-                      <p className="text-[10px] text-ink-faint tabular-nums">
-                        {p.with_grade} de {p.total}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {subjects.length === 0 ? (
-                <p className="mt-3 text-[13px] text-ink-faint">Nenhuma matéria nesta área ainda.</p>
-              ) : (
-                <p className={cn('mt-3 text-[13px]', statusTone(area.status))}>
-                  <span className="font-semibold">{statusLabel[area.status]}</span> ·{' '}
-                  <span className="text-ink-muted">
-                    {subjects.length} {pluralize(subjects.length, 'matéria', 'matérias').split(' ').slice(1).join(' ')}
-                    {/* parcial só quando o trimestre começou e ainda falta matéria */}
-                    {area.periods.some((p) => p.with_grade > 0 && p.with_grade < p.total) ? ' · média parcial' : ''}
-                  </span>
-                </p>
-              )}
-            </button>
-
-            <AnimatePresence initial={false}>
-              {expanded && subjects.length > 0 && (
-                <m.ul
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className="overflow-hidden border-t border-line"
-                >
-                  {subjects.map((s) => (
-                    <li key={s.subject_id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenSubject(s)}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated"
-                      >
-                        <span className="size-2.5 shrink-0 rounded-full" style={{ background: s.color }} aria-hidden />
-                        <span className="min-w-0 flex-1 truncate text-[15px]">{s.name}</span>
-                        <span
-                          className={cn(
-                            'tabular shrink-0 text-[15px] font-semibold',
-                            s.year_average === null
-                              ? 'text-ink-faint'
-                              : s.year_average >= data.passing_grade
-                                ? 'text-ink'
-                                : 'text-danger',
-                          )}
-                        >
-                          {fmtGrade(s.year_average)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </m.ul>
-              )}
-            </AnimatePresence>
-          </Card>
-        )
-      })}
-
-      {semArea.length > 0 && (
-        <>
-          <div className="mt-2 flex items-baseline justify-between px-0.5">
-            <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">Sem área</h2>
-            <button type="button" onClick={onManageAreas} className="text-[13px] font-semibold text-accent">
-              Organizar áreas
-            </button>
-          </div>
-          {semArea.map((s) => (
-            <SubjectCard
-              key={s.subject_id}
-              s={s}
-              periodsPerYear={data.periods_per_year}
-              passing={data.passing_grade}
-              onOpen={() => onOpenSubject(s)}
-            />
-          ))}
-        </>
-      )}
-
-      {semArea.length === 0 && (
-        <button type="button" onClick={onManageAreas} className="self-start px-0.5 text-[13px] font-semibold text-accent">
-          Organizar áreas
-        </button>
-      )}
+      <GradeSettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }
@@ -397,13 +228,20 @@ function SubjectCard({
   )
 }
 
+/**
+ * A matéria por dentro: em que área ela está, como lança nota e as notas do trimestre
+ * escolhido. Um trimestre por vez — a tela antiga mostrava os três e virava rolagem.
+ */
 function SubjectSheet({
   open,
   subject,
   year,
   periodsPerYear,
   passing,
+  gradeMax,
   gradeMode,
+  areas,
+  startPeriod,
   onClose,
 }: {
   open: boolean
@@ -411,57 +249,94 @@ function SubjectSheet({
   year: number
   periodsPerYear: number
   passing: number
+  gradeMax: number
   gradeMode: 'weighted' | 'sum'
+  areas: AreaGrades[]
+  startPeriod: number
   onClose: () => void
 }) {
   const [gradeSheet, setGradeSheet] = useState<{ open: boolean; period?: number; grade?: Grade }>({ open: false })
-  const setMode = useSetSubjectGradeSettings()
+  const [period, setPeriod] = useState(startPeriod)
+  const setSubject = useSetSubjectGradeSettings()
   const mode: GradeEntryMode = subject?.entry_mode ?? 'final'
+
+  useEffect(() => {
+    if (open) setPeriod(startPeriod)
+  }, [open, startPeriod, subject?.subject_id])
+
+  const p = subject?.periods.find((x) => x.period === period) ?? null
+  const sum = gradeMode === 'sum'
+  const launched = sum ? (p?.max_points ?? null) : null
+  // Trimestre ainda aberto: a soma vai crescer, então nada de pintar de vermelho.
+  const parcial = launched !== null && launched < gradeMax
+
   return (
     <>
       <Sheet open={open} onClose={onClose} title={subject?.name ?? 'Matéria'}>
         {subject && (
           <div className="flex flex-col gap-4">
-            <p className={cn('text-[14px]', statusTone(subject.status))}>{neededText(subject, periodsPerYear, passing)}</p>
+            {areas.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[13px] font-medium text-ink-muted">Área</span>
+                <div className="flex flex-wrap gap-2">
+                  <Chip
+                    active={!subject.area_id}
+                    onClick={() => setSubject.mutate({ id: subject.subject_id, clear_area: true })}
+                  >
+                    Sem área
+                  </Chip>
+                  {areas.map((a) => (
+                    <Chip
+                      key={a.id}
+                      active={subject.area_id === a.id}
+                      onClick={() => setSubject.mutate({ id: subject.subject_id, area_id: a.id })}
+                    >
+                      <span className="size-2 rounded-full" style={{ background: a.color }} aria-hidden />
+                      {a.name}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <span className="text-[13px] font-medium text-ink-muted">Como lançar nesta matéria</span>
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Como lançar">
-                <Chip
-                  active={mode === 'final'}
-                  onClick={() => setMode.mutate({ id: subject.subject_id, entry_mode: 'final' })}
-                >
+                <Chip active={mode === 'final'} onClick={() => setSubject.mutate({ id: subject.subject_id, entry_mode: 'final' })}>
                   Nota final
                 </Chip>
-                <Chip
-                  active={mode === 'items'}
-                  onClick={() => setMode.mutate({ id: subject.subject_id, entry_mode: 'items' })}
-                >
+                <Chip active={mode === 'items'} onClick={() => setSubject.mutate({ id: subject.subject_id, entry_mode: 'items' })}>
                   Por avaliações
                 </Chip>
               </div>
               <p className="text-[12px] text-ink-faint">
                 {mode === 'final'
                   ? 'Uma nota por trimestre — a que a escola fechou.'
-                  : 'Prova, trabalho, participação… a nota do trimestre sai delas, mesmo antes de fechar.'}
+                  : 'Prova, trabalho, participação… a nota sai delas, mesmo antes de fechar.'}
               </p>
             </div>
 
-            {mode === 'final' &&
-              subject.periods.map((p) => (
-                <FinalGradeRow
-                  key={p.period}
-                  subjectId={subject.subject_id}
-                  year={year}
-                  period={p}
-                  periodsPerYear={periodsPerYear}
-                  passing={passing}
-                  onOpenItems={() => setGradeSheet({ open: true, period: p.period })}
-                />
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Trimestre">
+              {Array.from({ length: periodsPerYear }, (_, i) => i + 1).map((n) => (
+                <Chip key={n} active={n === period} onClick={() => setPeriod(n)}>
+                  {periodLabel(n, periodsPerYear)}
+                </Chip>
               ))}
+            </div>
 
-            {mode === 'items' && subject.periods.map((p) => (
-              <section key={p.period}>
+            {p && mode === 'final' && (
+              <FinalGradeRow
+                subjectId={subject.subject_id}
+                year={year}
+                period={p}
+                periodsPerYear={periodsPerYear}
+                passing={passing}
+                onOpenItems={() => setSubject.mutate({ id: subject.subject_id, entry_mode: 'items' })}
+              />
+            )}
+
+            {p && mode === 'items' && (
+              <section>
                 <div className="mb-1.5 flex items-baseline justify-between px-0.5">
                   <h3 className="text-[12px] font-semibold tracking-[0.08em] text-ink-faint uppercase">
                     {periodLabel(p.period, periodsPerYear)}
@@ -469,45 +344,51 @@ function SubjectSheet({
                   <span
                     className={cn(
                       'tabular text-[13px] font-semibold',
-                      p.average === null ? 'text-ink-faint' : p.average >= passing ? 'text-accent' : 'text-danger',
+                      p.average === null
+                        ? 'text-ink-faint'
+                        : parcial
+                          ? 'text-ink-muted'
+                          : p.average >= passing
+                            ? 'text-accent'
+                            : 'text-danger',
                     )}
                   >
                     {p.average === null
                       ? 'sem notas'
-                      : gradeMode === 'sum'
-                        ? `soma ${fmtGrade(p.average)}${p.max_points !== null ? ` de ${fmtGrade(p.max_points)}` : ''}`
+                      : sum
+                        ? `soma ${fmtGrade(p.average)}${launched !== null ? ` de ${fmtGrade(launched)}` : ''}`
                         : `média ${fmtGrade(p.average)}`}
                   </span>
                 </div>
+
                 <Card padded={false} className="overflow-hidden">
                   <ul className="divide-y divide-line">
-                    {p.grades.map((g) => (
-                      <li key={g.id}>
-                        <button
-                          type="button"
-                          onClick={() => setGradeSheet({ open: true, grade: g })}
-                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated"
-                        >
-                          <span className="min-w-0 flex-1 truncate text-[15px]">{g.title ?? 'Nota'}</span>
-                          {gradeMode !== 'sum' && g.weight !== 1 && (
-                            <span className="shrink-0 text-[12px] text-ink-faint">peso {fmtGrade(g.weight)}</span>
-                          )}
-                          <span
-                            className={cn(
-                              'tabular shrink-0 text-[16px] font-semibold',
-                              // Na soma de pontos, tirar 5 numa prova que vale 6 é ótimo:
-                              // comparar com a média mínima aqui só confundiria.
-                              gradeMode === 'sum' || g.value >= passing ? 'text-ink' : 'text-danger',
-                            )}
+                    <AnimatePresence initial={false}>
+                      {p.grades.map((g) => (
+                        <m.li key={g.id} layout initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                          <button
+                            type="button"
+                            onClick={() => setGradeSheet({ open: true, grade: g })}
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated"
                           >
-                            {fmtGrade(g.value)}
-                            {gradeMode === 'sum' && g.max_points !== null && (
-                              <span className="ml-1 text-[12px] font-normal text-ink-faint">de {fmtGrade(g.max_points)}</span>
-                            )}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
+                            <span className="min-w-0 flex-1 truncate text-[15px]">{g.title ?? 'Nota'}</span>
+                            {!sum && g.weight !== 1 && <span className="shrink-0 text-[12px] text-ink-faint">peso {fmtGrade(g.weight)}</span>}
+                            <span
+                              className={cn(
+                                'tabular shrink-0 text-[16px] font-semibold',
+                                // Na soma, 5 numa prova que vale 6 é boa nota: nada de vermelho.
+                                sum || g.value >= passing ? 'text-ink' : 'text-danger',
+                              )}
+                            >
+                              {fmtGrade(g.value)}
+                              {sum && g.max_points !== null && (
+                                <span className="ml-1 text-[12px] font-normal text-ink-faint">de {fmtGrade(g.max_points)}</span>
+                              )}
+                            </span>
+                          </button>
+                        </m.li>
+                      ))}
+                    </AnimatePresence>
                     <li>
                       <button
                         type="button"
@@ -519,8 +400,18 @@ function SubjectSheet({
                     </li>
                   </ul>
                 </Card>
+
+                {sum && launched !== null && p.average !== null && (
+                  <p className="mt-2 px-0.5 text-[12px] text-ink-faint">
+                    {parcial
+                      ? `Lançados ${fmtGrade(launched)} pontos dos que a escola vai dar. Nos lançados, você tem ${Math.round((p.average / launched) * 100)}%.`
+                      : `Trimestre fechado em ${fmtGrade(p.average)} de ${fmtGrade(launched)}.`}
+                  </p>
+                )}
               </section>
-            ))}
+            )}
+
+            <p className={cn('text-[13px]', statusTone(subject.status))}>{neededText(subject, periodsPerYear, passing)}</p>
           </div>
         )}
       </Sheet>
@@ -531,7 +422,7 @@ function SubjectSheet({
           subjectId={subject.subject_id}
           subjectName={subject.name}
           year={year}
-          period={gradeSheet.period}
+          period={gradeSheet.period ?? period}
           grade={gradeSheet.grade}
         />
       )}
@@ -617,23 +508,15 @@ function FinalGradeRow({
 }
 
 /** Régua da escola: média mínima, períodos, escala, como fecha a nota e áreas. */
-function GradeSettingsSheet({
-  open,
-  onClose,
-  onManageAreas,
-}: {
-  open: boolean
-  onClose: () => void
-  onManageAreas: () => void
-}) {
+function GradeSettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Sheet open={open} onClose={onClose} title="Régua da escola">
-      <GradeSettingsForm key={String(open)} onClose={onClose} onManageAreas={onManageAreas} />
+      <GradeSettingsForm key={String(open)} onClose={onClose} />
     </Sheet>
   )
 }
 
-function GradeSettingsForm({ onClose, onManageAreas }: { onClose: () => void; onManageAreas: () => void }) {
+function GradeSettingsForm({ onClose }: { onClose: () => void }) {
   const settings = useAuth((s) => s.user!.settings)
   const update = useUpdateGradeSettings()
   const [passing, setPassing] = useState(fmtGrade(settings.passing_grade))
@@ -722,9 +605,7 @@ function GradeSettingsForm({ onClose, onManageAreas }: { onClose: () => void; on
           <Toggle label="Agrupar notas por área" checked={byArea} onChange={setByArea} />
         </div>
         {byArea && (
-          <button type="button" onClick={onManageAreas} className="self-start text-[13px] font-semibold text-accent">
-            Organizar áreas e matérias
-          </button>
+          <p className="text-[12px] text-ink-faint">As áreas você cria e organiza na própria tela de notas.</p>
         )}
       </div>
       {error && <p className="text-[14px] text-danger">{error}</p>}
